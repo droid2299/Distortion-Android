@@ -10,6 +10,8 @@ import kotlinx.coroutines.launch
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
+import java.nio.file.Files
+import java.nio.file.StandardCopyOption
 
 /** A saved station, with when it was saved (the order the favorites show in). */
 data class RadioFavorite(val station: RadioStation, val addedAt: Long)
@@ -65,7 +67,10 @@ object RadioFavoritesStore {
             change()
             val f = file ?: return
             val tmp = File(f.parentFile, f.name + ".tmp")
-            runCatching { tmp.writeText(write()); tmp.renameTo(f) }
+            runCatching {
+                tmp.writeText(write())
+                Files.move(tmp.toPath(), f.toPath(), StandardCopyOption.REPLACE_EXISTING)
+            }
         }
     }
 
