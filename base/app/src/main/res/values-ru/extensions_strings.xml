@@ -9,7 +9,7 @@
     <string name="extensions_installed">Установленные</string>
     <string name="extensions_repository_add">Добавить репозиторий</string>
     <string name="extensions_repository_hint">https://…/index.json</string>
-    <string name="extensions_repository_warning">Myspoti не проверяет добавленный вами репозиторий: всё, что вы из него установите, — на ваш страх и риск.</string>
+    <string name="extensions_repository_warning">Distortion не проверяет добавленный вами репозиторий: всё, что вы из него установите, — на ваш страх и риск.</string>
     <string name="extensions_repository_remove">Удалить</string>
     <string name="extensions_repository_refresh">Обновить</string>
     <string name="extensions_install">Установить</string>
@@ -69,7 +69,7 @@
     <string name="extensions_repo_yours">Добавлен вами</string>
     <string name="extensions_repo_community">Сообщество</string>
     <string name="extensions_repo_official_note">Каждое расширение проверяется, прежде чем попасть в список.</string>
-    <string name="extensions_repo_yours_note">Не проверен Myspoti: устанавливайте на свой страх и риск.</string>
+    <string name="extensions_repo_yours_note">Не проверен Distortion: устанавливайте на свой страх и риск.</string>
     <string name="extensions_repo_error">Не удалось прочитать этот репозиторий: %1$s</string>
     <string name="extensions_repo_empty">В этом репозитории нет расширений.</string>
     <string name="extensions_requires">Требуется Distortion %1$s или новее</string>
@@ -133,7 +133,7 @@
     <string name="area_idle">Простаивает</string>
     <string name="area_make_active">Сделать основным для: %1$s</string>
     <!-- Install prompt -->
-    <string name="ext_third_party_notice">Стороннее расширение, не проверено Myspoti, на ответственности его автора.</string>
+    <string name="ext_third_party_notice">Стороннее расширение, не проверено Distortion, на ответственности его автора.</string>
     <string name="ext_risk_accept">Я понимаю, что это расширение создано третьей стороной, и устанавливаю его под свою ответственность</string>
     <string name="ext_clash_exclusive">Заменяет %1$s, которое сейчас предоставляет %2$s</string>
     <string name="ext_clash_conflict">Несовместимо с %1$s (установлено)</string>

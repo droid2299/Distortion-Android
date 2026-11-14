@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Myspoti's own texts (English default, French, Italian). -->
+<!-- Distortion's own texts (English default, French, Italian). -->
 <resources>
     <string name="welcome_lead">Ваша музыка,</string>
     <string name="welcome_rotate_ads">без рекламы.</string>
@@ -105,22 +105,22 @@
     <string name="playlist_change_refused">Spotify отклонил изменение этого плейлиста</string>
     <string name="download_kept_by_list">Остаётся скачанным: его держит скачанный плейлист</string>
     <string name="download_kept_by_named">Остаётся скачанным: «%1$s» скачан и содержит его</string>
-    <string name="support_title">Поддержать Myspoti</string>
-    <string name="support_body">Myspoti бесплатен, без рекламы и создан в моё свободное время. Если он вам нравится, небольшое пожертвование поможет проекту жить дальше.</string>
+    <string name="support_title">Поддержать Distortion</string>
+    <string name="support_body">Distortion бесплатен, без рекламы и создан в моё свободное время. Если он вам нравится, небольшое пожертвование поможет проекту жить дальше.</string>
     <string name="support_scan">Отсканируйте телефоном</string>
     <string name="support_action">Поддержать на Ko-fi</string>
     <string name="support_decline">Нет, спасибо</string>
     <string name="support_row_detail">Небольшое пожертвование на Ko-fi или GitHub Sponsors помогает развивать приложение</string>
     <string name="supporter_perks_title">Бонусы для поддержавших</string>
     <string name="supporter_perks_detail">Цвет акцента, значок приложения и бейдж в знак благодарности</string>
-    <string name="supporter_perks_locked">Открывается, если вы поддержали Myspoti. На честное слово: ничего не проверяется.</string>
-    <string name="supporter_i_supported">Я поддержал(а) Myspoti</string>
+    <string name="supporter_perks_locked">Открывается, если вы поддержали Distortion. На честное слово: ничего не проверяется.</string>
+    <string name="supporter_i_supported">Я поддержал(а) Distortion</string>
     <string name="supporter_how">Как вы поддержали?</string>
     <string name="supporter_once">Пожертвование</string>
     <string name="supporter_monthly">Каждый месяц</string>
     <string name="supporter_badge">Поддержка</string>
     <string name="supporter_thanks_title">Спасибо за поддержку!</string>
-    <string name="supporter_thanks_body">Если Myspoti по-прежнему вам полезен, новое небольшое пожертвование поможет проекту жить дальше.</string>
+    <string name="supporter_thanks_body">Если Distortion по-прежнему вам полезен, новое небольшое пожертвование поможет проекту жить дальше.</string>
     <string name="support_again">Поддержать ещё раз</string>
     <string name="supporter_accent">Цвет акцента</string>
     <string name="supporter_icon">Значок приложения</string>
@@ -243,7 +243,7 @@
     <string name="setup_ext_more_detail">Разделы главной, страницы и инструменты от их авторов.</string>
     <string name="setup_ext_safe_title">Всё под вашим контролем</string>
     <string name="setup_ext_safe_detail">Перед установкой расширение показывает, что ему разрешено. За всё остальное оно спросит снова, а удалить его можно в любой момент.</string>
-    <string name="setup_ext_where">Ищите их в Настройки, Расширения — с GitHub, GitLab и Codeberg. Их пишут авторы, а не Myspoti.</string>
+    <string name="setup_ext_where">Ищите их в Настройки, Расширения — с GitHub, GitLab и Codeberg. Их пишут авторы, а не Distortion.</string>
     <string name="setup_ext_browse">Посмотреть расширения</string>
     <string name="local_folders_button">Папки</string>
     <string name="local_folders_title">Папки</string>
@@ -290,7 +290,7 @@
     <string name="quality_now_unknown">Пока неизвестно: запустите трек</string>
     <string name="update_downloading">Загрузка… %1$d%%</string>
     <string name="update_installing">Установка…</string>
-    <string name="update_needs_permission">Чтобы обновиться, разрешите Myspoti устанавливать приложения и вернитесь сюда.</string>
+    <string name="update_needs_permission">Чтобы обновиться, разрешите Distortion устанавливать приложения и вернитесь сюда.</string>
     <string name="update_allow">Разрешить</string>
     <string name="update_failed">Не удалось обновить: %1$s</string>
     <string name="update_retry">Повторить</string>
@@ -549,7 +549,7 @@
     <string name="song_unavailable">Трек «%1$s» недоступен.</string>
     <string name="songs_skipped_by_spotify">Spotify продолжал пропускать треки, которые не смог воспроизвести, поэтому воспроизведение приостановлено. Нажмите «Воспроизвести», чтобы повторить, или проверьте аккаунт и подключение.</string>
     <string name="licences_refused_by_spotify">Spotify пока отказывается воспроизводить треки на этом аккаунте (аудиолицензия отклонена), поэтому воспроизведение приостановлено. Немного подождите и нажмите «Воспроизвести», чтобы повторить, и проверьте, работает ли аккаунт в официальном приложении Spotify.</string>
-    <string name="licences_refused_old_widevine">Spotify отклоняет аудиолицензии этого телефона: его DRM (Widevine %1$s) старее, чем принимает веб-плеер Spotify, независимо от аккаунта, поэтому воспроизведение приостановлено. Треки Spotify нельзя воспроизвести через Myspoti на этом телефоне; расширение-источник аудио может их воспроизвести.</string>
+    <string name="licences_refused_old_widevine">Spotify отклоняет аудиолицензии этого телефона: его DRM (Widevine %1$s) старее, чем принимает веб-плеер Spotify, независимо от аккаунта, поэтому воспроизведение приостановлено. Треки Spotify нельзя воспроизвести через Distortion на этом телефоне; расширение-источник аудио может их воспроизвести.</string>
     <string name="playlist_member_listener">Слушатель</string>
     <string name="playlist_member_remove_collab">Убрать из соавторов</string>
     <string name="playlist_member_make_collab">Сделать соавтором</string>

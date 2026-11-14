@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Textos próprios do Myspoti (inglês por omissão, francês e português). -->
+<!-- Textos próprios do Distortion (inglês por omissão, francês e português). -->
 <resources>
     <string name="welcome_lead">Sua música,</string>
     <string name="welcome_rotate_ads">sem anúncios.</string>
@@ -92,22 +92,22 @@
     <string name="playlist_change_refused">O Spotify recusou a alteração a esta playlist</string>
     <string name="download_kept_by_list">Continua transferida: uma playlist transferida inclui-a</string>
     <string name="download_kept_by_named">Continua transferida: «%1$s» está transferido e inclui-a</string>
-    <string name="support_title">Apoiar o Myspoti</string>
-    <string name="support_body">O Myspoti é gratuito, sem anúncios, e é feito no meu tempo livre. Se gostas, um pequeno donativo ajuda a mantê-lo a funcionar.</string>
+    <string name="support_title">Apoiar o Distortion</string>
+    <string name="support_body">O Distortion é gratuito, sem anúncios, e é feito no meu tempo livre. Se gostas, um pequeno donativo ajuda a mantê-lo a funcionar.</string>
     <string name="support_scan">Digitaliza com o telemóvel</string>
     <string name="support_action">Apoiar no Ko-fi</string>
     <string name="support_decline">Não, obrigado</string>
     <string name="support_row_detail">Um pequeno donativo no Ko-fi ou no GitHub Sponsors ajuda a manter a app</string>
     <string name="supporter_perks_title">Vantagens de apoiante</string>
     <string name="supporter_perks_detail">Cor de destaque, ícone da app e um distintivo, como agradecimento</string>
-    <string name="supporter_perks_locked">Desbloqueado ao apoiar o Myspoti. Confia-se na tua palavra: nada é verificado.</string>
-    <string name="supporter_i_supported">Já apoiei o Myspoti</string>
+    <string name="supporter_perks_locked">Desbloqueado ao apoiar o Distortion. Confia-se na tua palavra: nada é verificado.</string>
+    <string name="supporter_i_supported">Já apoiei o Distortion</string>
     <string name="supporter_how">Como apoiaste?</string>
     <string name="supporter_once">Um donativo</string>
     <string name="supporter_monthly">Todos os meses</string>
     <string name="supporter_badge">Apoiante</string>
     <string name="supporter_thanks_title">Obrigado pelo teu apoio!</string>
-    <string name="supporter_thanks_body">Se o Myspoti continua a ser útil, um novo pequeno donativo ajuda a mantê-lo a funcionar.</string>
+    <string name="supporter_thanks_body">Se o Distortion continua a ser útil, um novo pequeno donativo ajuda a mantê-lo a funcionar.</string>
     <string name="support_again">Apoiar novamente</string>
     <string name="supporter_accent">Cor de destaque</string>
     <string name="supporter_icon">Ícone da app</string>
@@ -205,7 +205,7 @@
     <string name="setup_ext_more_detail">Seções da página inicial, páginas e ferramentas adicionadas pelos autores.</string>
     <string name="setup_ext_safe_title">Você no controle</string>
     <string name="setup_ext_safe_detail">Antes de instalar, ela mostra o que pode fazer. Pede de novo para qualquer coisa a mais, e você pode removê-la quando quiser.</string>
-    <string name="setup_ext_where">Encontre-as em Configurações, Extensões, no GitHub, GitLab e Codeberg. Elas são escritas pelos autores, não pelo Myspoti.</string>
+    <string name="setup_ext_where">Encontre-as em Configurações, Extensões, no GitHub, GitLab e Codeberg. Elas são escritas pelos autores, não pelo Distortion.</string>
     <string name="setup_ext_browse">Ver as extensões</string>
     <string name="local_folders_button">Pastas</string>
     <string name="local_folders_title">Pastas</string>
@@ -252,7 +252,7 @@
     <string name="quality_now_unknown">Ainda desconhecida: começa uma música</string>
     <string name="update_downloading">A transferir… %1$d%%</string>
     <string name="update_installing">A instalar…</string>
-    <string name="update_needs_permission">Para atualizar, permite que o Myspoti instale aplicações e depois volta aqui.</string>
+    <string name="update_needs_permission">Para atualizar, permite que o Distortion instale aplicações e depois volta aqui.</string>
     <string name="update_allow">Permitir</string>
     <string name="update_failed">A atualização falhou: %1$s</string>
     <string name="update_retry">Tentar novamente</string>

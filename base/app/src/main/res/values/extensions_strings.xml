@@ -9,7 +9,7 @@
     <string name="extensions_installed">Installed</string>
     <string name="extensions_repository_add">Add a repository</string>
     <string name="extensions_repository_hint">https://…/index.json</string>
-    <string name="extensions_repository_warning">Myspoti does not review a repository you add: what you install from it is at your own risk.</string>
+    <string name="extensions_repository_warning">Distortion does not review a repository you add: what you install from it is at your own risk.</string>
     <string name="extensions_repository_remove">Remove</string>
     <string name="extensions_repository_refresh">Refresh</string>
     <string name="extensions_install">Install</string>
@@ -70,7 +70,7 @@
     <string name="extensions_repo_yours">Added by you</string>
     <string name="extensions_repo_community">Community</string>
     <string name="extensions_repo_official_note">Each extension is reviewed before it is listed.</string>
-    <string name="extensions_repo_yours_note">Not reviewed by Myspoti: install at your own risk.</string>
+    <string name="extensions_repo_yours_note">Not reviewed by Distortion: install at your own risk.</string>
     <string name="extensions_repo_error">Could not read this repository: %1$s</string>
     <string name="extensions_repo_empty">This repository lists no extension.</string>
     <string name="extensions_requires">Requires Distortion %1$s or newer</string>
@@ -134,7 +134,7 @@
     <string name="area_idle">Idle</string>
     <string name="area_make_active">Make it the one for %1$s</string>
     <!-- Install prompt -->
-    <string name="ext_third_party_notice">Third-party extension, not reviewed by Myspoti, under its author\'s responsibility.</string>
+    <string name="ext_third_party_notice">Third-party extension, not reviewed by Distortion, under its author\'s responsibility.</string>
     <string name="ext_risk_accept">I understand this extension is made by a third party and I install it on my own responsibility</string>
     <string name="ext_clash_exclusive">Replaces %1$s, currently provided by %2$s</string>
     <string name="ext_clash_conflict">Incompatible with %1$s (installed)</string>
@@ -160,7 +160,7 @@
 
     <!-- GitHub: discovery, ratings, reports -->
     <string name="extensions_github_title">On GitHub, GitLab and Codeberg</string>
-    <string name="extensions_github_note">Published by the community, not reviewed by Myspoti. Each author is responsible for their extension.</string>
+    <string name="extensions_github_note">Published by the community, not reviewed by Distortion. Each author is responsible for their extension.</string>
     <string name="extensions_show_all">Show all (%1$d hidden)</string>
     <string name="extensions_show_less">Hide blocked, reported, low-rated and abandoned ones</string>
     <string name="extension_rating">★ %1$s · %2$d votes</string>

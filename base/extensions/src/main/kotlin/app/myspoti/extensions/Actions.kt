@@ -11,7 +11,7 @@ enum class Level { NORMAL, CRITICAL }
 
 /**
  * Where an action acts in the app: the Installed tab is organised by area, each one opening with
- * what Myspoti does there by itself ("Built-in"), then the extensions acting there, in the order
+ * what Distortion does there by itself ("Built-in"), then the extensions acting there, in the order
  * the user set ([Registry.priority] is kept per area).
  */
 enum class Area(val key: String) {
@@ -49,35 +49,35 @@ enum class Action(
     val takeover: Boolean = false,
 ) {
     PLAYBACK_CONTROL("playback.control", Level.NORMAL, Area.PLAYBACK, "PlayCircle", "Control playback",
-        "myspoti.player.play/pause/next/previous/seek; spotify.player play, pause, resume, seek, next, previous, shuffle, repeat, volume, speed, skipTo; spotify.devices transfer, pullHere"),
+        "distortion.player.play/pause/next/previous/seek; spotify.player play, pause, resume, seek, next, previous, shuffle, repeat, volume, speed, skipTo; spotify.devices transfer, pullHere"),
     PLAYBACK_QUEUE("playback.queue", Level.NORMAL, Area.PLAYBACK, "QueueMusic", "Edit the queue",
         "spotify.player addToQueue, playNext, moveInQueue, removeFromQueue, clearQueue (removals confirmed)"),
     PLAYBACK_MIRROR("playback.mirror", Level.CRITICAL, Area.PLAYBACK, "VolumeOff", "Mirror Spotify silently",
-        "myspoti.spotify.player.setLocalMute(on): keeps Spotify playing unheard on this phone while Myspoti's own player plays, which counts listens on your Spotify account (one extension at a time, cleared on track change, stop or when the extension goes)"),
+        "distortion.spotify.player.setLocalMute(on): keeps Spotify playing unheard on this phone while Distortion's own player plays, which counts listens on your Spotify account (one extension at a time, cleared on track change, stop or when the extension goes)"),
     PLAYBACK_EVENTS("playback.events", Level.NORMAL, Area.PLAYBACK, "GraphicEq", "Know what you play",
-        "myspoti.player.current(); myspoti.on('track' | 'playback'); spotify.player state, queue, volume"),
+        "distortion.player.current(); distortion.on('track' | 'playback'); spotify.player state, queue, volume"),
     LYRICS_PROVIDE("lyrics.provide", Level.NORMAL, Area.LYRICS, "Lyrics", "Provide lyrics",
-        "myspoti.provide('lyrics', fn(track) → lyrics)", takeover = true),
+        "distortion.provide('lyrics', fn(track) → lyrics)", takeover = true),
     LYRICS_ROMANIZE("lyrics.romanize", Level.NORMAL, Area.LYRICS, "Abc", "Romanize lyrics",
-        "myspoti.provide('lyrics-romanize', fn({ track, language, lines }) → { lines: [{ index, romanization }] }), for the lines in another script than Latin their source left without one", takeover = true),
+        "distortion.provide('lyrics-romanize', fn({ track, language, lines }) → { lines: [{ index, romanization }] }), for the lines in another script than Latin their source left without one", takeover = true),
     TRACKINFO_PROVIDE("trackinfo.provide", Level.NORMAL, Area.LYRICS, "Info", "Add song details",
-        "myspoti.provide('trackinfo', fn(track) → blocks), shown in the song's credits sheet", takeover = true),
+        "distortion.provide('trackinfo', fn(track) → blocks), shown in the song's credits sheet", takeover = true),
     AUDIO_SOURCE("audio.source", Level.CRITICAL, Area.AUDIO, "Headphones", "Play audio from elsewhere",
-        "myspoti.provide('audio-source', fn(track) → { url })", takeover = true),
+        "distortion.provide('audio-source', fn(track) → { url })", takeover = true),
     DOWNLOAD_SOURCE("download.source", Level.CRITICAL, Area.AUDIO, "Download", "Provide downloads",
-        "myspoti.provide('download-source', fn(query) → files)", takeover = true),
+        "distortion.provide('download-source', fn(query) → files)", takeover = true),
     HOME_SECTIONS("home.sections", Level.NORMAL, Area.HOME, "Dashboard", "Add home sections",
-        "myspoti.provide('home', fn() → sections of blocks)", takeover = true),
+        "distortion.provide('home', fn() → sections of blocks)", takeover = true),
     SEARCH_PROVIDE("search.provide", Level.NORMAL, Area.HOME, "ManageSearch", "Add search results",
-        "myspoti.provide('search', fn({ query }) → blocks)", takeover = true),
+        "distortion.provide('search', fn({ query }) → blocks)", takeover = true),
     MENU_ITEMS("menu.items", Level.NORMAL, Area.MENUS, "MoreHoriz", "Add menu entries",
-        "myspoti.provide('menu', fn({ kind, uri, title }) → menu blocks) in the ⋯ menus of songs, albums, playlists, artists", takeover = true),
+        "distortion.provide('menu', fn({ kind, uri, title }) → menu blocks) in the ⋯ menus of songs, albums, playlists, artists", takeover = true),
     PLAYER_BUTTONS("player.buttons", Level.NORMAL, Area.MENUS, "SmartButton", "Add player buttons",
-        "myspoti.provide('player', fn(track) → button blocks), under the player's own controls", takeover = true),
+        "distortion.provide('player', fn(track) → button blocks), under the player's own controls", takeover = true),
     SETTINGS_PAGE("settings.page", Level.NORMAL, null, "Tune", "Its own settings",
-        "manifest \"settings\"; myspoti.settings.get(key)", takeover = true),
+        "manifest \"settings\"; distortion.settings.get(key)", takeover = true),
     NOTIFY("notify", Level.NORMAL, null, "Notifications", "Show short messages",
-        "myspoti.notify(text)"),
+        "distortion.notify(text)"),
     LIBRARY_READ("library.read", Level.NORMAL, Area.LIBRARY, "LibraryMusic", "Read your library",
         "spotify.library, playlists (yours), users, recents, devices.list, podcasts.savedEpisodes, blends (reads), search.recent, home.whatsNew"),
     LIBRARY_WRITE("library.write", Level.CRITICAL, Area.LIBRARY, "LibraryAdd", "Change your library",
@@ -89,17 +89,17 @@ enum class Action(
     SPOTIFY_RAW("spotify.raw", Level.CRITICAL, Area.LIBRARY, "Code", "Full Spotify access",
         "spotify.raw gql/service/get/request: anything the account can do (changes confirmed)"),
     NETWORK("network", Level.NORMAL, null, "Public", "Use the internet",
-        "myspoti.http to the hosts listed (\"*\": any host, critical)"),
+        "distortion.http to the hosts listed (\"*\": any host, critical)"),
     WEBVIEW_PAGE("webview.page", Level.CRITICAL, Area.OTHER, "Web", "Its own web page",
-        "myspoti.provide('page', fn() → { title, html }) in a sandboxed WebView; myspoti.provide('message', fn(data) → reply)", takeover = true),
+        "distortion.provide('page', fn() → { title, html }) in a sandboxed WebView; distortion.provide('message', fn(data) → reply)", takeover = true),
     WEBVIEW_AUTH("webview.auth", Level.CRITICAL, Area.OTHER, "Key", "Sign in on a website",
-        "myspoti.auth.open({ url, callback }) → myspoti.on('auth'): a full web view with its own cookies, apart from the app's; only the callback address comes back"),
+        "distortion.auth.open({ url, callback }) → distortion.on('auth'): a full web view with its own cookies, apart from the app's; only the callback address comes back"),
     STORAGE("storage", Level.NORMAL, null, "Save", "Keep its own data",
-        "myspoti.storage get/set/remove (512 KB)"),
+        "distortion.storage get/set/remove (512 KB)"),
     UI_STYLE("ui.style", Level.NORMAL, Area.OTHER, "Palette", "Change the look",
         "manifest \"ui\": colours, hidden parts, tab order, text size and Home blocks, applied by the app (never on protected surfaces)", takeover = true),
-    ATTEST("attest", Level.NORMAL, null, "Fingerprint", "Prove this is Myspoti",
-        "myspoti.attest enroll/publicKey/sign/reset: a signing key of its own in this phone's hardware keystore, so its server can tell its requests come from a genuine Myspoti install");
+    ATTEST("attest", Level.NORMAL, null, "Fingerprint", "Prove this is Distortion",
+        "distortion.attest enroll/publicKey/sign/reset: a signing key of its own in this phone's hardware keystore, so its server can tell its requests come from a genuine Distortion install");
 
     companion object {
         fun of(key: String) = entries.firstOrNull { it.key == key }

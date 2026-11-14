@@ -9,7 +9,7 @@
     <string name="extensions_installed">Εγκατεστημένες</string>
     <string name="extensions_repository_add">Προσθήκη αποθετηρίου</string>
     <string name="extensions_repository_hint">https://…/index.json</string>
-    <string name="extensions_repository_warning">Το Myspoti δεν ελέγχει ένα αποθετήριο που προσθέτεις: ό,τι εγκαθιστάς από αυτό γίνεται με δική σου ευθύνη.</string>
+    <string name="extensions_repository_warning">Το Distortion δεν ελέγχει ένα αποθετήριο που προσθέτεις: ό,τι εγκαθιστάς από αυτό γίνεται με δική σου ευθύνη.</string>
     <string name="extensions_repository_remove">Αφαίρεση</string>
     <string name="extensions_repository_refresh">Ανανέωση</string>
     <string name="extensions_install">Εγκατάσταση</string>
@@ -69,7 +69,7 @@
     <string name="extensions_repo_yours">Προστέθηκε από εσένα</string>
     <string name="extensions_repo_community">Κοινότητα</string>
     <string name="extensions_repo_official_note">Κάθε επέκταση ελέγχεται πριν μπει στη λίστα.</string>
-    <string name="extensions_repo_yours_note">Δεν ελέγχεται από το Myspoti: εγκατάσταση με δική σου ευθύνη.</string>
+    <string name="extensions_repo_yours_note">Δεν ελέγχεται από το Distortion: εγκατάσταση με δική σου ευθύνη.</string>
     <string name="extensions_repo_error">Δεν ήταν δυνατή η ανάγνωση αυτού του αποθετηρίου: %1$s</string>
     <string name="extensions_repo_empty">Αυτό το αποθετήριο δεν περιέχει καμία επέκταση.</string>
     <string name="extensions_requires">Απαιτεί Distortion %1$s ή νεότερο</string>
@@ -133,7 +133,7 @@
     <string name="area_idle">Σε αναμονή</string>
     <string name="area_make_active">Να είναι η βασική για: %1$s</string>
     <!-- Install prompt -->
-    <string name="ext_third_party_notice">Επέκταση τρίτου, χωρίς έλεγχο από το Myspoti, με ευθύνη του δημιουργού της.</string>
+    <string name="ext_third_party_notice">Επέκταση τρίτου, χωρίς έλεγχο από το Distortion, με ευθύνη του δημιουργού της.</string>
     <string name="ext_risk_accept">Κατανοώ ότι αυτή η επέκταση είναι από τρίτο και την εγκαθιστώ με δική μου ευθύνη</string>
     <string name="ext_clash_exclusive">Αντικαθιστά το %1$s, που παρέχεται τώρα από το %2$s</string>
     <string name="ext_clash_conflict">Ασύμβατη με το %1$s (εγκατεστημένο)</string>

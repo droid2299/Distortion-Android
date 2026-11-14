@@ -1,6 +1,6 @@
-# Myspoti extensions: API for authors
+# Distortion extensions: API for authors
 
-An extension is a small JavaScript file plus a `manifest.json`. Myspoti runs it in a sandbox. What
+An extension is a small JavaScript file plus a `manifest.json`. Distortion runs it in a sandbox. What
 it may do is a list of **actions** from a closed catalogue the app defines (section 4): provide
 lyrics, their romanization or song details, add Home sections, search results, menu entries or player buttons (as
 native blocks the app draws itself, section 3), give a song's audio or download files, show its own
@@ -39,9 +39,9 @@ extension responsibilities; the host keeps its existing safe media transport.
 `main.js`:
 
 ```js
-myspoti.provide('lyrics', function (track) {
-  var r = myspoti.http.get('https://lyrics.example.com/api?' +
-    myspoti.query({ artist: track.artist, title: track.title }));
+distortion.provide('lyrics', function (track) {
+  var r = distortion.http.get('https://lyrics.example.com/api?' +
+    distortion.query({ artist: track.artist, title: track.title }));
   if (!r.ok) return null;                       // null: "I have nothing", the app tries its other sources
   var lines = r.json().lines;                   // [{ ms: 1200, text: "..." }, ...]
   return { provider: 'example.com', lines: lines.map(function (l) { return { time: l.ms, text: l.text }; }) };
@@ -63,14 +63,14 @@ order and dates), so anyone can rebuild it and compare the sha256.
 How an extension reaches people: its own GitHub repository, found by the store through the topic
 `myspoti-extension` (section 9), the official repository's optional list of verified extensions or a repository the user adds at their own risk. A repository is a folder of packages
 and an `index.json` (`myspoti-ext index <folder> <name>` writes it). The index can also list
-extensions every Myspoti must turn off (`blocked`: an id, optionally some package sha256, a reason).
+extensions every Distortion must turn off (`blocked`: an id, optionally some package sha256, a reason).
 
 An index entry is the manifest's fields (`id`, `name`, `version`, `versionCode`, `apiVersion`,
 `author`, `description`, `actions` (or the old `provides` and `permissions`), `homepage`, `replaces`,
 `conflicts_with`) plus `repo` (optional: `owner/name` on GitHub, the package is then read from
 there as in section 9 and kept updated from there; `sha256`, when not empty, is checked against the
 release's package or the package built from the archive) and the package's `url` (absolute
-or relative to the index), `sha256` and `size`, and these optional store fields (an older Myspoti
+or relative to the index), `sha256` and `size`, and these optional store fields (an older host
 ignores them, an index without them still reads):
 
 | Field | Type | Shown |
@@ -78,7 +78,7 @@ ignores them, an index without them still reads):
 | `icon_url` | string | The icon before download: a PNG, absolute or relative to the index (`myspoti-ext index` writes `icons/<id>.png`). `icon`, the older name, is still read. |
 | `updated_at` | string | ISO 8601 date the version was listed (`2026-10-23`); `index` keeps it while the package's sha256 is unchanged. |
 | `category`, `tags`, `changelog` | | As in the manifest. |
-| `min_app_version` | string | As the manifest's `minAppVersion`: the row says "Requires Myspoti X or newer" and its Install button is off. |
+| `min_app_version` | string | As the manifest's `minAppVersion`: the row says "Requires Distortion X or newer" and its Install button is off. |
 
 In the app, Extensions has two tabs. **Store**: each repository with its trust note (verified by the
 owner, or added by the user), a search field and category chips, and one row per extension
@@ -88,14 +88,14 @@ button: Install, Update, Installed; "Incompatible with X (installed)" when `conf
 action's icon, label and your `why`, repository, sha256) before anything is downloaded; Install
 then shows the install prompt: name, author and source, every action with your `why` (critical
 ones marked), what it collides with (the user picking which to keep, section 4.2), the third-party
-notice ("Third-party extension, not reviewed by Myspoti, under its author's responsibility.") and
+notice ("Third-party extension, not reviewed by Distortion, under its author's responsibility.") and
 one box, "I understand this extension is made by a third party and I install it on my own
 responsibility", which enables Install. There is no per-action choice: an extension gets every
 action it lists, or is not installed. The official repository is suggested, never added without the user.
 
 **Installed** is organised **by area**: Playback, Lyrics & song info, Audio & downloads, Home &
 search, Menus & player, Library & Spotify, Pages & more. Each area opens with a **Built-in** row (a
-dropdown of what Myspoti does there by itself, e.g. Lyrics: Spotify, LRCLIB, NetEase, KuGou,
+dropdown of what Distortion does there by itself, e.g. Lyrics: Spotify, LRCLIB, NetEase, KuGou,
 Lyrics+, Genius; built-in sources are not extensions), then the extensions acting there with their
 switch and action icons, in the user's order (arrows). A newly installed extension is placed first in each area and in
 the audio and download source orders it gives; an update keeps the user's order. That order
@@ -116,7 +116,7 @@ extensions did there ("Lyrics of X from Y", "Skipped by Z") with a one-tap Turn 
 | `name` | string | required | 1 to 40 characters. |
 | `version` | string | required | 1 to 20 characters, shown to people (`"1.2.0"`). |
 | `versionCode` | int | `1` | 1 or more. Higher is newer; this is what is compared. |
-| `apiVersion` | int | `1` | Between 1 and 1 (the version this Myspoti speaks). |
+| `apiVersion` | int | `1` | Between 1 and 1 (the version this Distortion speaks). |
 | `author` | string | required | 1 to 60 characters. |
 | `description` | string | `""` | 500 characters at most. |
 | `homepage` | string | none | Not checked. |
@@ -128,7 +128,7 @@ extensions did there ("Lyrics of X from Y", "Skipped by Z") with a one-tap Turn 
 | `icon` | string | none | A `.png` at the root of the package (square, 256 px or less). Without it, `icon.png` is used if the package has one, else a tile with the name's first letter. |
 | `category` | string | `other` | Where the store files it, one of a fixed list: `lyrics` (needs `lyrics.provide`, `lyrics.romanize` or `trackinfo.provide`), `playback` (Playback & audio: a `playback.*`, `audio.source` or `player.buttons` action), `library` (`library.read`, `library.write` or `playlists.write`), `discovery` (`home.sections`, `search.provide` or `spotify.catalog`), `stats` (`playback.events` or `library.read`), `look` (Look & feel: a blocks action, `webview.page` or `ui.style`), `social` (`network`, `library.read` or `spotify.catalog`), `tools`, `other`. A category the actions do not fit, or an unknown one, is filed under `other` (`myspoti-ext check` says so); an extension with `download.source` is always under `tools`. `tags` are shown and found by the search, not filtered on. |
 | `tags` | string[] | `[]` | 8 at most, each 1 to 24 characters: lower case letters, digits, spaces, `-`. The store's search finds them. |
-| `minAppVersion` | string | none | The oldest Myspoti it works on (`"2.0.2"`, `"2.0.2-beta.4"`), compared like semantic versions (a release is newer than its betas). An older Myspoti shows "Requires Myspoti 2.0.2 or newer" and does not install it. |
+| `minAppVersion` | string | none | The oldest Distortion it works on (`"2.0.2"`, `"2.0.2-beta.4"`), compared like semantic versions (a release is newer than its betas). An older version shows "Requires Distortion 2.0.2 or newer" and does not install it. |
 | `changelog` | string | `""` | What changed in this version, 2000 characters at most: shown on the store page and before an update. |
 | `ui` | object | none | The look the extension gives the app, with the `ui.style` action: see [UI-LOOKS.md](UI-LOOKS.md). Ignored without that action (and by an older app). |
 | `welcome` | object | none | `{ "message": "...", "steps": ["...", "..."] }`, shown once right after the first install (not on updates): what the extension does (600 characters at most) and what is left to do (5 steps at most, 160 characters each). Older apps ignore it. |
@@ -139,9 +139,9 @@ language, with no action to ask. Each language may give any of `name`, `descript
 `changelog`, `welcome`, `actions` (an action's name → its reason, 80 characters) and `settings`
 (a setting's key → `{ "label", "description", "options" }`, `options` being the labels of a
 choice's options in their order). What a language leaves out stays the manifest's own text.
-Myspoti shows the language picked in its settings (the phone's when it follows the phone): `pt-BR`
+Distortion shows the language picked in its settings (the phone's when it follows the phone): `pt-BR`
 takes `pt-BR`, then `pt`, then another `pt-…`, then the manifest's own texts. A choice's values do
-not change: `myspoti.settings.get('quality')` still gives `"lossless"` when the user ticked
+not change: `distortion.settings.get('quality')` still gives `"lossless"` when the user ticked
 "Sans perte". The reasons the user accepted are weighed on the manifest's own `why`, so a new
 translation never asks the user again. An action or a setting the manifest does not have, or a
 number of option labels that is not the number of options, refuses the package.
@@ -157,8 +157,8 @@ number of option labels that is not the number of options, refuses the package.
 }
 ```
 
-Texts your script makes (blocks, outcomes, `notify`, your page) follow `myspoti.locale` (section 3),
-also with no action to ask. A sign-in page opened with `myspoti.auth.open` is asked in the same
+Texts your script makes (blocks, outcomes, `notify`, your page) follow `distortion.locale` (section 3),
+also with no action to ask. A sign-in page opened with `distortion.auth.open` is asked in the same
 language (`Accept-Language`), so a site that has it shows it.
 
 An action entry: `{ "name": "...", "why": "...", "hosts": [...] }`.
@@ -182,10 +182,10 @@ A setting: `{ "key", "type", "label", "description", "default", "options", "sect
 - `label`: required. `description`: optional. `default`: any JSON value. `options`: strings, required
   (non-empty) for `choice`.
 - `button`: an action, not a value. It has no `default` (the check refuses one) and no value, so
-  `myspoti.settings.get` gives `undefined`. It is shown as a button with its `label` and `description`.
+  `distortion.settings.get` gives `undefined`. It is shown as a button with its `label` and `description`.
   Pressing it sends the `setting` event with `pressed: true` (section 3). Typical uses: pair again
   with a server, clear a cache, sign in again.
-- Read it with `myspoti.settings.get(key)`: the user's value, else `default`, else `undefined`.
+- Read it with `distortion.settings.get(key)`: the user's value, else `default`, else `undefined`.
 - `section` (optional): `"playback"` or `"downloads"`. The setting is also shown in the app's
   Settings → Playback or Settings → Downloads, in a card headed "<your extension's name> settings",
   drawn as on your page (same value: changing it in one place changes it in the other). Only the
@@ -207,13 +207,13 @@ A setting: `{ "key", "type", "label", "description", "default", "options", "sect
   ("Quality: FLAC", your label and option). Any other value is ignored (check warns).
 - `perNetwork` (optional, `true`; for `choice`, `toggle`, `number`, `text`): one value on Wi-Fi and
   one on mobile data, both shown ("<label> · Wi-Fi", "<label> · Mobile data").
-  `myspoti.settings.get(key)` still gives one plain value: the one of the network the phone is on,
+  `distortion.settings.get(key)` still gives one plain value: the one of the network the phone is on,
   by the app's own rule for Spotify's streaming quality (a metered network is mobile data, Wi-Fi
   otherwise). Until the user sets the mobile data value it is the Wi-Fi one, then `default`. When
   the phone changes network and the value `get` gives changes with it, the `setting` event comes
   with `{ key, network: true }` (section 3). Ignored on `secret` and `button` (check refuses it).
 
-`myspoti.features` contains `settings.section` on a Myspoti that knows these three fields; an older
+`distortion.features` contains `settings.section` on a Distortion that knows these three fields; an older
 one ignores them (the setting is on your page, one value), so a manifest using them stays valid there.
 
 Settings are shown on the extension's page. Every installed extension that declares settings is also
@@ -241,12 +241,12 @@ network, and a switch in Settings → Playback while it is above Spotify:
 ```
 
 ```js
-myspoti.provide('audio-source', function (t) {
-  var q = myspoti.settings.get('quality'); // "FLAC" on Wi-Fi, "AAC 256" on mobile data if the user set so
+distortion.provide('audio-source', function (t) {
+  var q = distortion.settings.get('quality'); // "FLAC" on Wi-Fi, "AAC 256" on mobile data if the user set so
   // ...
 });
-myspoti.on('setting', function (e) {
-  if (e.key === 'quality') myspoti.log((e.network ? 'network changed: ' : '') + 'quality ' + myspoti.settings.get('quality'));
+distortion.on('setting', function (e) {
+  if (e.key === 'quality') distortion.log((e.network ? 'network changed: ' : '') + 'quality ' + distortion.settings.get('quality'));
 });
 ```
 
@@ -266,7 +266,7 @@ Settings → Downloads while it is the first downloader:
 ## 3. Hooks
 
 A hook is a fixed point where the app asks the extension. Register it with
-`myspoti.provide(name, fn)`; `fn` gets one object and returns its answer. Each hook is unlocked by
+`distortion.provide(name, fn)`; `fn` gets one object and returns its answer. Each hook is unlocked by
 one action, which must be in the manifest, otherwise `provide` throws (`provide("player") needs the
 player.buttons action in the manifest`):
 
@@ -335,10 +335,10 @@ needs `synced` and at least one line with `words`.
 `translation`, `romanization`, `voice`, `background` and `translationLanguage` are optional and
 additive: leave them out and nothing changes, and one of the wrong type (a number for a text, a
 `voice` that is not a number, `"v2"` or `"2"`) is ignored, never an error. A `translation` is shown in
-place of Myspoti's machine translation only when `translationLanguage` is sent and is the language
+place of Distortion's machine translation only when `translationLanguage` is sent and is the language
 the reader asked for (the first part of the tag decides: `en` covers `en-US`); lines without one are
 machine translated. `voice` marks a duet when at least two different singers appear; `romanization`
-is for scripts that are not Latin (Japanese, Korean, Chinese, Cyrillic...). An older Myspoti
+is for scripts that are not Latin (Japanese, Korean, Chinese, Cyrillic...). An older host
 simply does not read these fields.
 
 Action: `lyrics.provide` (normal). Usually you also need `network`.
@@ -371,7 +371,7 @@ romanizers are asked in the lyrics area's order, each one sent only the lines th
 left without one: one for Japanese and one for Korean complete each other. The time limit (section
 7) covers every line of the song in one call.
 
-Feature `lyrics.romanize`. Like any action it does not know, an older Myspoti refuses a package
+Feature `lyrics.romanize`. Like any action it does not know, an older host refuses a package
 that asks this one (section 2).
 
 Action: `lyrics.romanize` (normal). It needs no other action: ask `network` only if your
@@ -379,7 +379,7 @@ romanizer calls a server.
 
 ### `audio-source`
 
-Where the audio of a song is. The song then plays in Myspoti's own player, like a download;
+Where the audio of a song is. The song then plays in Distortion's own player, like a download;
 Spotify's player does not play it. Action: `audio.source` (critical, ordered: the sources are
 asked in the user's order, Spotify included; the ones under Spotify are not asked).
 
@@ -395,8 +395,8 @@ asked in the user's order, Spotify included; the ones under Spotify are not aske
 
 **Lossless DASH.** Instead of `url`, `{ manifest, mimeType?, durationMs? }`: an MPEG-DASH manifest,
 base64 (1 MB at most), of FLAC in fragmented MP4 with a `SegmentTemplate` + `SegmentTimeline` and
-absolute https addresses (as a `dash-flac` download). Myspoti plays its segments in order as one
-file, seekable. Check `myspoti.features.indexOf('audio.manifest') >= 0` first: an older Myspoti has
+absolute https addresses (as a `dash-flac` download). Distortion plays its segments in order as one
+file, seekable. Check `distortion.features.indexOf('audio.manifest') >= 0` first: an older host has
 no `features` and needs a `url`. The song is asked for 10 s after the one before starts, so it starts
 at once.
 
@@ -405,11 +405,11 @@ and `ahead`: `true` when the app asks before the song plays (the next song of th
 the one before starts), `false` when it is about to play. An answer given ahead is kept and played as
 it is when the song comes (it is not asked again), so it must be just as playable; only the urgency
 differs: you may take more of the time, and leave out side work that only matters once the song
-plays. Check `myspoti.features.indexOf('audio.ahead') >= 0`: an older Myspoti does not send it.
+plays. Check `distortion.features.indexOf('audio.ahead') >= 0`: an older host does not send it.
 
 **Quality.** `codec` (lower-case, 16 characters: `"flac"`, `"aac"`, `"mp3"`…), `bitDepth` (8 to 32)
 and `sampleRate` (Hz, 8000 to 768000) are what the song's sound-quality line shows while it plays
-("FLAC · 24-bit · 96 kHz"), with either answer. Myspoti shows what you announce, without checking or
+("FLAC · 24-bit · 96 kHz"), with either answer. Distortion shows what you announce, without checking or
 rounding it up; a value out of range is left out. Without any of the three, your `source` text is
 shown instead (80 characters at most; feature `audio.source`), else nothing. Feature:
 `audio.quality`.
@@ -420,15 +420,15 @@ private address is an error. Note the returned `url` is checked for being public
 
 **When it is asked.** Every play of a song goes to the active `audio-source` extension first,
 wherever it starts: a list or an album, a search result, an artist, Home, Recents, shuffle, a
-Spotify link opened with Myspoti, another extension's block. It is asked for the picked song (or,
-for shuffle, a random one of the list); with an answer, that song plays in Myspoti's own player and
+Spotify link opened with Distortion, another extension's block. It is asked for the picked song (or,
+for shuffle, a random one of the list); with an answer, that song plays in Distortion's own player and
 the rest of the list follows as the queue, each song asked when its turn comes. Without an answer,
 the song plays on Spotify as usual. A song already downloaded plays from its file. Episodes, plays
 while offline or with data saver on, and plays while another Spotify Connect device is playing,
 never ask.
 
 **In the player.** The song stays the Spotify song: like, lyrics, Canvas, clip and queue work as
-usual, and "Play next" / "Add to queue" go into Myspoti's own queue (each song asked when its turn
+usual, and "Play next" / "Add to queue" go into Distortion's own queue (each song asked when its turn
 comes). Your extension's name, then that quality line, is shown under the output device (a tap opens the sound-quality sheet), and your name beside the artist in the mini player. Picking a
 Spotify Connect device hands the song, its list and its place over to that device, played by
 Spotify.
@@ -438,9 +438,9 @@ Spotify.
 never reused). A song that starts after that asks you again. When the server refuses the address
 (HTTP 401, 403, 404 or 410), the answer is forgotten and you are asked once more for that song; a
 second refusal fails the song cleanly (the player moves on). Feature: `audio.expires` (an older
-Myspoti ignores `expiresInMs` and retries on 401 and 403 only).
+Distortion ignores `expiresInMs` and retries on 401 and 403 only).
 
-**Starting at once.** For the next song, Myspoti also reads ahead the first 512 KB of a `url`
+**Starting at once.** For the next song, Distortion also reads ahead the first 512 KB of a `url`
 (then asks the rest from there with an HTTP `Range`, sending your `headers`), or the first segment
 of a `manifest`, once per song, off mobile data, and drops it if the queue changes. A server that
 does not answer a range with 206 and a `Content-Range` total simply gets the whole file as before.
@@ -451,9 +451,9 @@ being downloaded, provide `audio-source` as well (the two may share their code).
 ### `download-source`
 
 Where a song can be downloaded from, and which file is the right recording: finding the audio,
-fetching what it needs and matching it to the song are the extension's job. Myspoti only keeps
+fetching what it needs and matching it to the song are the extension's job. Distortion only keeps
 what you hand over: it downloads the file, runs the same checks on any file whatever its origin
-(below), encrypts it, and lists it in Downloaded. Myspoti never compares the file with a reference
+(below), encrypts it, and lists it in Downloaded. Distortion never compares the file with a reference
 recording: if you want that check (an official preview, a fingerprint), do it in the extension
 before answering, and say `isrcMatched` only for a file you found by the song's ISRC. Without an
 extension providing this hook, downloads tell the user to install one. Action: `download.source`
@@ -483,10 +483,10 @@ a FLAC you return is then re-encoded to AAC on the phone). Return the files you 
 no `url` mean "nothing for this song". `dash-flac` takes `manifest` instead of `url`: an MPEG-DASH
 manifest (base64, 1 MB at most) of FLAC in fragmented MP4 (a `dfLa` box in the init segment),
 described by one `SegmentTemplate` with `initialization`, `media` using `$Number$`, and a
-`SegmentTimeline`; Myspoti fetches the segments with your `headers` and joins them into one FLAC
+`SegmentTimeline`; Distortion fetches the segments with your `headers` and joins them into one FLAC
 file. Anything else a service needs (another manifest layout, decryption, an API call per
 segment, a token refresh) is yours to do: hand over a plain file `url`, or a manifest in that form.
-Myspoti keeps the first file that passes the checks: a FLAC must be
+Distortion keeps the first file that passes the checks: a FLAC must be
 a real FLAC file (its header is read), an `m4a` or `mp3` must hold an audio track the phone can
 read, and the length must be the song's (Spotify's duration): not shorter by more than 5 s
 (previews are refused) nor longer by more than 15 s (another version). `m4a` and `mp3` are kept as
@@ -504,8 +504,8 @@ Whether your source answers now, for an extension that depends on a server (an `
 `download-source` above all). No action is needed: any extension may provide it.
 
 ```js
-myspoti.provide('status', function () {
-  var r = myspoti.http.get('https://api.example.com/ping', { timeout: 3000 });
+distortion.provide('status', function () {
+  var r = distortion.http.get('https://api.example.com/ping', { timeout: 3000 });
   return r.status === 200 ? { live: true } : { live: false, detail: 'The server is down (' + r.status + ')' };
 });
 ```
@@ -524,18 +524,18 @@ myspoti.provide('status', function () {
   throw, an answer that is not `{ live }` or no answer in 5 s proves nothing (a busy phone, a slow
   start): the extension stays in use, and its log says the probe had no answer.
 - Without a `status` hook an extension is always live. Check
-  `myspoti.features.indexOf('status') >= 0`: an older Myspoti never asks it.
+  `distortion.features.indexOf('status') >= 0`: an older host never asks it.
 
 ### Outcomes (`results`)
 
 `lyrics`, `audio-source` and `download-source` may answer **why** they have nothing instead of
-`null`, when `myspoti.features.indexOf('results') >= 0` (an older Myspoti reads such an answer as no
+`null`, when `distortion.features.indexOf('results') >= 0` (an older host reads such an answer as no
 answer, or as a malformed one: check the feature first):
 
 ```js
-myspoti.provide('audio-source', function (track) {
-  var r = myspoti.http.get('https://api.example.com/find?isrc=' + track.isrc);
-  var results = myspoti.features && myspoti.features.indexOf('results') >= 0;
+distortion.provide('audio-source', function (track) {
+  var r = distortion.http.get('https://api.example.com/find?isrc=' + track.isrc);
+  var results = distortion.features && distortion.features.indexOf('results') >= 0;
   if (r.status === 429 && results) return { outcome: 'rate-limited', retryAfterMs: 1000 * Number(r.headers['retry-after'] || 60) };
   if (r.status === 401 && results) return { outcome: 'sign-in', detail: 'Sign in again in the settings' };
   if (!r.ok) return null;
@@ -565,7 +565,7 @@ Addresses are shown without their query string.
 
 ### `track` event
 
-`myspoti.on('track', function (track) { ... })` is called for each new song, with the song's fields
+`distortion.on('track', function (track) { ... })` is called for each new song, with the song's fields
 (as hooks receive them) plus `origin` and `providerId`, as in the `playback` event below. It needs
 `playback.events` in the manifest (checked when you call `on`) and granted by the user (otherwise
 nothing is delivered). Return values are ignored; an error in a listener is swallowed (only logged),
@@ -574,7 +574,7 @@ remove a listener.
 
 ### `playback` event
 
-`myspoti.on('playback', function (e) { ... })`: what happens to the song playing, in Myspoti's own
+`distortion.on('playback', function (e) { ... })`: what happens to the song playing, in Distortion's own
 player (downloads, local files, songs from an `audio-source` extension) and in the Spotify Web
 Player. Same rules as `track` (`playback.events`, 3 s per delivery, errors swallowed). Events arrive in
 order, one at a time.
@@ -584,7 +584,7 @@ order, one at a time.
   track,         // the track of this section
   positionMs, durationMs,
   timestamp,     // ms since 1970, UTC, when it happened
-  source,        // "local": Myspoti's own player; "spotify": the Web Player
+  source,        // "local": Distortion's own player; "spotify": the Web Player
   contextUri,    // the list, album or artist it plays from; "" when unknown (a local file)
   shuffle,       // true or false
   reason,        // see below; null for progress, pause, resume
@@ -594,7 +594,7 @@ order, one at a time.
 ```
 
 `origin`: `spotify` is Spotify's own stream; `download` a song downloaded with a `download-source`
-extension (`providerId` is that extension; null for a download made before Myspoti kept it);
+extension (`providerId` is that extension; null for a download made before Distortion kept it);
 `audio-source` a stream an `audio-source` extension gave (`providerId` is the one that answered);
 `local-file` a file on the phone that is not a download (`providerId: null`). An extension can use it
 to tell its own plays from the others', for example not to scrobble twice.
@@ -642,15 +642,15 @@ that breaks a rule fails the whole answer (a failure, like a throw).
   in all: 4 menu entries, 3 player buttons, 6 Home sections. What is over goes under an
   **"Extensions ⋯"** entry (menus, player); Home, search and song details drop it. An item, card or
   entry already given by a higher extension (same uri, same label) is dropped.
-- `myspoti.ui.refresh('home' | 'search' | 'menu' | 'player' | 'trackinfo')` asks the app to ask again.
+- `distortion.ui.refresh('home' | 'search' | 'menu' | 'player' | 'trackinfo')` asks the app to ask again.
 
 ```js
-myspoti.provide('menu', function (t) {
+distortion.provide('menu', function (t) {
   if (t.kind !== 'track') return [];
   return [{ type: 'menu', label: 'Find the sample', icon: 'search', action: 'sample' }];
 });
-myspoti.provide('tap', function (e) {
-  if (e.action === 'sample') myspoti.notify('Looking for ' + e.context.title);
+distortion.provide('tap', function (e) {
+  if (e.action === 'sample') distortion.notify('Looking for ' + e.context.title);
 });
 ```
 
@@ -666,25 +666,25 @@ no geolocation. Everything it loads is fetched by the app: GET over https from t
 cookies; a Content-Security-Policy says the same (no frames, no forms). The only bridge is
 `MyspotiPage.postMessage(text)`, to your own extension: your `message` hook receives it (parsed
 JSON if it is JSON) and its answer is dispatched to the page as a `message` event
-(`window.addEventListener('message', e => e.data)`). `myspoti.page.post(data)` sends to the page
+(`window.addEventListener('message', e => e.data)`). `distortion.page.post(data)` sends to the page
 at any time, if it is open.
 
 Sign-in pages are a different thing, see "Sign in on a website" below.
 
 ### Sign in on a website (`auth`)
 
-Action: `webview.auth` (critical, "Sign in on a website"). `myspoti.auth.open({ url, callback })` opens
-the page at once and returns an id. Later, `myspoti.on('auth', fn)` is called with `{ id, url }` when
+Action: `webview.auth` (critical, "Sign in on a website"). `distortion.auth.open({ url, callback })` opens
+the page at once and returns an id. Later, `distortion.on('auth', fn)` is called with `{ id, url }` when
 the page reached the callback (the full address, query and fragment included), or with `{ id, error }`
 (for example `"closed"`). Use the id to tell your sign-ins apart. `auth` needs `webview.auth` in the manifest.
 
 ```js
 function signIn() {
-  return myspoti.auth.open({ url: 'https://login.example.com/start', callback: 'myextension://done' });
+  return distortion.auth.open({ url: 'https://login.example.com/start', callback: 'myextension://done' });
 }
-myspoti.on('auth', function (e) {
-  if (e.error) return myspoti.notify('Sign-in: ' + e.error);
-  myspoti.storage.set('callback', e.url);   // the answer is in the query of e.url
+distortion.on('auth', function (e) {
+  if (e.error) return distortion.notify('Sign-in: ' + e.error);
+  distortion.storage.set('callback', e.url);   // the answer is in the query of e.url
 });
 ```
 
@@ -699,7 +699,7 @@ between sign-ins of the same extension. Cookies, POST forms, redirects and ifram
 The callback is caught on links, on redirects, and on a form POSTed to an https callback. The POST
 body itself is not returned: use a callback that puts the answer in the query.
 
-**Hidden.** `myspoti.auth.open({ url, callback, hidden: true })` loads the same page out of sight
+**Hidden.** `distortion.auth.open({ url, callback, hidden: true })` loads the same page out of sight
 first: a check that passes by itself (redirects, an invisible captcha) reaches the callback with
 nothing on screen. If it has not after 8 seconds, the same page (not reloaded) is shown full screen
 with its Close button, for the user to finish it. Use it for a verification that usually needs
@@ -716,24 +716,24 @@ otherwise `auth.open` throws. It is separate from `webview.page`, whose page sta
 
 ### Waiting for the network (`online`)
 
-Action: `network`. `myspoti.work.whenOnline()` asks for one `online` event. `myspoti.on('online', fn)`
+Action: `network`. `distortion.work.whenOnline()` asks for one `online` event. `distortion.on('online', fn)`
 is called at once when the phone has a validated network, or as soon as it comes back, also after the
 app restarts. Asking again before it fires changes nothing. The work runs with a 30 s time limit.
 `online` needs `network` in the manifest.
 
-Typical use: send a queue of things the extension kept in `myspoti.storage` while offline.
+Typical use: send a queue of things the extension kept in `distortion.storage` while offline.
 
 ```js
-myspoti.on('track', function (t) {
-  var queue = myspoti.storage.get('queue') || [];
+distortion.on('track', function (t) {
+  var queue = distortion.storage.get('queue') || [];
   queue.push(t.uri);
-  myspoti.storage.set('queue', queue.slice(-200));
-  myspoti.work.whenOnline();
+  distortion.storage.set('queue', queue.slice(-200));
+  distortion.work.whenOnline();
 });
-myspoti.on('online', function () {
-  var queue = myspoti.storage.get('queue') || [];
-  queue.forEach(function (uri) { myspoti.http.post('https://plays.example.com/api', { uri: uri }); });
-  myspoti.storage.remove('queue');
+distortion.on('online', function () {
+  var queue = distortion.storage.get('queue') || [];
+  queue.forEach(function (uri) { distortion.http.post('https://plays.example.com/api', { uri: uri }); });
+  distortion.storage.remove('queue');
 });
 ```
 
@@ -741,22 +741,22 @@ myspoti.on('online', function () {
 
 ### Settings changed (`setting`)
 
-Action: `settings.page`. `myspoti.on('setting', fn)` is called when the user changes one of the
+Action: `settings.page`. `distortion.on('setting', fn)` is called when the user changes one of the
 extension's settings (section 2):
 
 - `{ key }` when a setting changed. For a text field, it comes once the user stops typing for a
-  moment. Read the new value with `myspoti.settings.get(key)`. The event carries only the key.
+  moment. Read the new value with `distortion.settings.get(key)`. The event carries only the key.
 - `{ key, pressed: true }` when the user presses a `button` setting.
 - `{ key, network: true }` when the phone went from Wi-Fi to mobile data or back and a `perNetwork`
-  setting's value (what `myspoti.settings.get(key)` gives) changed with it. Changing either of its
+  setting's value (what `distortion.settings.get(key)` gives) changed with it. Changing either of its
   two values by hand sends `{ key }`, as any setting.
 
 It needs `settings.page` in the manifest (checked when you call `on`). Time limit 30 s per delivery.
 
 ```js
-myspoti.on('setting', function (e) {
+distortion.on('setting', function (e) {
   if (e.key === 'pair' && e.pressed) pair();
-  if (e.key === 'quality') myspoti.log('quality is now ' + myspoti.settings.get('quality'));
+  if (e.key === 'quality') distortion.log('quality is now ' + distortion.settings.get('quality'));
 });
 ```
 
@@ -768,14 +768,14 @@ app frames them at run time (destructive Spotify writes are confirmed one by one
 and downloads are asked in the user's order; pages are locked down, sign-in pages have their own profile). The sandbox enforces exactly what the manifest
 declares: a call outside it throws (`"x is not in this extension's manifest (actions)"`). The user
 cannot untick single actions: installing grants all of them. An extension installed by an older
-Myspoti that let the user untick some stays off, with a "Waits for your OK" card on its page,
+Distortion that let the user untick some stays off, with a "Waits for your OK" card on its page,
 until the user accepts them all with the same tick.
 
 | Action | Icon | Label | Level | Mode | Unlocks |
 |---|---|---|---|---|---|
-| `playback.control` | PlayCircle | Control playback | normal | shared | `myspoti.player.play/pause/next/previous/seek`; `spotify.player` play, pause, resume, seek, next, previous, shuffle, repeat, volume, speed, skipTo; `spotify.devices` transfer, pullHere |
+| `playback.control` | PlayCircle | Control playback | normal | shared | `distortion.player.play/pause/next/previous/seek`; `spotify.player` play, pause, resume, seek, next, previous, shuffle, repeat, volume, speed, skipTo; `spotify.devices` transfer, pullHere |
 | `playback.queue` | QueueMusic | Edit the queue | normal | shared | `spotify.player` addToQueue, playNext, moveInQueue, removeFromQueue, clearQueue |
-| `playback.events` | GraphicEq | Know what you play | normal | shared | `myspoti.player.current()`, `myspoti.on('track' \| 'playback')`, `spotify.player` state, queue, volume, media (`myspoti.spotify.media`) |
+| `playback.events` | GraphicEq | Know what you play | normal | shared | `distortion.player.current()`, `distortion.on('track' \| 'playback')`, `spotify.player` state, queue, volume, media (`distortion.spotify.media`) |
 | `lyrics.provide` | Lyrics | Provide lyrics | normal | additive, takeover | `lyrics` hook |
 | `lyrics.romanize` | Abc | Romanize lyrics | normal | additive, takeover | `lyrics-romanize` hook |
 | `trackinfo.provide` | Info | Add song details | normal | additive, takeover | `trackinfo` hook |
@@ -785,18 +785,18 @@ until the user accepts them all with the same tick.
 | `search.provide` | ManageSearch | Add search results | normal | additive, takeover | `search` hook |
 | `menu.items` | MoreHoriz | Add menu entries | normal | additive, takeover | `menu` hook |
 | `player.buttons` | SmartButton | Add player buttons | normal | additive, takeover | `player` hook |
-| `settings.page` | Tune | Its own settings | normal | takeover | manifest `settings`, `myspoti.settings`, `setting` event |
-| `notify` | Notifications | Show short messages | normal | shared | `myspoti.notify` |
+| `settings.page` | Tune | Its own settings | normal | takeover | manifest `settings`, `distortion.settings`, `setting` event |
+| `notify` | Notifications | Show short messages | normal | shared | `distortion.notify` |
 | `library.read` | LibraryMusic | Read your library | normal | shared | `spotify` library, own playlists, users, recents, devices.list, saved episodes, Blends (reads), recent searches, What's new |
 | `library.write` | LibraryAdd | Change your library | **critical** | shared | `spotify` library edits, follows, private session, taste and bans, saved episodes, clear recent searches |
 | `playlists.write` | PlaylistAdd | Edit your playlists | **critical** | shared | `spotify.playlists` edits, `spotify.blends` invite/join/rename/leave |
 | `spotify.catalog` | Album | Browse Spotify | normal | shared | `spotify` search, catalog, public playlists, home, podcasts, extras |
 | `spotify.raw` | Code | Full Spotify access | **critical** | shared | `spotify.raw` (GraphQL, page services, Spotify URLs); `raw.request` writes can be kept with Always allow (section 6) |
-| `network` | Public | Use the internet | normal (`"*"`: **critical**, "Use any website") | shared | `myspoti.http` to the listed hosts; `myspoti.work.whenOnline()` and the `online` event |
-| `webview.page` | Web | Its own web page | **critical** | takeover | `page` and `message` hooks, `myspoti.page.post` |
-| `webview.auth` | Key | Sign in on a website | **critical** | takeover | `myspoti.auth.open`, `auth` event |
-| `storage` | Save | Keep its own data | normal | shared | `myspoti.storage` (512 KB) |
-| `attest` | Fingerprint | Prove this is Myspoti | normal | shared | `myspoti.attest` (section 10) |
+| `network` | Public | Use the internet | normal (`"*"`: **critical**, "Use any website") | shared | `distortion.http` to the listed hosts; `distortion.work.whenOnline()` and the `online` event |
+| `webview.page` | Web | Its own web page | **critical** | takeover | `page` and `message` hooks, `distortion.page.post` |
+| `webview.auth` | Key | Sign in on a website | **critical** | takeover | `distortion.auth.open`, `auth` event |
+| `storage` | Save | Keep its own data | normal | shared | `distortion.storage` (512 KB) |
+| `attest` | Fingerprint | Prove this is Distortion | normal | shared | `distortion.attest` (section 10) |
 | `ui.style` | Palette | Change the look | normal | takeover | manifest `ui`: colours, hidden parts, tab order, text size, Home blocks ([UI-LOOKS.md](UI-LOOKS.md)); never on a protected surface (4.3) |
 
 ### 4.1 Old manifests
@@ -823,16 +823,16 @@ migrated the same way when the app starts.
 - `conflictsWith` / `replaces`: "Incompatible with X (installed)" / "Replaces X (installed)" in the
   store, and the install or turn-on prompt asks which to keep; the one not kept is turned off (or the
   new one installs turned off).
-- **Playback arbiter.** Every playback command from an extension (`myspoti.player.*`,
+- **Playback arbiter.** Every playback command from an extension (`distortion.player.*`,
   `spotify.player` play/pause/resume/seek/next/previous/shuffle/repeat/skipTo, `spotify.devices`
   transfer) goes through the app. Two extensions' commands of the same kind (play/pause,
   next/previous/skip, seek, shuffle/repeat) within 2 s: the one higher in the Playback area wins
-  (a lower one after it is dropped: `myspoti.player.*` returns `false`, `spotify.player.*` returns
+  (a lower one after it is dropped: `distortion.player.*` returns `false`, `spotify.player.*` returns
   `null`). The same two contradicting each other 3 times within 30 s: the lower one's playback
   commands are suspended and the user is told, with a Turn off button. At most 20 commands a minute
   per extension.
 - **Isolation.** Each extension has its own thread, storage, settings, log and sign-in profile; no API names another
-  extension. A block's tap, a page's messages and `myspoti.page.post` only ever reach the extension
+  extension. A block's tap, a page's messages and `distortion.page.post` only ever reach the extension
   that drew them.
 
 ### 4.3 Protected surfaces
@@ -848,14 +848,16 @@ Report button (beta logs) and what it opens, About (version, credits, source, le
   are dialogs and sheets above them, and the Report button is drawn after the app.
 - While one is on screen, extension blocks and pages are not asked nor drawn, the page's WebView is
   hidden and paused, taps and page messages are dropped.
-- No event about them exists (`myspoti.on` knows `track`, `playback`, `auth`, `online` and `setting` only).
+- No event about them exists (`distortion.on` knows `track`, `playback`, `auth`, `online` and `setting` only).
 
-## 5. The `myspoti` object
+## 5. The `distortion` object
+
+Distortion also exposes the same object as `myspoti` for existing extensions.
 
 The script runs in Rhino 1.8.1 (ES6: `let`, `const`, arrow functions, template strings,
-destructuring) on its own thread. It sees the standard JavaScript objects, `myspoti` and
+destructuring) on its own thread. It sees the standard JavaScript objects, `distortion` and
 `console`, and nothing else: no `require`, `fetch`, timers, DOM, or Java (`java`, `Packages` are
-undefined). `myspoti` and `console` cannot be replaced. Everything is synchronous.
+undefined). `distortion` and `console` cannot be replaced. Everything is synchronous.
 
 **Forbidden:** `eval`, `Function`, `new Function(...)`, `(function(){}).constructor(...)` and the
 generator constructor all throw `"code from strings is not allowed in extensions"`. What was
@@ -865,51 +867,51 @@ A script that throws while loading fails to load, with `file:line` in the messag
 
 | Call | Notes |
 |---|---|
-| `myspoti.apiVersion` | `1`. |
-| `myspoti.locale` | The language Myspoti shows, as a BCP 47 tag: `"fr"`, `"pt-BR"`, `"zh-TW"`. Below. |
-| `myspoti.extension` | `{ id, name, version }` from the manifest. |
-| `myspoti.features` | What this Myspoti understands beyond the first API: `audio.manifest`, `audio.expires`, `audio.quality`, `audio.ahead` (section 3, `audio-source`), `http.all`, `status` (section 3), `results` (section 3, "Outcomes"), `settings.section` (section 2: a setting's `section`, `role`, `perNetwork`), `util.sleep`, `lyrics.romanize` (section 3, `lyrics-romanize`), `attest` (section 10, only when the user granted it). Missing on an older Myspoti: test `myspoti.features && myspoti.features.indexOf(name) >= 0`. |
-| `myspoti.provide(hook, fn)` | Section 3. |
-| `myspoti.on('track' \| 'playback', fn)` | Section 3. Needs `playback.events`. |
-| `myspoti.on('auth', fn)` | Section 3, sign in. Needs `webview.auth`. |
-| `myspoti.on('online', fn)` | Section 3, waiting for the network. Needs `network`. |
-| `myspoti.auth.open({ url, callback })` | Section 3, sign in. Returns an id at once. Needs `webview.auth`. |
-| `myspoti.work.whenOnline()` | Section 3, waiting for the network. Needs `network`. |
-| `myspoti.on('setting', fn)` | Section 3, settings changed. Needs `settings.page`. |
-| `myspoti.http.get(url, options?)` | `options`: `{ headers, timeout }`. |
-| `myspoti.http.post(url, body, options?)` | A non-string `body` is sent as JSON (`Content-Type: application/json` unless you set one). |
-| `myspoti.http.request({ url, method, headers, body, timeout })` | Methods: GET POST PUT PATCH DELETE HEAD. |
-| `myspoti.http.all([request, ...])` | Up to 4 requests sent together (below). Feature `http.all`. |
-| `myspoti.query({ a: 1, b: 'x y' })` | `"a=1&b=x%20y"`. `null` and `undefined` values are left out. |
-| `myspoti.storage.get(key)` / `.set(key, value)` / `.remove(key)` | `storage`. Your own store, values are JSON. `get` of a missing key is `undefined`. 512 KB in all (keys plus values), then `set` throws `"storage full (512 KB)"`. |
-| `myspoti.settings.get(key)` | Section 2. |
-| `myspoti.player.current()` | The track playing in Myspoti (shape of section 3) or `null`. `playback.events`. |
-| `myspoti.player.play()`, `.pause()`, `.next()`, `.previous()`, `.seek(ms)` | Myspoti's own player. `playback.control`, through the arbiter (4.2). Return `true` if it was done. |
-| `myspoti.ui.refresh(place)` | Section 3, blocks. The place's action. |
-| `myspoti.page.post(data)` | Section 3, pages. `webview.page`. |
-| `myspoti.spotify.<area>.<method>(...)` | Section 6. |
-| `myspoti.attest.enroll(challenge)` / `.publicKey()` / `.sign(text)` / `.reset()` | Section 10. A signing key of its own in the phone's hardware keystore, with its key attestation, to prove requests to your own server. Needs `attest`. |
-| `myspoti.notify(text)` | A short message on screen, 200 characters, with your extension's name. `notify`. |
-| `myspoti.log(...)`, `console.log/info/warn/error(...)` | Same thing: arguments joined by spaces, objects as JSON, 2000 characters at most. |
-| `myspoti.util.base64Encode(s)` / `base64Decode(s)` | UTF-8 text. Decode throws on bad input. |
-| `myspoti.util.md5(s)`, `sha1(s)`, `sha256(s)` | Lower-case hex. |
-| `myspoti.util.hmacSha256(key, text)` | Lower-case hex. |
-| `myspoti.util.sleep(ms)` | Synchronous backoff on the extension thread, with no permission required. `ms` must be a finite, non-negative integer; values above 2000 are capped to 2000 ms. Returns `undefined`. Counts against the current hook/event time limit and stops on cancellation. An older host has no method: check `myspoti.util && typeof myspoti.util.sleep === 'function'` or the `util.sleep` feature before use. |
+| `distortion.apiVersion` | `1`. |
+| `distortion.locale` | The language Distortion shows, as a BCP 47 tag: `"fr"`, `"pt-BR"`, `"zh-TW"`. Below. |
+| `distortion.extension` | `{ id, name, version }` from the manifest. |
+| `distortion.features` | What this Distortion understands beyond the first API: `audio.manifest`, `audio.expires`, `audio.quality`, `audio.ahead` (section 3, `audio-source`), `http.all`, `status` (section 3), `results` (section 3, "Outcomes"), `settings.section` (section 2: a setting's `section`, `role`, `perNetwork`), `util.sleep`, `lyrics.romanize` (section 3, `lyrics-romanize`), `attest` (section 10, only when the user granted it). Missing on an older host: test `distortion.features && distortion.features.indexOf(name) >= 0`. |
+| `distortion.provide(hook, fn)` | Section 3. |
+| `distortion.on('track' \| 'playback', fn)` | Section 3. Needs `playback.events`. |
+| `distortion.on('auth', fn)` | Section 3, sign in. Needs `webview.auth`. |
+| `distortion.on('online', fn)` | Section 3, waiting for the network. Needs `network`. |
+| `distortion.auth.open({ url, callback })` | Section 3, sign in. Returns an id at once. Needs `webview.auth`. |
+| `distortion.work.whenOnline()` | Section 3, waiting for the network. Needs `network`. |
+| `distortion.on('setting', fn)` | Section 3, settings changed. Needs `settings.page`. |
+| `distortion.http.get(url, options?)` | `options`: `{ headers, timeout }`. |
+| `distortion.http.post(url, body, options?)` | A non-string `body` is sent as JSON (`Content-Type: application/json` unless you set one). |
+| `distortion.http.request({ url, method, headers, body, timeout })` | Methods: GET POST PUT PATCH DELETE HEAD. |
+| `distortion.http.all([request, ...])` | Up to 4 requests sent together (below). Feature `http.all`. |
+| `distortion.query({ a: 1, b: 'x y' })` | `"a=1&b=x%20y"`. `null` and `undefined` values are left out. |
+| `distortion.storage.get(key)` / `.set(key, value)` / `.remove(key)` | `storage`. Your own store, values are JSON. `get` of a missing key is `undefined`. 512 KB in all (keys plus values), then `set` throws `"storage full (512 KB)"`. |
+| `distortion.settings.get(key)` | Section 2. |
+| `distortion.player.current()` | The track playing in Distortion (shape of section 3) or `null`. `playback.events`. |
+| `distortion.player.play()`, `.pause()`, `.next()`, `.previous()`, `.seek(ms)` | Distortion's own player. `playback.control`, through the arbiter (4.2). Return `true` if it was done. |
+| `distortion.ui.refresh(place)` | Section 3, blocks. The place's action. |
+| `distortion.page.post(data)` | Section 3, pages. `webview.page`. |
+| `distortion.spotify.<area>.<method>(...)` | Section 6. |
+| `distortion.attest.enroll(challenge)` / `.publicKey()` / `.sign(text)` / `.reset()` | Section 10. A signing key of its own in the phone's hardware keystore, with its key attestation, to prove requests to your own server. Needs `attest`. |
+| `distortion.notify(text)` | A short message on screen, 200 characters, with your extension's name. `notify`. |
+| `distortion.log(...)`, `console.log/info/warn/error(...)` | Same thing: arguments joined by spaces, objects as JSON, 2000 characters at most. |
+| `distortion.util.base64Encode(s)` / `base64Decode(s)` | UTF-8 text. Decode throws on bad input. |
+| `distortion.util.md5(s)`, `sha1(s)`, `sha256(s)` | Lower-case hex. |
+| `distortion.util.hmacSha256(key, text)` | Lower-case hex. |
+| `distortion.util.sleep(ms)` | Synchronous backoff on the extension thread, with no permission required. `ms` must be a finite, non-negative integer; values above 2000 are capped to 2000 ms. Returns `undefined`. Counts against the current hook/event time limit and stops on cancellation. An older host has no method: check `distortion.util && typeof distortion.util.sleep === 'function'` or the `util.sleep` feature before use. |
 
-`myspoti.locale` needs no action. It is the language picked in Myspoti's settings, or the
+`distortion.locale` needs no action. It is the language picked in Distortion's settings, or the
 phone's when the app follows the phone, so it is never empty. It is read again each time you
 read it: after the user changes the language, the next read gives the new one, without a reload.
 Read it where you build text (a block, a setting's answer, your page's first message) rather
 than once at load. It is the app's language, not the lyrics translation target, which the
-reader picks apart (section 3, `translationLanguage`). An older Myspoti has no `locale` (`undefined`), so fall
-back: `var lang = myspoti.locale || 'en';`. Compare its first part to pick your strings:
+reader picks apart (section 3, `translationLanguage`). An older host has no `locale` (`undefined`), so fall
+back: `var lang = distortion.locale || 'en';`. Compare its first part to pick your strings:
 `lang.split('-')[0]`.
 
-`myspoti.player` (needs `playback.events` / `playback.control`) is Myspoti's own player. The
-Spotify account's player (what the Web Player is playing) is `myspoti.spotify.player`, with the
+`distortion.player` (needs `playback.events` / `playback.control`) is Distortion's own player. The
+Spotify account's player (what the Web Player is playing) is `distortion.spotify.player`, with the
 playback actions.
 
-### `myspoti.http`
+### `distortion.http`
 
 Returns `{ status, headers, body, ok, json() }`. `headers` has lower-case names (several values
 joined by `", "`), `body` is text, `ok` is true for 2xx, `json()` parses the body. A 4xx or 5xx
@@ -925,12 +927,12 @@ Rules, all enforced by the app:
   IPv4 literals in 0/8, 10/8, 127/8, 169.254/16, 172.16/12, 192.168/16, and every IPv6 literal.
 - No cookies, no cache, no account. Redirects are not followed: you receive the 3xx and its
   `location` header. The headers `host`, `content-length`, `connection`, `cookie`,
-  `transfer-encoding` are dropped. The default `User-Agent` is `Myspoti-Extension/1 (<id>)`.
+  `transfer-encoding` are dropped. The default `User-Agent` is `Distortion-Extension/1 (<id>)`.
 - Timeout: `timeout` in ms, default 15000, kept between 1000 and 20000 and cut to what is left of
   the call's time. Response body: 5 MB at most.
 - 120 requests per minute (sliding window): over that, `"more than 120 requests in a minute"`.
 
-`myspoti.http.all([{ url, method, headers, body, timeout }, ...])` sends up to 4 requests at the
+`distortion.http.all([{ url, method, headers, body, timeout }, ...])` sends up to 4 requests at the
 same time and waits for all of them: the script stays synchronous, the call returns once the last
 one has answered. The answers come in the same order, each like `http.request`'s; a request that
 fails (refused host, network failure, over the limit) gives `{ error: "http: ..." }` in its place,
@@ -939,19 +941,19 @@ without failing the others. More than 4 in one call throws `"http.all: at most 4
 in the 120 per minute; each timeout is cut to what is left of the call's time.
 
 ```js
-var answers = myspoti.http.all(ids.map(function (id) { return { url: 'https://api.example.com/t/' + id }; }));
-answers.forEach(function (r) { if (r.error) myspoti.log(r.error); else use(r.json()); });
+var answers = distortion.http.all(ids.map(function (id) { return { url: 'https://api.example.com/t/' + id }; }));
+answers.forEach(function (r) { if (r.error) distortion.log(r.error); else use(r.json()); });
 ```
 
-Check `myspoti.features.indexOf('http.all') >= 0` first; without it, send them one by one.
+Check `distortion.features.indexOf('http.all') >= 0` first; without it, send them one by one.
 
 Example, a listener that remembers what it saw:
 
 ```js
-myspoti.on('track', function (t) {
-  var seen = myspoti.storage.get('seen') || [];
+distortion.on('track', function (t) {
+  var seen = distortion.storage.get('seen') || [];
   seen.push(t.uri);
-  myspoti.storage.set('seen', seen.slice(-100));
+  distortion.storage.set('seen', seen.slice(-100));
 });
 ```
 
@@ -960,15 +962,15 @@ and `"provides": []`.)
 
 ## 6. Spotify access
 
-`myspoti.spotify.<area>.<method>(...args)` talks to the account signed in to Myspoti. Areas:
+`distortion.spotify.<area>.<method>(...args)` talks to the account signed in to Distortion. Areas:
 `player`, `search`, `catalog`, `library`, `playlists`, `home`, `podcasts`, `users`, `extras`,
 `devices`, `recents`, `blends`, `raw`. The object is built from the app's own method table, so a
 method that is not in the tables below does not exist (`undefined`). Jam (live shared sessions) is
 not exposed.
 
 ```js
-var r = myspoti.spotify.search.tracks('papaoutai');       // needs spotify.catalog
-myspoti.spotify.library.add([r.items[0].uri]);             // needs library.write
+var r = distortion.spotify.search.tracks('papaoutai');       // needs spotify.catalog
+distortion.spotify.library.add([r.items[0].uri]);             // needs library.write
 ```
 
 **Arguments** are positional. Optional ones may be left out or `null`. Defaults are in the tables.
@@ -1066,10 +1068,10 @@ type means optional/nullable. Returns of "—" mean `null`.
 | `skipTo(item: {uri,uid?})` | — | write |  |
 | `moveInQueue(item: {uri,uid?}, target: {uri,uid?}, after = false)` | — | write |  |
 | `setVolume(level: number)` | — | write |  |
-| `setLocalMute(on: boolean)` | `playback.mirror` (critical) | write | Keeps Spotify playing unheard on this phone (`myspoti.features` has `player.localMute` only when the user granted `playback.mirror`). It can keep Spotify playing silently and counts listens on the user's Spotify account, so the user ticks the accept-risk box. Host rules, whatever the script does: honoured only while Myspoti's own local / extension player is playing; one extension at a time; at most one enable per 20 s; cleared by itself on track change, local pause or stop, the local track's duration, and when the extension is disabled, uninstalled, blocked or crashes. Refused while Myspoti's own Connect mirror (Settings, "Count extension plays on Spotify", on by default) plays the song on the page itself, and an extension's mirror ends when that one starts. Both players show "Spotify mirrored by <extension>", and the Activity log and Logbook record each enable and clear. Existing installs do not have it until the user accepts the action through the update / consent flow. |
+| `setLocalMute(on: boolean)` | `playback.mirror` (critical) | write | Keeps Spotify playing unheard on this phone (`distortion.features` has `player.localMute` only when the user granted `playback.mirror`). It can keep Spotify playing silently and counts listens on the user's Spotify account, so the user ticks the accept-risk box. Host rules, whatever the script does: honoured only while Distortion's own local / extension player is playing; one extension at a time; at most one enable per 20 s; cleared by itself on track change, local pause or stop, the local track's duration, and when the extension is disabled, uninstalled, blocked or crashes. Refused while Distortion's own Connect mirror (Settings, "Count extension plays on Spotify", on by default) plays the song on the page itself, and an extension's mirror ends when that one starts. Both players show "Spotify mirrored by <extension>", and the Activity log and Logbook record each enable and clear. Existing installs do not have it until the user accepts the action through the update / consent flow. |
 | `setSpeed(speed: number)` | — | write |  |
 
-`media(trackUri)` (also `myspoti.spotify.media(trackUri)`) returns the media manifest Spotify sent the
+`media(trackUri)` (also `distortion.spotify.media(trackUri)`) returns the media manifest Spotify sent the
 player for that song: `{ uri, manifest }`, exactly as sent. It has the formats and `file_id`s, for
 example `manifest.file_ids_mp4[0].file_id`. It returns `null` when the player was not sent that song.
 Only songs queued in the player count, and the last 200 are kept. `trackUri` must be a `spotify:track:`
@@ -1249,7 +1251,7 @@ its headers, no `X-Requested-With`), or to `https://*.spotifycdn.com` with none.
 plain http throws. A `body` that is not a string is sent as JSON; `Content-Type` defaults to JSON.
 A binary body (a protobuf, say) is given as base64 with `{ encoding: 'base64' }` as the fifth
 argument: its bytes are sent, and a body that is not base64 throws before anything leaves
-(`myspoti.features` lists `raw.base64` where the app can do this).
+(`distortion.features` lists `raw.base64` where the app can do this).
 Your headers cannot replace the credentials: `authorization`, `client-token`, `cookie`, `origin`,
 `referer`, `app-platform`, `spotify-app-version`, `x-requested-with` and the transport's own are
 dropped. A 4xx or 5xx is returned, not thrown; `body` is text, header names are lower case.
@@ -1335,13 +1337,13 @@ is. `playlists.setCover` takes a JPEG as base64.
 | Script work | Checked every 5000 instructions against the call's time; a loop cannot hold the thread. A call that runs over is abandoned, and it cannot be caught by `try/catch`. The next call waits behind it on the extension's own thread, never on the app's. |
 | Recursion | 800 interpreter frames |
 | Time spent waiting for the user to confirm | Not counted |
-| `myspoti.util.sleep(ms)` | At most 2000 ms per call, counted in the current hook/event budget; never extends its deadline |
-| `myspoti.http` | 120 requests/min, 5 MB per response, 20 s per request, https only; `http.all`: 4 at once |
-| `myspoti.spotify` | 60 calls/min, 256 KB of arguments, 1000 items per list, 2 MB per answer |
-| `myspoti.attest` | `sign` 120/min and 64 KB of text; `enroll` 5/hour and a challenge of 128 bytes |
+| `distortion.util.sleep(ms)` | At most 2000 ms per call, counted in the current hook/event budget; never extends its deadline |
+| `distortion.http` | 120 requests/min, 5 MB per response, 20 s per request, https only; `http.all`: 4 at once |
+| `distortion.spotify` | 60 calls/min, 256 KB of arguments, 1000 items per list, 2 MB per answer |
+| `distortion.attest` | `sign` 120/min and 64 KB of text; `enroll` 5/hour and a challenge of 128 bytes |
 | Storage | 512 KB (keys and values together) |
 | Sign-in page | One at a time |
-| `myspoti.work.whenOnline()` | 30 s |
+| `distortion.work.whenOnline()` | 30 s |
 | Lyrics | 3000 lines, 500 characters per line and per word, 200 words per line |
 | Audio and download headers | 20 |
 | Download files | 10 per answer, a `dash-flac` manifest 1 MB |
@@ -1392,12 +1394,12 @@ The app itself never refuses such a package: it shows the setting on its page, a
 What the runner does: every right the manifest asks is granted. Each hook and event gets the app's
 own time limit (section 7). An answer `{ outcome }` is printed as the app reads it. Storage is in
 memory for the run (`test --state` keeps it in a file).
-`myspoti.attest` works with a software key kept between runs (section 10).
+`distortion.attest` works with a software key kept between runs (section 10).
 `log`, `console`, `notify` and failures go to stderr as `[id] message`. `player` controls print
-`player: <action>` and answer `true`. `myspoti.player.current()` returns the `--title` track.
+`player: <action>` and answer `true`. `distortion.player.current()` returns the `--title` track.
 `http` is real (same host rules as the app).
 
-**Spotify.** Without `--cdp`, every `myspoti.spotify` call throws, so you can test lyrics and audio
+**Spotify.** Without `--cdp`, every `distortion.spotify` call throws, so you can test lyrics and audio
 code but not Spotify code. With `--cdp PORT` (or `--cdp http://host:PORT`) the calls run against
 the account signed in to the Web Player of a Chrome you started yourself:
 
@@ -1422,7 +1424,7 @@ allows every question, a script run with no input refuses them all).
 **Limits of `check`.** It never calls a hook or an event and has no account, no current track and
 no network of its own: it only reads the manifest and runs the script's top level once with all
 rights granted. A bug inside `provide('lyrics', ...)`, a wrong response shape, a missing host,
-or a `myspoti.spotify` call fail only under `run`. A top-level call to `myspoti.spotify` fails in
+or a `distortion.spotify` call fail only under `run`. A top-level call to `distortion.spotify` fails in
 `check`. `run ... track` prints `delivered` even if the listener threw: read the `failed: ...` line
 on stderr.
 
@@ -1531,7 +1533,7 @@ sha256; nothing about the user).
 ### 9.3 Publish in 5 minutes
 
 Nobody approves an extension: you publish it in your own GitHub repository, and the store finds it
-by its topic. Myspoti does not host, review or endorse third-party extensions; read the
+by its topic. Distortion does not host, review or endorse third-party extensions; read the
 [policy](https://github.com/kota-zo/myspoti-extensions/blob/main/POLICY.md) (no DRM circumvention,
 piracy, credential theft, fake plays, malware) before you publish.
 
@@ -1567,7 +1569,7 @@ words. Keep `id` and the repository: a changed one is shown as a different sourc
 
 **Reports and takedowns.** The Report button on a store page opens the report form of
 `kota-zo/myspoti-extensions` (prefilled with the id, version, source and sha256); reports, legal
-notices and counter-notices can also go to myspoti.app@gmail.com. On a valid report the owner adds
+notices and counter-notices follow that upstream repository's reporting policy. On a valid report the owner adds
 the extension to `blocked.json` (turned off on every phone, with the reason) or `flagged` (hidden
 from the store); see `POLICY.md` and `REPORTING.md` in that repository. The same repository can also
 list "verified" extensions in its `index.json` (optional, the owner's choice; the app shows it in the
@@ -1581,21 +1583,21 @@ A write the user allows for good is a grant on method + host + path pattern. On 
 ## 10. Prove a request comes from a genuine install (`attest`)
 
 Optional and generic: any extension that talks to **its author's own server** can use it, so that
-the server can tell a request comes from a Myspoti install running that extension, and not from a
+the server can tell a request comes from a Distortion install running that extension, and not from a
 script that pulled a key out of the zip (there is nothing secret in a zip: anyone can read it).
-Action `attest` (normal, "Prove this is Myspoti"): the user sees it at install like the others.
-Without it, every `myspoti.attest` call throws `"attest is not in this extension's manifest
+Action `attest` (normal, "Prove this is Distortion"): the user sees it at install like the others.
+Without it, every `distortion.attest` call throws `"attest is not in this extension's manifest
 (actions)"`. No key exists until the extension calls `enroll`. The app makes no request of its own
 for this: your script sends what it gets to your server.
 
 | Call | Does |
 |---|---|
-| `myspoti.attest.enroll(challenge)` | `challenge`: a string from your server, 1 to 128 bytes (UTF-8). Creates, or replaces, an EC P-256 signing key for **this extension** in the Android hardware keystore (StrongBox when the phone has one, else the TEE) with `challenge` as the attestation challenge. Returns `{ publicKey, certChain }`: `publicKey` is the base64 SPKI (DER), `certChain` the base64 DER certificates of the Android key attestation, leaf first. At most 5 an hour. Throws if the phone cannot make such a key. |
-| `myspoti.attest.publicKey()` | The current key's base64 SPKI, or `null` before `enroll`. |
-| `myspoti.attest.sign(text)` | The base64 DER ECDSA-SHA256 signature of the UTF-8 `text` (64 KB at most), made with this extension's key. Throws `"attest.sign: not enrolled ..."` before `enroll`. 120 a minute. |
-| `myspoti.attest.reset()` | Deletes this extension's key. Uninstalling the extension does it too. |
+| `distortion.attest.enroll(challenge)` | `challenge`: a string from your server, 1 to 128 bytes (UTF-8). Creates, or replaces, an EC P-256 signing key for **this extension** in the Android hardware keystore (StrongBox when the phone has one, else the TEE) with `challenge` as the attestation challenge. Returns `{ publicKey, certChain }`: `publicKey` is the base64 SPKI (DER), `certChain` the base64 DER certificates of the Android key attestation, leaf first. At most 5 an hour. Throws if the phone cannot make such a key. |
+| `distortion.attest.publicKey()` | The current key's base64 SPKI, or `null` before `enroll`. |
+| `distortion.attest.sign(text)` | The base64 DER ECDSA-SHA256 signature of the UTF-8 `text` (64 KB at most), made with this extension's key. Throws `"attest.sign: not enrolled ..."` before `enroll`. 120 a minute. |
+| `distortion.attest.reset()` | Deletes this extension's key. Uninstalling the extension does it too. |
 
-`myspoti.features` has `attest` when the user granted it. The key's alias holds the extension's id
+`distortion.features` has `attest` when the user granted it. The key's alias holds the extension's id
 (`myspoti.ext.attest.<id>`), so an extension can only ever use its own key, never another's. The key
 cannot be exported: it signs only, and only for the extension that owns it, only while the app runs
 that extension. No device identifier (serial number, IMEI) is requested: the chain says what app
@@ -1606,7 +1608,7 @@ made the key and how the phone's keystore and boot state look.
 It proves that the key lives in Android hardware (the attestation's security level is
 StrongBox or TrustedEnvironment, never Software), that **the app package made it** (the attestation
 extension, `attestationApplicationId`, holds the package name and the SHA-256 digest of the
-certificate that signed the app: `app.myspoti` or `app.myspoti.beta`, signed by the key you pin),
+certificate that signed the app: `app.distortion.music` or `app.distortion.music.beta`, signed by the key you pin),
 and that your server asked for it (the challenge). Every later signature then comes from that key.
 
 It does **not** prove that the build is untouched: on a rooted phone, or with a patched official
@@ -1618,7 +1620,7 @@ determined owner of a phone.
 
 ### It is optional
 
-For the author: your server can still serve clients that did not enrol, or serve them less; Myspoti
+For the author: your server can still serve clients that did not enrol, or serve them less; Distortion
 never requires it. For the user: it is one more line in the install prompt, the extension works
 without it for everything else, nothing is sent anywhere by the app, and the key is theirs to lose
 by uninstalling.
@@ -1635,8 +1637,8 @@ by uninstalling.
    description): check `attestationChallenge` equals your challenge, `attestationSecurityLevel` is
    StrongBox or TrustedEnvironment, and in the authorization lists that the key is an EC P-256 key
    with purpose `SIGN`, with no `ALL_APPLICATIONS` and no software-only part.
-4. **Check the app.** In `attestationApplicationId`: the package name is `app.myspoti` (or
-   `app.myspoti.beta` if you accept the beta), and one of the signing certificate digests is the
+4. **Check the app.** In `attestationApplicationId`: the package name is `app.distortion.music` (or
+   `app.distortion.music.beta` if you accept the beta), and one of the signing certificate digests is the
    SHA-256 of the release certificate **you choose to pin** (`apksigner verify --print-certs` on
    the official APK). Optionally also read the root of trust (verified boot, locked bootloader).
 5. **Store** the key against the account or install, with the time and the level you saw.
@@ -1653,28 +1655,28 @@ The extension's side:
 var API = 'https://api.example.com';
 
 function enrol() {
-  var c = myspoti.http.get(API + '/attest/challenge').json();            // { challenge }
-  var e = myspoti.attest.enroll(c.challenge);
-  myspoti.http.post(API + '/attest/enrol', { challenge: c.challenge, publicKey: e.publicKey, certChain: e.certChain });
+  var c = distortion.http.get(API + '/attest/challenge').json();            // { challenge }
+  var e = distortion.attest.enroll(c.challenge);
+  distortion.http.post(API + '/attest/enrol', { challenge: c.challenge, publicKey: e.publicKey, certChain: e.certChain });
 }
 
 function signedPost(path, body) {
-  if (!myspoti.attest.publicKey()) enrol();
+  if (!distortion.attest.publicKey()) enrol();
   var text = JSON.stringify(body);
   var ts = String(Math.floor(Date.now() / 1000));
-  var nonce = myspoti.util.sha256(ts + Math.random() + text).slice(0, 32);
-  var canonical = ['POST', path, ts, nonce, myspoti.util.sha256(text)].join('\n');
-  return myspoti.http.post(API + path, text, { headers: {
+  var nonce = distortion.util.sha256(ts + Math.random() + text).slice(0, 32);
+  var canonical = ['POST', path, ts, nonce, distortion.util.sha256(text)].join('\n');
+  return distortion.http.post(API + path, text, { headers: {
     'Content-Type': 'application/json',
-    'X-Key': myspoti.util.sha256(myspoti.attest.publicKey()),
+    'X-Key': distortion.util.sha256(distortion.attest.publicKey()),
     'X-Timestamp': ts,
     'X-Nonce': nonce,
-    'X-Signature': myspoti.attest.sign(canonical),
+    'X-Signature': distortion.attest.sign(canonical),
   } });
 }
 ```
 
-(manifest: `"actions": [{ "name": "attest", "why": "Lets my server know this is a real Myspoti" }, { "name": "network", "hosts": ["api.example.com"], "why": "Talks to my server" }]`.)
+(manifest: `"actions": [{ "name": "attest", "why": "Lets my server know this is a real Distortion" }, { "name": "network", "hosts": ["api.example.com"], "why": "Talks to my server" }]`.)
 
 On a computer, `myspoti-ext` gives each extension a **software** EC P-256 key kept in
 `~/.myspoti-ext/attest/` (or under `$MYSPOTI_EXT_HOME`), and a one-certificate self-signed

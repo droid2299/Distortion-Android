@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Myspoti's own texts (English default, French, Italian). -->
+<!-- Distortion's own texts (English default, French, Italian). -->
 <resources>
     <string name="welcome_lead">你的音乐，</string>
     <string name="welcome_rotate_ads">没有广告。</string>
@@ -102,22 +102,22 @@
     <string name="playlist_change_refused">Spotify 拒绝了对此播放列表的更改</string>
     <string name="download_kept_by_list">仍保留下载：已下载的播放列表包含它</string>
     <string name="download_kept_by_named">仍保留下载：已下载的“%1$s”包含它</string>
-    <string name="support_title">支持 Myspoti</string>
-    <string name="support_body">Myspoti 免费、无广告，由我在业余时间制作。如果你喜欢它，一点小小的捐助能帮助它继续下去。</string>
+    <string name="support_title">支持 Distortion</string>
+    <string name="support_body">Distortion 免费、无广告，由我在业余时间制作。如果你喜欢它，一点小小的捐助能帮助它继续下去。</string>
     <string name="support_scan">用手机扫描</string>
     <string name="support_action">在 Ko-fi 上支持</string>
     <string name="support_decline">不用了</string>
     <string name="support_row_detail">在 Ko-fi 或 GitHub Sponsors 上的小额捐助有助于应用持续更新</string>
     <string name="supporter_perks_title">支持者福利</string>
     <string name="supporter_perks_detail">强调色、应用图标和徽章，以表谢意</string>
-    <string name="supporter_perks_locked">支持 Myspoti 后解锁。全凭自觉：不会进行任何验证。</string>
-    <string name="supporter_i_supported">我已支持 Myspoti</string>
+    <string name="supporter_perks_locked">支持 Distortion 后解锁。全凭自觉：不会进行任何验证。</string>
+    <string name="supporter_i_supported">我已支持 Distortion</string>
     <string name="supporter_how">你是如何支持的？</string>
     <string name="supporter_once">一次捐助</string>
     <string name="supporter_monthly">每月</string>
     <string name="supporter_badge">支持者</string>
     <string name="supporter_thanks_title">感谢你的支持！</string>
-    <string name="supporter_thanks_body">如果 Myspoti 仍然对你有帮助，再次小额捐助能帮助它继续下去。</string>
+    <string name="supporter_thanks_body">如果 Distortion 仍然对你有帮助，再次小额捐助能帮助它继续下去。</string>
     <string name="support_again">再次支持</string>
     <string name="supporter_accent">强调色</string>
     <string name="supporter_icon">应用图标</string>
@@ -240,7 +240,7 @@
     <string name="setup_ext_more_detail">由作者添加的首页板块、页面和工具。</string>
     <string name="setup_ext_safe_title">一切由你掌控</string>
     <string name="setup_ext_safe_detail">安装前，它会显示可以做什么。需要更多权限时会再次询问，你也可以随时移除。</string>
-    <string name="setup_ext_where">在 设置 › 扩展 中查找，来源包括 GitHub、GitLab 和 Codeberg。扩展由其作者编写，而非 Myspoti。</string>
+    <string name="setup_ext_where">在 设置 › 扩展 中查找，来源包括 GitHub、GitLab 和 Codeberg。扩展由其作者编写，而非 Distortion。</string>
     <string name="setup_ext_browse">查看扩展</string>
     <string name="local_folders_button">文件夹</string>
     <string name="local_folders_title">文件夹</string>
@@ -287,7 +287,7 @@
     <string name="quality_now_unknown">暂时未知：请先播放一首歌</string>
     <string name="update_downloading">正在下载… %1$d%%</string>
     <string name="update_installing">正在安装…</string>
-    <string name="update_needs_permission">要更新，请允许 Myspoti 安装应用，然后回到这里。</string>
+    <string name="update_needs_permission">要更新，请允许 Distortion 安装应用，然后回到这里。</string>
     <string name="update_allow">允许</string>
     <string name="update_failed">更新失败：%1$s</string>
     <string name="update_retry">重试</string>
@@ -540,7 +540,7 @@
     <string name="song_unavailable">%1$s 不可用。</string>
     <string name="songs_skipped_by_spotify">Spotify 不断跳过无法播放的歌曲，因此播放已暂停。点按播放重试，或检查你的账号和网络连接。</string>
     <string name="licences_refused_by_spotify">Spotify 暂时拒绝在此账号上播放歌曲（音频许可被拒绝），因此播放已暂停。请稍等片刻后点按播放重试，并检查该账号能否在官方 Spotify 应用中正常播放。</string>
-    <string name="licences_refused_old_widevine">Spotify 拒绝了此手机的音频许可：它的 DRM（Widevine %1$s）比 Spotify 网页播放器接受的版本更旧，与账号无关，因此已暂停播放。在此手机上无法通过 Myspoti 播放 Spotify 歌曲；音频来源扩展可以播放它们。</string>
+    <string name="licences_refused_old_widevine">Spotify 拒绝了此手机的音频许可：它的 DRM（Widevine %1$s）比 Spotify 网页播放器接受的版本更旧，与账号无关，因此已暂停播放。在此手机上无法通过 Distortion 播放 Spotify 歌曲；音频来源扩展可以播放它们。</string>
     <string name="playlist_member_listener">听众</string>
     <string name="playlist_member_remove_collab">取消协作者身份</string>
     <string name="playlist_member_make_collab">设为协作者</string>

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Textos próprios do Myspoti (inglês por padrão, francês e português). -->
+<!-- Textos próprios do Distortion (inglês por padrão, francês e português). -->
 <resources>
     <string name="welcome_lead">Sua música,</string>
     <string name="welcome_rotate_ads">sem anúncios.</string>
@@ -95,22 +95,22 @@
     <string name="playlist_change_refused">O Spotify recusou a alteração a esta playlist</string>
     <string name="download_kept_by_list">Continua baixada: uma playlist baixada a inclui</string>
     <string name="download_kept_by_named">Continua baixada: «%1$s» está baixado e a inclui</string>
-    <string name="support_title">Apoiar o Myspoti</string>
-    <string name="support_body">O Myspoti é gratuito, sem anúncios, e é feito no meu tempo livre. Se você gosta, um pequeno donativo ajuda a mantê-lo funcionando.</string>
+    <string name="support_title">Apoiar o Distortion</string>
+    <string name="support_body">O Distortion é gratuito, sem anúncios, e é feito no meu tempo livre. Se você gosta, um pequeno donativo ajuda a mantê-lo funcionando.</string>
     <string name="support_scan">Digitaliza com o telemóvel</string>
     <string name="support_action">Apoiar no Ko-fi</string>
     <string name="support_decline">Não, obrigado</string>
     <string name="support_row_detail">Um pequeno donativo no Ko-fi ou no GitHub Sponsors ajuda a manter o app</string>
     <string name="supporter_perks_title">Vantagens de apoiador</string>
     <string name="supporter_perks_detail">Cor de destaque, ícone do app e um distintivo, como agradecimento</string>
-    <string name="supporter_perks_locked">Desbloqueado ao apoiar o Myspoti. Confia-se na sua palavra: nada é verificado.</string>
-    <string name="supporter_i_supported">Já apoiei o Myspoti</string>
+    <string name="supporter_perks_locked">Desbloqueado ao apoiar o Distortion. Confia-se na sua palavra: nada é verificado.</string>
+    <string name="supporter_i_supported">Já apoiei o Distortion</string>
     <string name="supporter_how">Como você apoiou?</string>
     <string name="supporter_once">Um donativo</string>
     <string name="supporter_monthly">Todos os meses</string>
     <string name="supporter_badge">Apoiador</string>
     <string name="supporter_thanks_title">Obrigado pelo seu apoio!</string>
-    <string name="supporter_thanks_body">Se o Myspoti continua sendo útil, um novo pequeno donativo ajuda a mantê-lo funcionando.</string>
+    <string name="supporter_thanks_body">Se o Distortion continua sendo útil, um novo pequeno donativo ajuda a mantê-lo funcionando.</string>
     <string name="support_again">Apoiar novamente</string>
     <string name="supporter_accent">Cor de destaque</string>
     <string name="supporter_icon">Ícone do app</string>
@@ -211,7 +211,7 @@
     <string name="setup_ext_more_detail">Seções da página inicial, páginas e ferramentas adicionadas pelos autores.</string>
     <string name="setup_ext_safe_title">Você no controle</string>
     <string name="setup_ext_safe_detail">Antes de instalar, ela mostra o que pode fazer. Pede de novo para qualquer coisa a mais, e você pode removê-la quando quiser.</string>
-    <string name="setup_ext_where">Encontre-as em Configurações, Extensões, no GitHub, GitLab e Codeberg. Elas são escritas pelos autores, não pelo Myspoti.</string>
+    <string name="setup_ext_where">Encontre-as em Configurações, Extensões, no GitHub, GitLab e Codeberg. Elas são escritas pelos autores, não pelo Distortion.</string>
     <string name="setup_ext_browse">Ver as extensões</string>
     <string name="local_folders_button">Pastas</string>
     <string name="local_folders_title">Pastas</string>
@@ -258,7 +258,7 @@
     <string name="quality_now_unknown">Ainda desconhecida: começa uma música</string>
     <string name="update_downloading">Baixando… %1$d%%</string>
     <string name="update_installing">Instalando…</string>
-    <string name="update_needs_permission">Para atualizar, permita que o Myspoti instale aplicativos e depois volte aqui.</string>
+    <string name="update_needs_permission">Para atualizar, permita que o Distortion instale aplicativos e depois volte aqui.</string>
     <string name="update_allow">Permitir</string>
     <string name="update_failed">A atualização falhou: %1$s</string>
     <string name="update_retry">Tentar novamente</string>
@@ -524,7 +524,7 @@
     <string name="song_unavailable">%1$s não está disponível.</string>
     <string name="songs_skipped_by_spotify">O Spotify continuou pulando músicas que não conseguia reproduzir, então a reprodução foi pausada. Toque em reproduzir para tentar de novo ou verifique sua conta e sua conexão.</string>
     <string name="licences_refused_by_spotify">O Spotify está recusando reproduzir músicas nesta conta por enquanto (licença de áudio recusada), então a reprodução foi pausada. Aguarde um pouco e toque em reproduzir para tentar de novo, e verifique se a conta funciona no app oficial do Spotify.</string>
-    <string name="licences_refused_old_widevine">O Spotify recusa as licenças de áudio deste telemóvel: o DRM dele (Widevine %1$s) é mais antigo do que o leitor web do Spotify aceita, seja qual for a conta, por isso a reprodução foi pausada. As músicas do Spotify não podem ser reproduzidas pelo Myspoti neste telemóvel; uma extensão de fonte de áudio pode reproduzi-las.</string>
+    <string name="licences_refused_old_widevine">O Spotify recusa as licenças de áudio deste telemóvel: o DRM dele (Widevine %1$s) é mais antigo do que o leitor web do Spotify aceita, seja qual for a conta, por isso a reprodução foi pausada. As músicas do Spotify não podem ser reproduzidas pelo Distortion neste telemóvel; uma extensão de fonte de áudio pode reproduzi-las.</string>
     <string name="playlist_leave">Sair da playlist</string>
     <string name="playlist_leave_confirm">Sair de %1$s? Você deixará de ser colaborador e não poderá adicionar nem remover músicas. Para entrar de novo, você precisará de um novo link de convite.</string>
     <string name="playlist_leave_button">Sair</string>

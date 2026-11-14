@@ -9,7 +9,7 @@
     <string name="extensions_installed">Installiert</string>
     <string name="extensions_repository_add">Repository hinzufügen</string>
     <string name="extensions_repository_hint">https://…/index.json</string>
-    <string name="extensions_repository_warning">Myspoti prüft kein Repository, das du hinzufügst: Was du daraus installierst, geschieht auf eigenes Risiko.</string>
+    <string name="extensions_repository_warning">Distortion prüft kein Repository, das du hinzufügst: Was du daraus installierst, geschieht auf eigenes Risiko.</string>
     <string name="extensions_repository_remove">Entfernen</string>
     <string name="extensions_repository_refresh">Aktualisieren</string>
     <string name="extensions_install">Installieren</string>
@@ -69,7 +69,7 @@
     <string name="extensions_repo_yours">Von dir hinzugefügt</string>
     <string name="extensions_repo_community">Community</string>
     <string name="extensions_repo_official_note">Jede Erweiterung wird vor der Aufnahme geprüft.</string>
-    <string name="extensions_repo_yours_note">Nicht von Myspoti geprüft: Installation auf eigenes Risiko.</string>
+    <string name="extensions_repo_yours_note">Nicht von Distortion geprüft: Installation auf eigenes Risiko.</string>
     <string name="extensions_repo_error">Dieses Repository konnte nicht gelesen werden: %1$s</string>
     <string name="extensions_repo_empty">Dieses Repository enthält keine Erweiterung.</string>
     <string name="extensions_requires">Benötigt Distortion %1$s oder neuer</string>
@@ -133,7 +133,7 @@
     <string name="area_idle">Inaktiv</string>
     <string name="area_make_active">Zur ersten Wahl für %1$s machen</string>
     <!-- Install prompt -->
-    <string name="ext_third_party_notice">Erweiterung eines Dritten, nicht von Myspoti geprüft, auf Verantwortung ihres Autors.</string>
+    <string name="ext_third_party_notice">Erweiterung eines Dritten, nicht von Distortion geprüft, auf Verantwortung ihres Autors.</string>
     <string name="ext_risk_accept">Ich verstehe, dass diese Erweiterung von einem Dritten stammt, und installiere sie auf eigene Verantwortung</string>
     <string name="ext_clash_exclusive">Ersetzt %1$s, derzeit bereitgestellt von %2$s</string>
     <string name="ext_clash_conflict">Nicht kompatibel mit %1$s (installiert)</string>

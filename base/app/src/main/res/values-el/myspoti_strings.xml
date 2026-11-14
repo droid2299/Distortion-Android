@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Myspoti's own texts (English default, French, Italian, Greek). -->
+<!-- Distortion's own texts (English default, French, Italian, Greek). -->
 <resources>
     <string name="welcome_lead">Η μουσική σου,</string>
     <string name="welcome_rotate_ads">χωρίς διαφημίσεις.</string>
@@ -95,22 +95,22 @@
     <string name="playlist_change_refused">Το Spotify απέρριψε την αλλαγή σε αυτή την playlist</string>
     <string name="download_kept_by_list">Εξακολουθεί να έχει ληφθεί: τη διατηρεί μια playlist που έχει ληφθεί</string>
     <string name="download_kept_by_named">Εξακολουθεί να έχει ληφθεί: το «%1$s» έχει ληφθεί και το περιέχει</string>
-    <string name="support_title">Στήριξε το Myspoti</string>
-    <string name="support_body">Το Myspoti είναι δωρεάν, χωρίς διαφημίσεις, και φτιάχνεται στον ελεύθερο χρόνο μου. Αν σου αρέσει, μια μικρή δωρεά βοηθά να συνεχίσει.</string>
+    <string name="support_title">Στήριξε το Distortion</string>
+    <string name="support_body">Το Distortion είναι δωρεάν, χωρίς διαφημίσεις, και φτιάχνεται στον ελεύθερο χρόνο μου. Αν σου αρέσει, μια μικρή δωρεά βοηθά να συνεχίσει.</string>
     <string name="support_scan">Σάρωσε με το κινητό σου</string>
     <string name="support_action">Στήριξε στο Ko-fi</string>
     <string name="support_decline">Όχι, ευχαριστώ</string>
     <string name="support_row_detail">Μια μικρή δωρεά στο Ko-fi ή στο GitHub Sponsors βοηθά την εφαρμογή να συνεχίσει</string>
     <string name="supporter_perks_title">Ανταμοιβές υποστηρικτή</string>
     <string name="supporter_perks_detail">Χρώμα τόνου, εικονίδιο εφαρμογής και σήμα, ως ευχαριστία</string>
-    <string name="supporter_perks_locked">Ξεκλειδώνεται με τη στήριξη του Myspoti. Βασίζεται στον λόγο σου: δεν ελέγχεται τίποτα.</string>
-    <string name="supporter_i_supported">Έχω στηρίξει το Myspoti</string>
+    <string name="supporter_perks_locked">Ξεκλειδώνεται με τη στήριξη του Distortion. Βασίζεται στον λόγο σου: δεν ελέγχεται τίποτα.</string>
+    <string name="supporter_i_supported">Έχω στηρίξει το Distortion</string>
     <string name="supporter_how">Πώς το στήριξες;</string>
     <string name="supporter_once">Μία δωρεά</string>
     <string name="supporter_monthly">Κάθε μήνα</string>
     <string name="supporter_badge">Υποστηρικτής</string>
     <string name="supporter_thanks_title">Ευχαριστούμε για τη στήριξή σου!</string>
-    <string name="supporter_thanks_body">Αν το Myspoti εξακολουθεί να σου είναι χρήσιμο, μια νέα μικρή δωρεά βοηθά να συνεχίσει.</string>
+    <string name="supporter_thanks_body">Αν το Distortion εξακολουθεί να σου είναι χρήσιμο, μια νέα μικρή δωρεά βοηθά να συνεχίσει.</string>
     <string name="support_again">Στήριξε ξανά</string>
     <string name="supporter_accent">Χρώμα τόνου</string>
     <string name="supporter_icon">Εικονίδιο εφαρμογής</string>
@@ -211,7 +211,7 @@
     <string name="setup_ext_more_detail">Ενότητες αρχικής, σελίδες και εργαλεία από τους δημιουργούς τους.</string>
     <string name="setup_ext_safe_title">Εσύ έχεις τον έλεγχο</string>
     <string name="setup_ext_safe_detail">Πριν την εγκατάσταση δείχνει τι μπορεί να κάνει. Για οτιδήποτε άλλο ρωτά ξανά, και μπορείς να την αφαιρέσεις όποτε θέλεις.</string>
-    <string name="setup_ext_where">Θα τις βρεις στις Ρυθμίσεις, Επεκτάσεις, από GitHub, GitLab και Codeberg. Τις γράφουν οι δημιουργοί τους, όχι το Myspoti.</string>
+    <string name="setup_ext_where">Θα τις βρεις στις Ρυθμίσεις, Επεκτάσεις, από GitHub, GitLab και Codeberg. Τις γράφουν οι δημιουργοί τους, όχι το Distortion.</string>
     <string name="setup_ext_browse">Δες τις επεκτάσεις</string>
     <string name="local_folders_button">Φάκελοι</string>
     <string name="local_folders_title">Φάκελοι</string>
@@ -258,7 +258,7 @@
     <string name="quality_now_unknown">Ακόμα άγνωστο: ξεκίνα ένα τραγούδι</string>
     <string name="update_downloading">Λήψη… %1$d%%</string>
     <string name="update_installing">Εγκατάσταση…</string>
-    <string name="update_needs_permission">Για να ενημερωθείς, επίτρεψε στο Myspoti να εγκαθιστά εφαρμογές και μετά επέστρεψε εδώ.</string>
+    <string name="update_needs_permission">Για να ενημερωθείς, επίτρεψε στο Distortion να εγκαθιστά εφαρμογές και μετά επέστρεψε εδώ.</string>
     <string name="update_allow">Επίτρεψε</string>
     <string name="update_failed">Η ενημέρωση απέτυχε: %1$s</string>
     <string name="update_retry">Δοκίμασε ξανά</string>
@@ -524,7 +524,7 @@
     <string name="song_unavailable">Το «%1$s» δεν είναι διαθέσιμο.</string>
     <string name="songs_skipped_by_spotify">Το Spotify συνέχιζε να παραλείπει τραγούδια που δεν μπορούσε να αναπαραγάγει, οπότε η αναπαραγωγή τέθηκε σε παύση. Πατήστε αναπαραγωγή για νέα προσπάθεια ή ελέγξτε τον λογαριασμό και τη σύνδεσή σας.</string>
     <string name="licences_refused_by_spotify">Το Spotify αρνείται προς το παρόν την αναπαραγωγή τραγουδιών σε αυτόν τον λογαριασμό (η άδεια ήχου απορρίφθηκε), οπότε η αναπαραγωγή τέθηκε σε παύση. Περιμένετε λίγο και πατήστε αναπαραγωγή για νέα προσπάθεια, και ελέγξτε ότι ο λογαριασμός παίζει στην επίσημη εφαρμογή Spotify.</string>
-    <string name="licences_refused_old_widevine">Το Spotify αρνείται τις άδειες ήχου αυτού του τηλεφώνου: το DRM του (Widevine %1$s) είναι παλαιότερο από ό,τι δέχεται το web player του Spotify, όποιος κι αν είναι ο λογαριασμός, γι’ αυτό η αναπαραγωγή σταμάτησε. Τα τραγούδια του Spotify δεν μπορούν να παιχτούν από το Myspoti σε αυτό το τηλέφωνο· μια επέκταση πηγής ήχου μπορεί να τα παίξει.</string>
+    <string name="licences_refused_old_widevine">Το Spotify αρνείται τις άδειες ήχου αυτού του τηλεφώνου: το DRM του (Widevine %1$s) είναι παλαιότερο από ό,τι δέχεται το web player του Spotify, όποιος κι αν είναι ο λογαριασμός, γι’ αυτό η αναπαραγωγή σταμάτησε. Τα τραγούδια του Spotify δεν μπορούν να παιχτούν από το Distortion σε αυτό το τηλέφωνο· μια επέκταση πηγής ήχου μπορεί να τα παίξει.</string>
     <string name="playlist_leave">Αποχώρηση από τη λίστα αναπαραγωγής</string>
     <string name="playlist_leave_confirm">Αποχώρηση από το «%1$s»; Δεν θα είστε πλέον συνεργάτης και δεν θα μπορείτε να προσθέτετε ή να αφαιρείτε τραγούδια. Για να ξαναμπείτε, θα χρειαστείτε νέο σύνδεσμο πρόσκλησης.</string>
     <string name="playlist_leave_button">Αποχώρηση</string>

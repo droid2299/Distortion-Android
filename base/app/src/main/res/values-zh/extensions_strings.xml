@@ -9,7 +9,7 @@
     <string name="extensions_installed">已安装</string>
     <string name="extensions_repository_add">添加仓库</string>
     <string name="extensions_repository_hint">https://…/index.json</string>
-    <string name="extensions_repository_warning">Myspoti 不会审核你添加的仓库：从中安装的内容风险自负。</string>
+    <string name="extensions_repository_warning">Distortion 不会审核你添加的仓库：从中安装的内容风险自负。</string>
     <string name="extensions_repository_remove">移除</string>
     <string name="extensions_repository_refresh">刷新</string>
     <string name="extensions_install">安装</string>
@@ -69,7 +69,7 @@
     <string name="extensions_repo_yours">由你添加</string>
     <string name="extensions_repo_community">社区</string>
     <string name="extensions_repo_official_note">每个扩展在上架前都经过审核。</string>
-    <string name="extensions_repo_yours_note">未经 Myspoti 审核：安装风险自负。</string>
+    <string name="extensions_repo_yours_note">未经 Distortion 审核：安装风险自负。</string>
     <string name="extensions_repo_error">无法读取此仓库：%1$s</string>
     <string name="extensions_repo_empty">此仓库没有列出任何扩展。</string>
     <string name="extensions_requires">需要 Distortion %1$s 或更高版本</string>
@@ -133,7 +133,7 @@
     <string name="area_idle">空闲</string>
     <string name="area_make_active">设为「%1$s」的首选</string>
     <!-- Install prompt -->
-    <string name="ext_third_party_notice">第三方扩展，未经 Myspoti 审核，由其作者负责。</string>
+    <string name="ext_third_party_notice">第三方扩展，未经 Distortion 审核，由其作者负责。</string>
     <string name="ext_risk_accept">我了解此扩展由第三方制作，并自行承担安装责任</string>
     <string name="ext_clash_exclusive">替换 %1$s（目前由 %2$s 提供）</string>
     <string name="ext_clash_conflict">与 %1$s（已安装）不兼容</string>

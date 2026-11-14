@@ -9,7 +9,7 @@
     <string name="extensions_installed">Installées</string>
     <string name="extensions_repository_add">Ajouter un dépôt</string>
     <string name="extensions_repository_hint">https://…/index.json</string>
-    <string name="extensions_repository_warning">Myspoti ne vérifie pas un dépôt que vous ajoutez : ce que vous en installez est à vos risques.</string>
+    <string name="extensions_repository_warning">Distortion ne vérifie pas un dépôt que vous ajoutez : ce que vous en installez est à vos risques.</string>
     <string name="extensions_repository_remove">Retirer</string>
     <string name="extensions_repository_refresh">Actualiser</string>
     <string name="extensions_install">Installer</string>
@@ -69,7 +69,7 @@
     <string name="extensions_repo_yours">Ajouté par vous</string>
     <string name="extensions_repo_community">Communauté</string>
     <string name="extensions_repo_official_note">Chaque extension est vérifiée avant d\'être listée.</string>
-    <string name="extensions_repo_yours_note">Non vérifié par Myspoti : installation à vos risques.</string>
+    <string name="extensions_repo_yours_note">Non vérifié par Distortion : installation à vos risques.</string>
     <string name="extensions_repo_error">Lecture du dépôt impossible : %1$s</string>
     <string name="extensions_repo_empty">Ce dépôt ne liste aucune extension.</string>
     <string name="extensions_requires">Nécessite Distortion %1$s ou plus récent</string>
@@ -133,7 +133,7 @@
     <string name="area_idle">En attente</string>
     <string name="area_make_active">En faire celle pour %1$s</string>
     <!-- Installation -->
-    <string name="ext_third_party_notice">Extension tierce, non vérifiée par Myspoti, sous la responsabilité de son auteur.</string>
+    <string name="ext_third_party_notice">Extension tierce, non vérifiée par Distortion, sous la responsabilité de son auteur.</string>
     <string name="ext_risk_accept">Je comprends que cette extension est faite par un tiers et je l\'installe sous ma propre responsabilité</string>
     <string name="ext_clash_exclusive">Remplace %1$s, actuellement fourni par %2$s</string>
     <string name="ext_clash_conflict">Incompatible avec %1$s (installée)</string>
@@ -159,7 +159,7 @@
 
     <!-- GitHub : découverte, notes, signalements -->
     <string name="extensions_github_title">Sur GitHub, GitLab et Codeberg</string>
-    <string name="extensions_github_note">Publiées par la communauté, non vérifiées par Myspoti. Chaque auteur est responsable de son extension.</string>
+    <string name="extensions_github_note">Publiées par la communauté, non vérifiées par Distortion. Chaque auteur est responsable de son extension.</string>
     <string name="extensions_show_all">Tout afficher (%1$d masquées)</string>
     <string name="extensions_show_less">Masquer les bloquées, signalées, mal notées et abandonnées</string>
     <string name="extension_rating">★ %1$s · %2$d votes</string>

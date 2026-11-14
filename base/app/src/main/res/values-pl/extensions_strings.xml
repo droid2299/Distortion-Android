@@ -9,7 +9,7 @@
     <string name="extensions_installed">Zainstalowane</string>
     <string name="extensions_repository_add">Dodaj repozytorium</string>
     <string name="extensions_repository_hint">https://…/index.json</string>
-    <string name="extensions_repository_warning">Myspoti nie sprawdza dodanego przez Ciebie repozytorium: to, co z niego zainstalujesz, robisz na własne ryzyko.</string>
+    <string name="extensions_repository_warning">Distortion nie sprawdza dodanego przez Ciebie repozytorium: to, co z niego zainstalujesz, robisz na własne ryzyko.</string>
     <string name="extensions_repository_remove">Usuń</string>
     <string name="extensions_repository_refresh">Odśwież</string>
     <string name="extensions_install">Zainstaluj</string>
@@ -69,7 +69,7 @@
     <string name="extensions_repo_yours">Dodane przez Ciebie</string>
     <string name="extensions_repo_community">Społeczność</string>
     <string name="extensions_repo_official_note">Każde rozszerzenie jest sprawdzane, zanim trafi na listę.</string>
-    <string name="extensions_repo_yours_note">Niesprawdzone przez Myspoti: instaluj na własne ryzyko.</string>
+    <string name="extensions_repo_yours_note">Niesprawdzone przez Distortion: instaluj na własne ryzyko.</string>
     <string name="extensions_repo_error">Nie udało się odczytać tego repozytorium: %1$s</string>
     <string name="extensions_repo_empty">To repozytorium nie zawiera żadnego rozszerzenia.</string>
     <string name="extensions_requires">Wymaga Distortion %1$s lub nowszego</string>
@@ -133,7 +133,7 @@
     <string name="area_idle">Bezczynne</string>
     <string name="area_make_active">Ustaw jako główne dla: %1$s</string>
     <!-- Install prompt -->
-    <string name="ext_third_party_notice">Rozszerzenie innej firmy lub osoby, niesprawdzone przez Myspoti, na odpowiedzialność autora.</string>
+    <string name="ext_third_party_notice">Rozszerzenie innej firmy lub osoby, niesprawdzone przez Distortion, na odpowiedzialność autora.</string>
     <string name="ext_risk_accept">Rozumiem, że to rozszerzenie pochodzi od strony trzeciej, i instaluję je na własną odpowiedzialność</string>
     <string name="ext_clash_exclusive">Zastępuje %1$s, które obecnie zapewnia %2$s</string>
     <string name="ext_clash_conflict">Niezgodne z %1$s (zainstalowanym)</string>
