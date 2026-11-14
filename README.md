@@ -1,50 +1,44 @@
 # Distortion
 
-Distortion is an Android music player based on [Myspoti](https://github.com/kota-zo/myspoti). It uses Spotify for catalog and playback and supports compatible extensions for additional audio sources.
+Distortion is an open-source Android music player for your Spotify account. It combines a Material You interface with synchronized lyrics, a queue, and optional extensions for additional playback and lyrics sources.
 
-- Material You colors follow Android's system palette.
-- The full player has a wavy seek bar, synchronized lyrics, and a queue.
-- Home brings together Your Mix, Continue Listening, and Recently Played.
-- Extensions show playback source, reported quality, and reachability when available.
+[Download the latest release](https://github.com/droid2299/Distortion-Android/releases/latest) · [User guide](docs/USER-GUIDE.md) · [Changelog](CHANGELOG.md) · [Report an issue](https://github.com/droid2299/Distortion-Android/issues/new)
 
-## Build from source
+## Install
 
-The Gradle project is in `base/`. Use JDK 21 and the Android SDK with compile SDK 37.
+Distortion requires Android 10 or later. Open the latest GitHub release and choose the APK from **Assets**.
 
-```sh
-cd base
-./gradlew :app:assembleDebug
-```
+| Device | APK suffix |
+| --- | --- |
+| Modern 64-bit Android phone or tablet, including recent Pixels | `-ARMv8.apk` |
+| 32-bit ARM Android device | `-ARMv7.apk` |
+| Android TV or Google TV | `-TV.apk` |
+| Unsure which ARM version you have | `-universal.apk` |
 
-On Windows, run `gradlew.bat :app:assembleDebug` from `base`. The debug APK is written under `base/app/build/outputs/apk/debug/`.
+Open the APK on your device. If Android asks, allow your browser or Files app to install it. To update an existing Distortion release, install the new APK over it to retain your app data. [Installation and update help](docs/USER-GUIDE.md#install-and-update)
 
-```sh
-./gradlew :app:testDebugUnitTest :extensions:test
-```
+## What you can do
 
-See the [API documentation](docs/api), [extension documentation](docs/extensions), and [third-party notices](THIRD_PARTY_NOTICES.md).
+- **Find music.** Home includes Your Mix, Continue Listening, and Recently Played. New, Radio, Library, and Search have their own tabs.
+- **Control playback.** Swipe across the cover to change tracks, swipe up on the mini player to expand it, and swipe down to collapse it. Now Playing includes a wavy seek bar, synchronized lyrics, and queue controls.
+- **Match your system theme.** The Material You interface and home-screen widget follow Android's colors.
+- **Add playback sources.** Compatible extensions can provide alternative audio, downloads, or lyrics. Source and quality information reflects what the active source reports. [Extension user guide](docs/extensions/GUIDE.md)
 
-## Credits
+Spotify playback uses Spotify's Web Player inside Distortion. Built-in audio processing such as AutoMix and the equalizer applies to eligible extension, downloaded, and device audio. [Playback and troubleshooting](docs/USER-GUIDE.md#playback-sources)
 
-### BitChord
+## Documentation
 
-Myspoti owes a lot to [BitChord](https://github.com/kushagrasinghx/BitChord) by kushagrasinghx and its contributors (GPL-3.0-or-later), in code and in ideas:
-- **The Immersive look** is ported from it: the player and its mesh backdrop, the swept word-by-word lyrics, the queue panel, the glass tab bar, the top bars, the sheets, the motion and the Home, Search, Library, artist, album, playlist, profile and podcast pages.
-- **The equalizer** of the songs the app plays itself: its filters and the way a change glides.
-- **Ideas** that shaped the app, DJ-style transitions between songs first of all: Myspoti's AutoMix is its own code, but the idea and the way the mix shows in the player come from BitChord's Automix.
+| I want to | Start here |
+| --- | --- |
+| Set up, update, or troubleshoot the app | [User guide](docs/USER-GUIDE.md) |
+| Install or troubleshoot an extension | [Extension guide](docs/extensions/GUIDE.md) |
+| Develop a compatible extension | [Extension API](docs/extensions/API.md) |
+| Build, test, or understand the app | [Developer guide](docs/DEVELOPMENT.md) |
+| Contribute a fix, translation, or bug report | [Contributing](CONTRIBUTING.md) |
+| Build and publish a signed release | [Release guide](docs/RELEASING.md) |
 
-Every file taken from BitChord keeps its GPL-3.0-or-later header and names the BitChord file it comes from; the full list is in [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md#bitchord--gpl-30-or-later). Thank you, BitChord.
+## License and credits
 
-### Others
+Distortion is distributed under the [GNU General Public License v3.0](LICENSE.md). It is derived from [Myspoti](https://github.com/kota-zo/myspoti). The Immersive look and parts of the audio and UI work draw on [BitChord](https://github.com/kushagrasinghx/BitChord). [Full upstream and third-party notices](THIRD_PARTY_NOTICES.md)
 
-- UI derived from [Spotui](https://github.com/Spotui/Spotui) / [Metrolist](https://github.com/MetrolistGroup/Metrolist) (GPL-3.0); Spotui also gave the DASH-to-FLAC remux.
-- [NewPipeExtractor](https://github.com/TeamNewPipe/NewPipeExtractor) (GPL-3.0): music videos.
-- [Reorderable](https://github.com/Calvin-LL/Reorderable) (Apache-2.0): dragging the rows of the queue.
-- Lyrics: [LRCLIB](https://lrclib.net), LyricsPlus, lrc.red, Kugou and NetEase; song meanings: [Genius](https://genius.com).
-- [Material Icons](https://github.com/google/material-design-icons) (Apache 2.0) and the [Manrope](https://github.com/googlefonts/manrope) font (SIL OFL 1.1, see `base/licenses/`).
-
-Full notices: [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).
-
-## License
-
-Distortion and its upstream Myspoti code are distributed under the [GNU General Public License v3.0](LICENSE.md). Copyright and license notices for upstream and third-party code are included with the source.
+Additional project credits include [Spotui](https://github.com/Spotui/Spotui) and [Metrolist](https://github.com/MetrolistGroup/Metrolist) for UI lineage, [NewPipeExtractor](https://github.com/TeamNewPipe/NewPipeExtractor) for music videos, and [Reorderable](https://github.com/Calvin-LL/Reorderable) for queue drag controls. The app uses Material Icons and fonts including Manrope, with their [license texts](base/licenses).

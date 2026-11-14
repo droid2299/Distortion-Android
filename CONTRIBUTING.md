@@ -1,33 +1,22 @@
 # Contributing to Distortion
 
-Thanks for helping. Bug reports (with a diagnostic report from Settings), fixes and translations are all welcome.
+Bug reports, fixes, and translations are welcome.
 
-## Build and test
+## Before opening an issue
 
-Requirements: JDK 17+ and the Android SDK (compileSdk 37). The Android project is in `base/`.
+Check the [user guide](docs/USER-GUIDE.md) and [open issues](https://github.com/droid2299/Distortion-Android/issues) for the same problem. Include your Distortion version, Android version, device model, and the shortest steps that reproduce it. For playback issues, identify the source and describe whether the issue also occurs when playing through Spotify directly. Review any diagnostic export before sharing it. [Reporting a problem](docs/USER-GUIDE.md#report-a-problem)
 
-```bash
-cd base
-./gradlew assembleDebug
-./gradlew :app:testDebugUnitTest :api-spotify:test
-```
+## Build and submit a change
 
-Put your SDK path in `base/local.properties` (`sdk.dir=...`). The live API tests (`:host-cdp:test`) need a desktop Chrome signed in to the Web Player; see the README.
+1. Follow the [developer guide](docs/DEVELOPMENT.md#set-up-the-checkout) to install the toolchain and build a debug APK.
+2. Keep the pull request focused. Write a short commit subject describing what changes for the user. Add or update a unit test for a bug fix or rule change.
+3. Run the [checks for your change](docs/DEVELOPMENT.md#verify-a-change). In the pull request, explain the behavior, list the checks that ran, and note any device or live-service scenarios you could not verify.
+4. For user-facing changes, update the relevant guide or settings copy. Keep default strings in `res/values/` and translations in the matching `res/values-*/` directory.
 
-## Changes
+## Compatibility and licensing
 
-- Keep a change focused, and write it like the code around it. Texts in the repository (code, comments, strings in `values/`, docs) are in English; translations go in the matching `values-xx/` folder.
-- Add or update a unit test when you fix a bug or change a rule.
-- Commit messages are one plain sentence in English that says what changes for the user (or what was wrong), not a list of files.
+- **Extensions.** Preserve existing extension contracts. Additions should leave current packages usable. [Extension API](docs/extensions/API.md)
+- **Spotify.** Preserve Spotify's DRM, licensing, attestation, and rate limits. Contributions must respect these protections and must not add Spotify audio downloading or decryption.
+- **License.** Contributions are distributed under [GPL-3.0](LICENSE.md). Preserve copyright, license notices, and upstream attribution when reusing the code. [Third-party notices](THIRD_PARTY_NOTICES.md)
 
-## Rules
-
-- **Extensions API:** an extension call that is accepted today must never become an error. New fields and calls are fine; removing, renaming or tightening an existing one is not.
-- **Spotify:** Distortion talks to Spotify the way its Web Player does. No contribution may bypass, weaken or work around Spotify's protections (DRM, licences, attestation, rate limits), and none may add a Spotify audio download or decryption.
-- **License:** Distortion is GPL-3.0. Your contribution is released under the same license. If you reuse this code in another project, keep the notices, credit Distortion and [the upstream project](https://github.com/kota-zo/myspoti) and publish your complete source under GPL-3.0; closing the source or changing the license is a violation.
-
-## Releases
-
-Branch pushes, pull requests, and version tags run Android CI. Distortion's release APKs are currently signed locally with the release key and uploaded to GitHub Releases with their matching version tag.
-
-When the repository has GitHub Actions signing secrets configured, a maintainer can build and publish a signed release from an existing version tag with `gh workflow run android.yml --ref vX.Y.Z`.
+Maintainers can follow the [release guide](docs/RELEASING.md) for signing, verification, and publication.

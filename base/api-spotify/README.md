@@ -1,6 +1,6 @@
 # api-spotify
 
-Spotify implementation of the Myspoti API (`:api`), on top of the official Web Player.
+Spotify implementation of Distortion's `:api` module, using the Spotify Web Player and direct requests from the app.
 
 ## Modules
 
@@ -12,12 +12,12 @@ Spotify implementation of the Myspoti API (`:api`), on top of the official Web P
 
 Reads go straight to Spotify over HTTP (`SpotifyHttp`: the page's web token plus a client
 token minted here). Playback, library writes, folders, Connect and Jam go through the page's
-own services via the bridge. `SpotifyApi.raw` reaches all 179 GraphQL operations
-(`gql-ops.json`, variables in `gql-schema.json`) and the 89 page services for anything not typed.
+own services via the bridge. `SpotifyApi.raw` exposes operations in the current GraphQL table
+(`gql-ops.json`, variables in `gql-schema.json`) and the discovered page services for anything not typed.
 
 ## Coverage
 
-All of these are exercised by `host-cdp` live tests against a free account:
+The table describes the implemented surface. Live `:host-cdp` coverage varies by command and account capabilities. See the [developer guide](../../docs/DEVELOPMENT.md#verify-a-change) to run the live tests.
 
 | Domain | Methods |
 |---|---|
@@ -54,7 +54,7 @@ Tools (`tools/`): `refresh_gql_ops.py` (operation hashes from the public bundles
 official Web Player page (open.spotify.com), which keeps doing the playback with the
 browser's Widevine CDM. The bridge finds the page's service registry through React's
 context tree and calls its `PlayerAPI`, `PlaybackAPI`, `LibraryAPI` and `TokenProvider`.
-It patches nothing in the page.
+The bridge also installs page-side hooks and forwards playback and queue events to the host.
 
 The same file runs in the Android WebView and in desktop Chrome over CDP.
 

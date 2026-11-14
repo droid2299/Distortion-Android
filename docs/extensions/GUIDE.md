@@ -1,65 +1,43 @@
-# Extensions: a guide for users
+# Extensions for Distortion
 
-Myspoti plays Spotify on its own. Extensions add what it does not do itself. Each one is a small
-script that runs in a sandbox and only does what it asked for when you installed it.
+Extensions are optional packages for playback, downloads, lyrics, and other features. Distortion runs extension scripts in a sandbox and grants the actions you approve at installation. The extension author operates or selects the services used by that extension.
 
-For extension authors, see [API.md](API.md).
+| Extension type | What it provides | Where to use it |
+| --- | --- | --- |
+| Audio source | Playback from a provider selected by the extension. Supported quality depends on the provider and recording. | **Settings → Sources**, and **Sound quality** in the player |
+| Download source | Files for offline listening from the extension's provider. Distortion stores downloaded audio encrypted on the device. | Track, album, and playlist download actions |
+| Lyrics | Additional timed, word-by-word, or plain lyrics from other catalogs. | Lyrics screen and its source menu |
+| Other | Home or search sections, player actions, settings, and tools. | The surfaces listed on the extension's page |
 
-## What kinds there are
+[Extension API for authors](API.md)
 
-| Kind | What it does | Where you see it |
-|---|---|---|
-| **Audio source** | Gives the audio of the songs you play, from a source of its own (its quality, often lossless). A song it has no audio for plays from Spotify, as before. | Settings, Playback: the source order and the extension's quality |
-| **Download source** | Lets you download songs, albums, playlists and Liked Songs to play with no connection. Myspoti keeps the files encrypted on your phone. | The download button on songs and lists; Settings, Downloads |
-| **Lyrics** | Lyrics from other catalogues when Spotify has none, or word by word. | The lyrics screen |
-| **Other** | Home or search shelves, player buttons, tools that use your Spotify account. | Where the extension says, after you install it |
+## Install an extension
 
-Myspoti ships no audio or download source of its own: what an extension plays or downloads comes
-from where its author says, under that author's responsibility.
+1. Open **Settings → Extensions**.
+2. Choose the installation method the author provides. Distortion can browse available entries in the **Store**, add a repository using the author's `index.json` URL, install a local ZIP, or install from an HTTPS address.
+3. On the confirmation sheet, read the actions, reasons, and domains. Review any critical permissions and tick the third-party acknowledgment if it appears. Tap **Install**.
+4. Open the extension's settings if it needs its own sign-in or configuration. Enable it if required.
 
-## Installing one
+The source list in **Settings → Sources** controls which playback extension Distortion asks first. Enable the source you want and move it above Spotify if it should get the first attempt. If no enabled source supplies a match, a Spotify track can play through Spotify.
 
-1. Open **Settings, Extensions**.
-2. Either:
-   - **From a repository**: on the **Store** tab, add the repository address the extension's
-     author gives you (it ends in `index.json`), then pick the extension in the list. A repository
-     keeps its extensions up to date.
-   - **From a package**: install the `.zip` file you were given, or paste its address.
-3. Read what the extension will do. Every action it asks for is listed with its author's reason,
-   and the critical ones are marked. You install it on your own responsibility, and only install
-   from people you trust.
-4. Some extensions need a sign-in or a setting of their own: their page opens after the install.
+## Review permissions and updates
 
-An update that asks for more than before waits for your OK and shows only what changes.
+Install packages from authors you trust. An extension may gain access to playback, network destinations, or your Spotify account depending on the actions it requests. The install sheet lists individual actions. Approval applies to the requested set.
 
-## The order of the sources
+If an update asks for new permissions, Distortion waits for your approval. You can disable an extension while keeping its settings. Uninstalling an extension removes its stored settings and data.
 
-With several audio sources, Settings, Playback lists them in order: a song is asked to the first,
-then the next, and plays from Spotify when none has it. A newly installed extension goes first.
-Drag to change the order, or switch one off without removing it.
+## Troubleshoot an extension
 
-## When something does not work
+| Symptom | What to check |
+| --- | --- |
+| The Install button stays disabled | Scroll through the confirmation sheet and complete the third-party acknowledgment if shown. Check for a minimum-version or package error. |
+| A track plays through Spotify | Check the source order and the extension's status. Open **Why this source?** to see the attempt when available. |
+| A source reports no match or is unreachable | Check the extension author's service status and try another track. Available recordings, service access, and quality depend on the provider. |
+| Sign-in fails | Reopen sign-in from the extension's page and check the provider's instructions about accounts or subscriptions. |
+| A download finds no compatible recording | Try another quality offered by the extension or a different download source. |
 
-| You see | What it usually means | What to try |
-|---|---|---|
-| The extension says the song is not available or "not reachable from the source", or the song plays from Spotify | The extension's source has no copy of that song (or matched none) | Nothing is wrong in Myspoti: the song plays from Spotify. Another source may have it. |
-| "Not answering for now", a source named on a failed download | The extension's server is down, slow or limits you | Try again later; the app sets a source aside for a while after repeated timeouts. |
-| An extension that cannot sign in or connect | Often a VPN, a DNS blocker or an expired session | Turn the VPN off for the sign-in, then sign in again from the extension's page. |
-| "No matching recording found" on downloads | The download source found no file of the right length for that song | Try another quality, or another download source. |
-| Downloads stop when the app is closed | The phone's battery saver stops the app | Settings, Battery: let Myspoti run in the background. |
+Report provider-specific problems to the extension author with the extension version and error text. For issues in Distortion's installation or playback flow, see [reporting a problem](../USER-GUIDE.md#report-a-problem).
 
-Report a problem to the extension's author first: Myspoti cannot change what a source answers.
-For Myspoti itself, **Export a diagnostic report** in Settings writes one with personal details
-masked, to attach to your report.
+## Android Auto and TV
 
-## Android Auto
-
-Android Auto lists only apps installed from the Play Store, unless you allow others: in the
-Android Auto settings on the phone, tap **Version** about ten times to unlock the developer
-settings, then turn on **Unknown sources**. Myspoti then shows in the car's app list.
-
-## Android TV
-
-On a TV, Myspoti opens a short version for the remote: your Library, Liked Songs, Search and the
-player. Install the `armeabi-v7a` APK on most TV boxes (the `arm64-v8a` one on recent ones), and
-sign in once with the remote. Extensions, downloads and settings stay on the phone version.
+If Distortion is missing from Android Auto's app list, check Android Auto's **Unknown sources** developer option for sideloaded media apps. [Android Auto developer settings](https://developer.android.com/training/cars/testing#allow-unknown-sources) Distortion's TV APK opens the TV interface, and the TV and phone keep their own installations and stored data.
