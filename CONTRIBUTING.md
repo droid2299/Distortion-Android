@@ -25,3 +25,9 @@ Put your SDK path in `base/local.properties` (`sdk.dir=...`). The live API tests
 - **Extensions API:** an extension call that is accepted today must never become an error. New fields and calls are fine; removing, renaming or tightening an existing one is not.
 - **Spotify:** Distortion talks to Spotify the way its Web Player does. No contribution may bypass, weaken or work around Spotify's protections (DRM, licences, attestation, rate limits), and none may add a Spotify audio download or decryption.
 - **License:** Distortion is GPL-3.0. Your contribution is released under the same license. If you reuse this code in another project, keep the notices, credit Distortion and [the upstream project](https://github.com/kota-zo/myspoti) and publish your complete source under GPL-3.0; closing the source or changing the license is a violation.
+
+## Releases
+
+Branch pushes, pull requests, and version tags run Android CI. Distortion's release APKs are currently signed locally with the release key and uploaded to GitHub Releases with their matching version tag.
+
+When the repository has GitHub Actions signing secrets configured, a maintainer can build and publish a signed release from an existing version tag with `gh workflow run android.yml --ref vX.Y.Z`.
