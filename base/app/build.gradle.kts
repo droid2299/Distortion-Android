@@ -145,7 +145,7 @@ dependencies {
     implementation("com.google.zxing:core:3.5.3")
     testImplementation("junit:junit:4.13.2")
     // The real org.json in unit tests (android.jar only has stubs).
-    testImplementation("org.json:json:20240303")
+    testImplementation("org.json:json:20260814")
     // A real XML pull parser in unit tests (the TTML lyrics parser; the tests skip themselves without it).
     testImplementation("net.sf.kxml:kxml2:2.3.0")
     androidTestImplementation("androidx.test:runner:1.6.2")
@@ -174,7 +174,8 @@ dependencies {
     implementation("com.github.bumptech.glide:compose:1.0.0-beta01")
     implementation("androidx.palette:palette-ktx:1.0.0")
     // Frosted (blurred) bars of the Immersive look. Apache-2.0.
-    implementation("dev.chrisbanes.haze:haze:1.3.1")
+    implementation("dev.chrisbanes.haze:haze:2.1.0")
+    implementation("dev.chrisbanes.haze:haze-blur:2.1.0")
     // MediaTransferReceiver: lets the system output switcher transfer to our Connect routes
     implementation("androidx.mediarouter:mediarouter:1.8.1")
     implementation("androidx.compose.material:material-icons-extended:1.7.8")
@@ -200,8 +201,8 @@ dependencies {
 
     // Screenshots of the TV screens on the computer (TvScreenshotTest): Robolectric draws them, Roborazzi saves them.
     testImplementation("org.robolectric:robolectric:4.14.1")
-    testImplementation("io.github.takahirom.roborazzi:roborazzi:1.40.1")
-    testImplementation("io.github.takahirom.roborazzi:roborazzi-compose:1.40.1")
+    testImplementation("io.github.takahirom.roborazzi:roborazzi:1.78.0")
+    testImplementation("io.github.takahirom.roborazzi:roborazzi-compose:1.78.0")
     testImplementation(platform(libs.compose.bom))
     testImplementation("androidx.compose.ui:ui-test-junit4")
     debugImplementation("androidx.compose.ui:ui-test-manifest")

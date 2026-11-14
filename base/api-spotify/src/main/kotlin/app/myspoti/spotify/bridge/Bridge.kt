@@ -5,6 +5,7 @@ import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -40,16 +41,6 @@ class Bridge(private val host: BridgeHost, scope: CoroutineScope) {
      * newest state is the only one that matters; SUSPEND would drop exactly that one. */
     private val _events = MutableSharedFlow<Pair<String, JsonElement>>(extraBufferCapacity = 64, onBufferOverflow = BufferOverflow.DROP_OLDEST)
     val events: SharedFlow<Pair<String, JsonElement>> = _events
-
-    init {
-        scope.launch {
-            // A message the bridge did not write (another script, a future page) must never
-            // end this collector: it runs on the main thread, where a throw kills the app.
-            host.messages.collect { raw ->
-                runCatching { handle(raw) }.onFailure { logger?.invoke("page message dropped: ${it.message}") }
-            }
-        }
-    }
 
     /** The last track the page's state named, to count the songs it started. */
     private var lastTrack: String? = null
@@ -167,6 +158,17 @@ class Bridge(private val host: BridgeHost, scope: CoroutineScope) {
     /** When a call last timed out (0: never). A frozen page times out every call. */
     @Volatile var lastTimeoutAt = 0L
         private set
+
+    init {
+        // Subscribe before a call can post its reply on a non-replaying host flow.
+        scope.launch(start = CoroutineStart.UNDISPATCHED) {
+            // A message the bridge did not write (another script, a future page) must never
+            // end this collector: it runs on the main thread, where a throw kills the app.
+            host.messages.collect { raw ->
+                runCatching { handle(raw) }.onFailure { logger?.invoke("page message dropped: ${it.message}") }
+            }
+        }
+    }
 
     /**
      * True when the page answers a trivial call within [timeoutMs]. `bridge.version` is

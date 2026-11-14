@@ -19,12 +19,13 @@ import androidx.compose.ui.unit.dp
 import com.music.spotui.ui.immersive.Immersive
 import com.music.spotui.ui.immersive.shell.backdrop.backdrops.LayerBackdrop
 import com.music.spotui.ui.immersive.shell.backdrop.backdrops.layerBackdrop
-import dev.chrisbanes.haze.ExperimentalHazeApi
-import dev.chrisbanes.haze.HazeInputScale
+import dev.chrisbanes.haze.HazeInput
+import dev.chrisbanes.haze.HazePerformanceMode
 import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.HazeTint
-import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.hazeSource
+import dev.chrisbanes.haze.blur.HazeBlurStyle
+import dev.chrisbanes.haze.blur.HazeColorEffect
+import dev.chrisbanes.haze.blur.hazeBlur
 
 /**
  * The page that the frosted bars (tab bar, top bar) blur, provided once by the host:
@@ -76,12 +77,10 @@ fun Modifier.immersiveHazeSource(
 }
 
 /**
- * Keeps Haze's visual style while sampling at a third of the resolution: a blur this wide hides
- * the missing pixels, and the bars are redrawn on every frame of every scroll. Over the app's own
+ * Uses Haze's performance profile for bars that redraw during scrolling. Over the app's own
  * page ([LocalImmersiveHaze]) with [LocalImmersiveFrostPage] provided, the same frost is drawn
  * from that recording instead ([immersivePageFrost]).
  */
-@OptIn(ExperimentalHazeApi::class)
 @Composable
 internal fun Modifier.immersiveFrost(
     state: HazeState,
@@ -93,13 +92,24 @@ internal fun Modifier.immersiveFrost(
     return hazeFrost(state, tint, blur)
 }
 
-@OptIn(ExperimentalHazeApi::class)
-private fun Modifier.hazeFrost(state: HazeState, tint: Color, blur: Float): Modifier = hazeEffect(state) {
-    inputScale = HazeInputScale.Fixed(0.33f)
-    backgroundColor = Immersive.Page
-    tints = listOf(HazeTint(tint))
-    blurRadius = blur.dp
-    noiseFactor = 0f
+@Composable
+private fun Modifier.hazeFrost(state: HazeState, tint: Color, blur: Float): Modifier {
+    val background = Immersive.Page
+    val style = remember(background, tint, blur) {
+        HazeBlurStyle {
+            backgroundColor(background)
+            val tintEffect = HazeColorEffect.tint(tint)
+            colorEffects(listOf(tintEffect))
+            fallbackColorEffect(tintEffect)
+            blurRadius(blur.dp)
+            noiseFactor(0f)
+        }
+    }
+    return hazeBlur(
+        input = HazeInput.Sources(state),
+        style = style,
+        performanceMode = HazePerformanceMode.Performance,
+    )
 }
 
 /**
