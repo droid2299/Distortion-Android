@@ -13,7 +13,9 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import com.music.spotui.ui.immersive.Immersive
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MotionScheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -27,6 +29,7 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun SpotuiTheme(
     content: @Composable () -> Unit
@@ -81,5 +84,6 @@ fun SpotuiTheme(
         }
     }
 
-    MaterialTheme(colorScheme = visualScheme, content = content)
+    val motion = remember { MotionScheme.expressive() }
+    MaterialTheme(colorScheme = visualScheme, motionScheme = motion, content = content)
 }

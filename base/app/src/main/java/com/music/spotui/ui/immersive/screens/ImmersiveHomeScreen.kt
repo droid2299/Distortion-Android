@@ -19,6 +19,8 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import androidx.compose.foundation.background
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import com.music.spotui.ui.immersive.components.expressivePress
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -318,6 +320,7 @@ private fun HomeMixFeature(
     val context = LocalContext.current
     val playback: ContextViewModel = viewModel()
     val scheme = MaterialTheme.colorScheme
+    val mixInteraction = remember { MutableInteractionSource() }
     var loading by remember(mix.id) { mutableStateOf(false) }
     val playing = mix.isPlayingIn(playingContext.value)
     val unavailable = stringResource(R.string.home_mix_unavailable)
@@ -380,7 +383,8 @@ private fun HomeMixFeature(
                                 }
                             }
                         },
-                        modifier = Modifier.align(Alignment.BottomEnd).size(playSize),
+                        modifier = Modifier.align(Alignment.BottomEnd).size(playSize).expressivePress(mixInteraction, enabled = !loading),
+                        interactionSource = mixInteraction,
                         shape = CircleShape,
                     ) {
                         if (loading) {

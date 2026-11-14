@@ -6,6 +6,11 @@
 package com.music.spotui.ui.immersive.shell
 
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.snap
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.ui.graphics.graphicsLayer
+import com.music.spotui.ui.look.rememberReduceMotion
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Album
 import androidx.compose.material.icons.rounded.GridView
@@ -93,7 +98,7 @@ internal fun TabBarContent(selectedTab: String, onTabClick: (Routes) -> Unit, mo
             NavigationBarItem(
                 selected = selectedTab == item.route,
                 onClick = { onTabClick(item) },
-                icon = { TabIcon(item) },
+                icon = { TabIcon(item, selectedTab == item.route) },
                 label = { TabLabel(item) },
             )
         }
@@ -109,7 +114,7 @@ internal fun DistortionNavigationRail(navController: NavController) {
             NavigationRailItem(
                 selected = tabs.selectedTab == item.route,
                 onClick = { tabs.onTabClick(item) },
-                icon = { TabIcon(item) },
+                icon = { TabIcon(item, tabs.selectedTab == item.route) },
                 label = { TabLabel(item) },
             )
         }
@@ -125,8 +130,9 @@ private fun TabLabel(item: Routes) {
     )
 }
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-private fun TabIcon(item: Routes) {
+private fun TabIcon(item: Routes, selected: Boolean) {
     val icon = when (item) {
         Routes.Home -> Icons.Rounded.Home
         Routes.NewReleases -> Icons.Rounded.GridView
@@ -135,5 +141,13 @@ private fun TabIcon(item: Routes) {
         Routes.Search -> Icons.Rounded.Search
         else -> Icons.Rounded.Album
     }
-    Icon(icon, contentDescription = null)
+    val scale = animateFloatAsState(
+        if (selected) 1.13f else 1f,
+        if (rememberReduceMotion()) snap() else MaterialTheme.motionScheme.fastSpatialSpec(),
+        label = "tabIconScale",
+    )
+    Icon(icon, contentDescription = null, modifier = Modifier.graphicsLayer {
+        scaleX = scale.value
+        scaleY = scale.value
+    })
 }

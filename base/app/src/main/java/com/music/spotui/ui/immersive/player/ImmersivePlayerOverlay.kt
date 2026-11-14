@@ -66,6 +66,8 @@ fun ImmersivePlayerOverlay(navController: NavController) {
     }
     val open = PlayerSheet.open.value
     val scope = rememberCoroutineScope()
+    val dismissDistance = with(androidx.compose.ui.platform.LocalDensity.current) { 96.dp.toPx() }
+    val currentDismissDistance = androidx.compose.runtime.rememberUpdatedState(dismissDistance)
     val reduce = com.music.spotui.ui.look.rememberReduceMotion()
     var heightPx by remember { mutableIntStateOf(0) }
     // How far down the sheet is (px): 0 open, the window's height away.
@@ -124,7 +126,7 @@ fun ImmersivePlayerOverlay(navController: NavController) {
                 val close = when {
                     velocity >= FLING_VELOCITY -> true
                     velocity <= -FLING_VELOCITY -> false
-                    else -> from > heightPx / 2f
+                    else -> from >= minOf(currentDismissDistance.value, heightPx * 0.22f)
                 }
                 scope.launch {
                     offset.snapTo(from)

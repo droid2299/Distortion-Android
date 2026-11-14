@@ -14,7 +14,14 @@
 package com.music.spotui.ui.immersive.player
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.Crossfade
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.SizeTransform
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.runtime.LaunchedEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.music.spotui.ui.navigation.PlayerSheet
@@ -58,6 +65,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.MoreHoriz
 import androidx.compose.material.icons.rounded.Cast
 import androidx.compose.material.icons.rounded.Earbuds
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
@@ -118,6 +126,8 @@ import com.music.spotui.ui.components.SongBlendCover
 import com.music.spotui.ui.components.mixSqueeze
 import com.music.spotui.ui.components.mixWave
 import com.music.spotui.ui.look.rememberPauseScale
+import com.music.spotui.ui.look.rememberReduceMotion
+import kotlinx.coroutines.delay
 import kotlin.math.abs
 
 // Sizes and gaps of the portrait layout, as the player this follows has them.
@@ -166,7 +176,8 @@ internal val LocalPlayerSheetDrag = staticCompositionLocalOf<PlayerSheetDrag?> {
  * child's own gesture keeps working.
  */
 @Composable
-internal fun Modifier.dragToClose(): Modifier {
+internal fun Modifier.dragToClose(enabled: Boolean = true): Modifier {
+    if (!enabled) return this
     val sheet = LocalPlayerSheetDrag.current ?: return this
     val current by rememberUpdatedState(sheet)
     return pointerInput(Unit) {
@@ -181,14 +192,20 @@ internal fun Modifier.dragToClose(): Modifier {
             }
             if (drag == null || pulled <= 0f) return@awaitEachGesture
             val velocity = VelocityTracker()
+            velocity.addPointerInputChange(down)
             velocity.addPointerInputChange(drag)
             current.drag(pulled)
-            val finished = verticalDrag(drag.id) { change ->
-                velocity.addPointerInputChange(change)
-                current.drag(change.positionChange().y)
-                change.consume()
+            var releaseVelocity = 0f
+            try {
+                val finished = verticalDrag(drag.id) { change ->
+                    velocity.addPointerInputChange(change)
+                    current.drag(change.positionChange().y)
+                    change.consume()
+                }
+                if (finished) releaseVelocity = velocity.calculateVelocity().y
+            } finally {
+                current.release(releaseVelocity)
             }
-            current.release(if (finished) velocity.calculateVelocity().y else 0f)
         }
     }
 }
@@ -203,9 +220,9 @@ private val TRACK_SWIPE_THRESHOLD = 72.dp
  * Off while [enabled] is false (the cover is the header's thumbnail under an open panel).
  */
 @Composable
-private fun Modifier.swipeToChangeTrack(enabled: Boolean, actions: ImmersivePlayerActions): Modifier {
+private fun Modifier.swipeToChangeTrack(enabled: Boolean, onSkip: (Int) -> Unit): Modifier {
     val on by rememberUpdatedState(enabled)
-    val current by rememberUpdatedState(actions)
+    val current by rememberUpdatedState(onSkip)
     return pointerInput(Unit) {
         val threshold = TRACK_SWIPE_THRESHOLD.toPx()
         awaitEachGesture {
@@ -222,8 +239,68 @@ private fun Modifier.swipeToChangeTrack(enabled: Boolean, actions: ImmersivePlay
             }
             if (!finished) return@awaitEachGesture
             when {
-                dragged <= -threshold -> current.next()
-                dragged >= threshold -> current.previous()
+                dragged <= -threshold -> current(1)
+                dragged >= threshold -> current(-1)
+            }
+        }
+    }
+}
+
+private class CoverSwipe(val from: String, val direction: Int)
+
+@OptIn(ExperimentalGlideComposeApi::class, ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun PlayerArtwork(
+    state: ImmersivePlayerState,
+    actions: ImmersivePlayerActions,
+    modifier: Modifier,
+    overlay: @Composable () -> Unit = {},
+) {
+    val reduceMotion = rememberReduceMotion()
+    val spatial = MaterialTheme.motionScheme.defaultSpatialSpec<IntOffset>()
+    var swipe by remember { mutableStateOf<CoverSwipe?>(null) }
+    LaunchedEffect(swipe) {
+        if (swipe != null) {
+            delay(4_000)
+            swipe = null
+        }
+    }
+    Box(
+        modifier.swipeToChangeTrack(enabled = !state.adPlaying) { direction ->
+            swipe = if (reduceMotion) null else CoverSwipe(state.coverUrl, direction)
+            if (direction > 0) actions.next() else actions.previous()
+        },
+    ) {
+        AnimatedContent(
+            targetState = state.coverUrl,
+            modifier = Modifier.fillMaxSize(),
+            transitionSpec = {
+                val direction = swipe?.takeIf { it.from == initialState }?.direction
+                val transition = if (!reduceMotion && direction != null) {
+                    slideInHorizontally(spatial) { it * direction } togetherWith
+                        slideOutHorizontally(spatial) { -it * direction }
+                } else {
+                    EnterTransition.None togetherWith ExitTransition.None
+                }
+                transition.using(SizeTransform(clip = true))
+            },
+            label = "playerArtworkSwipe",
+        ) { cover ->
+            Box(Modifier.fillMaxSize()) {
+                GlideImage(
+                    model = cover.takeIf { it.isNotBlank() },
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    transition = CrossFade,
+                    loading = placeholder(R.drawable.placeholder),
+                    failure = placeholder(R.drawable.placeholder),
+                    modifier = Modifier.fillMaxSize(),
+                    requestBuilderTransform = { it.override(COVER_DECODE_PX) },
+                )
+                if (cover == state.coverUrl) {
+                    SongBlendCover(state.blend, Modifier.fillMaxSize()) { it.override(COVER_DECODE_PX) }
+                    overlay()
+                }
             }
         }
     }
@@ -247,7 +324,6 @@ fun ImmersivePlayer(
     navController: NavController? = null,
 ) {
     val context = LocalContext.current
-    val blend = state.blend
     val scheme = MaterialTheme.colorScheme
     val tint = scheme.onPrimaryContainer
 
@@ -319,7 +395,7 @@ fun ImmersivePlayer(
                 onSource = { showQuality = true },
                 onSourceLong = { showNerd = true },
                 sidePane = sidePane,
-            ) else Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
+            ) else Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().dragToClose(enabled = panel == Panel.NONE)) {
                 PlayerHeader(
                     actions = actions,
                     state = state,
@@ -365,7 +441,9 @@ fun ImmersivePlayer(
                         }
                     }
 
-                    if (panel == Panel.NONE) Box(
+                    if (panel == Panel.NONE) PlayerArtwork(
+                        state = state,
+                        actions = actions,
                         modifier = Modifier
                             .offset { IntOffset(artStart().roundToPx(), artTop().roundToPx()) }
                             .layout { measurable, _ ->
@@ -382,21 +460,8 @@ fun ImmersivePlayer(
                                 shape = ArtCorner
                                 clip = true
                             }
-                            .background(Color.Black.copy(alpha = 0.18f))
-                            .dragToClose()
-                            .swipeToChangeTrack(enabled = true, actions = actions),
+                            .background(Color.Black.copy(alpha = 0.18f)),
                     ) {
-                        GlideImage(
-                            model = state.coverUrl.takeIf { it.isNotBlank() },
-                            contentDescription = null,
-                            contentScale = ContentScale.Crop,
-                            transition = CrossFade,
-                            loading = placeholder(R.drawable.placeholder),
-                            failure = placeholder(R.drawable.placeholder),
-                            modifier = Modifier.fillMaxSize(),
-                            requestBuilderTransform = { it.override(COVER_DECODE_PX) },
-                        )
-                        SongBlendCover(blend, Modifier.fillMaxSize()) { it.override(COVER_DECODE_PX) }
                         if (canvasUrl != null) {
                             com.music.spotui.ui.screens.CanvasVideo(
                                 url = canvasUrl,
@@ -540,7 +605,7 @@ private fun FullPlayerLyrics(
     val scheme = MaterialTheme.colorScheme
     Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
         Box(
-            Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp).height(52.dp),
+            Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp).height(52.dp).dragToClose(),
             contentAlignment = Alignment.Center,
         ) {
             FilledTonalIconButton(
@@ -591,7 +656,7 @@ private fun PlayerHeader(
         checkedContentColor = scheme.onPrimary,
     )
     Row(
-        Modifier.fillMaxWidth().padding(horizontal = 12.dp).dragToClose(),
+        Modifier.fillMaxWidth().padding(horizontal = 12.dp).dragToClose(enabled = queueOpen),
         horizontalArrangement = Arrangement.spacedBy(2.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -684,7 +749,7 @@ private fun LandscapePlayer(
     onSourceLong: () -> Unit = {},
     sidePane: Boolean = false,
 ) {
-    Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
+    Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().dragToClose(enabled = panel == Panel.NONE)) {
         PlayerHeader(
             actions, state, panel == Panel.LYRICS, panel == Panel.QUEUE,
             onToggleLyrics, onToggleQueue, onOpenDevices, onMore,
@@ -701,11 +766,12 @@ private fun LandscapePlayer(
                     when (shown) {
                         Panel.QUEUE -> ImmersiveQueuePanel(Modifier.fillMaxSize(), PaddingValues(vertical = 4.dp), showCurrent = false)
                         else -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            Box(
-                                Modifier
+                            PlayerArtwork(
+                                state = state,
+                                actions = actions,
+                                modifier = Modifier
                                     .size(side)
                                     .graphicsLayer {
-                                        // The pause step back, as in the portrait layout, and the mix's beat.
                                         val beat = 1f + MIX_BEAT_GROW * (state.mixPulse?.level() ?: 0f)
                                         scaleX = pauseScale.value * beat
                                         scaleY = pauseScale.value * beat
@@ -714,21 +780,8 @@ private fun LandscapePlayer(
                                         clip = true
                                     }
                                     .background(Color.Black.copy(alpha = 0.18f))
-                                    .dragToClose()
-                                    .swipeToChangeTrack(enabled = true, actions = actions),
-                            ) {
-                                GlideImage(
-                                    model = state.coverUrl.takeIf { it.isNotBlank() },
-                                    contentDescription = null,
-                                    contentScale = ContentScale.Crop,
-                                    transition = CrossFade,
-                                    loading = placeholder(R.drawable.placeholder),
-                                    failure = placeholder(R.drawable.placeholder),
-                                    modifier = Modifier.fillMaxSize(),
-                                    requestBuilderTransform = { it.override(COVER_DECODE_PX) },
-                                )
-                                SongBlendCover(state.blend, Modifier.fillMaxSize()) { it.override(COVER_DECODE_PX) }
-                            }
+                                    .dragToClose(),
+                            )
                         }
                     }
                 }

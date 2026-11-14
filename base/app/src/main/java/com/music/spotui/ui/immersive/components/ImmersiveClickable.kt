@@ -7,11 +7,14 @@ package com.music.spotui.ui.immersive.components
 
 import com.music.spotui.ui.components.secondaryClick
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.MaterialTheme
+import com.music.spotui.ui.look.rememberReduceMotion
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
@@ -34,18 +37,9 @@ fun Modifier.immersiveClickable(
     role: Role? = Role.Button,
 ): Modifier = composed {
     val interaction = remember { MutableInteractionSource() }
-    val pressed by interaction.collectIsPressedAsState()
-    val scale by animateFloatAsState(
-        targetValue = if (pressed) pressedScale else 1f,
-        animationSpec = com.music.spotui.ui.immersive.motion.ImmersiveMotion.pressSpring(),
-        label = "immersiveClickableScale",
-    )
     val haptics = LocalHapticFeedback.current
     this
-        .graphicsLayer {
-            scaleX = scale
-            scaleY = scale
-        }
+        .expressivePress(interaction, pressedScale, enabled)
         // A mouse's right click opens the same menu as the long press (DeX, tablets).
         .secondaryClick(if (enabled) onLongClick else null)
         .combinedClickable(
@@ -61,4 +55,25 @@ fun Modifier.immersiveClickable(
                 }
             },
         )
+}
+
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+internal fun Modifier.expressivePress(
+    interactionSource: MutableInteractionSource,
+    pressedScale: Float = 0.92f,
+    enabled: Boolean = true,
+): Modifier {
+    if (!enabled || rememberReduceMotion()) return this
+    val pressed by interactionSource.collectIsPressedAsState()
+    val motion = MaterialTheme.motionScheme
+    val scale = animateFloatAsState(
+        targetValue = if (pressed) pressedScale else 1f,
+        animationSpec = if (pressed) motion.fastEffectsSpec() else motion.fastSpatialSpec(),
+        label = "pressScale",
+    )
+    return graphicsLayer {
+        scaleX = scale.value
+        scaleY = scale.value
+    }
 }

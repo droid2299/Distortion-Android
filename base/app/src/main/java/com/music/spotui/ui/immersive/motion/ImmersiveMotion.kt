@@ -10,6 +10,8 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.lazy.LazyItemScope
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.MotionScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.IntOffset
@@ -47,14 +49,13 @@ object ImmersiveMotion {
     /** A sheet warming into its cover's colours the first time it is seen: quicker than the player's [TINT_MS], as a sheet is brief. */
     const val SHEET_TINT_MS = 400
 
-    /** Press feedback (scale under the finger): stiff and fully damped, it never wobbles. */
-    fun <T> pressSpring() = spring<T>(stiffness = 900f)
-
     /**
      * Glass objects that travel (the tab selection pill, a lens): one soft pass beyond the mark,
      * then settled. Damping 0.72, stiffness 320.
      */
     fun <T> glassSpring() = spring<T>(dampingRatio = 0.72f, stiffness = 320f)
+
+    fun <T> pressSpring() = spring<T>(stiffness = 900f)
 
     /** Release of a glass surface after a press: a touch of overshoot. */
     fun <T> releaseSpring() = spring<T>(dampingRatio = 0.62f, stiffness = Spring.StiffnessMedium)
@@ -84,8 +85,10 @@ object ImmersiveMotion {
      * MyNavHost's `page`), so the Liquid Glass sampling a page fades with it frame by frame
      * instead of jumping once the transition is over.
      */
+    @OptIn(ExperimentalMaterial3ExpressiveApi::class)
     object Pages {
-        private val tabRoutes = setOf(Routes.Home.route, Routes.Search.route, Routes.Library.route)
+        private val spatial = MotionScheme.expressive().defaultSpatialSpec<IntOffset>()
+        private val tabRoutes = setOf(Routes.Home.route, Routes.NewReleases.route, Routes.LiveRadio.route, Routes.Search.route, Routes.Library.route)
 
         private fun AnimatedContentTransitionScope<NavBackStackEntry>.isTabSwitch() =
             initialState.destination.route in tabRoutes && targetState.destination.route in tabRoutes
@@ -94,7 +97,7 @@ object ImmersiveMotion {
             val still = reduce || isTabSwitch()
             PageFade.enterMs = if (still) FADE_MS else PAGE_MS / 2
             // Tabs cross-fade over FADE_MS; without an enter transition, Compose detaches the outgoing tab immediately (#172).
-            if (still) fadeIn(tween(FADE_MS)) else slideInHorizontally(spring(stiffness = Spring.StiffnessMediumLow, visibilityThreshold = IntOffset(1, 1))) { it }
+            if (still) fadeIn(tween(FADE_MS)) else slideInHorizontally(spatial) { it }
         }
 
         fun exit(reduce: Boolean): AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition = {
@@ -107,13 +110,13 @@ object ImmersiveMotion {
             val still = reduce || isTabSwitch()
             PageFade.enterMs = if (still) FADE_MS else PAGE_MS
             // Tabs cross-fade over FADE_MS; without an enter transition, Compose detaches the outgoing tab immediately (#172).
-            if (still) fadeIn(tween(FADE_MS)) else slideInHorizontally(tween(PAGE_MS)) { -it / 3 }
+            if (still) fadeIn(tween(FADE_MS)) else slideInHorizontally(spatial) { -it / 3 }
         }
 
         fun popExit(reduce: Boolean): AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition = {
             val still = reduce || isTabSwitch()
             PageFade.exitMs = if (still) FADE_MS else PAGE_MS / 2
-            if (still) ExitTransition.None else slideOutHorizontally(tween(PAGE_MS)) { it }
+            if (still) ExitTransition.None else slideOutHorizontally(spatial) { it }
         }
     }
 

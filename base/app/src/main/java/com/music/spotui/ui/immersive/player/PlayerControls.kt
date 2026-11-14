@@ -15,6 +15,9 @@ package com.music.spotui.ui.immersive.player
 import com.music.spotui.ui.components.zoneOn
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.snap
+import androidx.compose.material3.ripple
+import com.music.spotui.ui.immersive.components.expressivePress
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -120,9 +123,16 @@ internal fun PlayerScrubber(
     }
 }
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 internal fun LyricsPlaybackControls(state: ImmersivePlayerState, actions: ImmersivePlayerActions) {
     val scheme = MaterialTheme.colorScheme
+    val interaction = remember { MutableInteractionSource() }
+    val corner by animateDpAsState(
+        if (state.playing) 30.dp else 58.dp,
+        animationSpec = if (rememberReduceMotion()) snap() else MaterialTheme.motionScheme.fastSpatialSpec(),
+        label = "lyricsPlayPauseCorners",
+    )
     val scrub = rememberPlayerScrub(state.title, state.positionMs, state.durationMs)
     val frame = rememberFrameClock(state.playing && !state.buffering, fps = 15)
     Column(
@@ -133,8 +143,9 @@ internal fun LyricsPlaybackControls(state: ImmersivePlayerState, actions: Immers
         FilledIconButton(
             onClick = actions.playPause,
             enabled = !state.buffering,
-            modifier = Modifier.size(116.dp),
-            shape = RoundedCornerShape(if (state.playing) 30.dp else 58.dp),
+            modifier = Modifier.size(116.dp).expressivePress(interaction, enabled = !state.buffering),
+            interactionSource = interaction,
+            shape = RoundedCornerShape(corner.coerceAtLeast(0.dp)),
             colors = IconButtonDefaults.filledIconButtonColors(
                 containerColor = scheme.tertiaryFixed,
                 contentColor = scheme.onTertiaryFixed,
@@ -397,9 +408,18 @@ internal fun VolumeRow(volume: PlayerVolume) {
     }
 }
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 internal fun MusicTransportRow(state: ImmersivePlayerState, actions: ImmersivePlayerActions) {
     val scheme = MaterialTheme.colorScheme
+    val previousInteraction = remember { MutableInteractionSource() }
+    val playInteraction = remember { MutableInteractionSource() }
+    val nextInteraction = remember { MutableInteractionSource() }
+    val corner by animateDpAsState(
+        if (state.playing) 26.dp else 40.dp,
+        animationSpec = if (rememberReduceMotion()) snap() else MaterialTheme.motionScheme.fastSpatialSpec(),
+        label = "playPauseCorners",
+    )
     val skipColors = IconButtonDefaults.filledTonalIconButtonColors(
         containerColor = scheme.onPrimaryContainer.copy(alpha = 0.14f),
         contentColor = scheme.onPrimaryContainer,
@@ -414,7 +434,8 @@ internal fun MusicTransportRow(state: ImmersivePlayerState, actions: ImmersivePl
                 Haptics.click()
                 actions.previous()
             },
-            modifier = Modifier.weight(1f).height(82.dp),
+            modifier = Modifier.weight(1f).height(82.dp).expressivePress(previousInteraction),
+            interactionSource = previousInteraction,
             colors = skipColors,
         ) {
             Icon(Icons.Rounded.SkipPrevious, stringResource(R.string.immersive_player_previous), Modifier.size(28.dp))
@@ -424,9 +445,10 @@ internal fun MusicTransportRow(state: ImmersivePlayerState, actions: ImmersivePl
                 Haptics.click()
                 actions.playPause()
             },
-            modifier = Modifier.weight(1f).height(82.dp),
+            modifier = Modifier.weight(1f).height(82.dp).expressivePress(playInteraction, enabled = !state.buffering),
+            interactionSource = playInteraction,
             enabled = !state.buffering,
-            shape = RoundedCornerShape(if (state.playing) 26.dp else 40.dp),
+            shape = RoundedCornerShape(corner.coerceAtLeast(0.dp)),
             colors = IconButtonDefaults.filledIconButtonColors(
                 containerColor = scheme.primary,
                 contentColor = scheme.onPrimary,
@@ -449,7 +471,8 @@ internal fun MusicTransportRow(state: ImmersivePlayerState, actions: ImmersivePl
                 Haptics.click()
                 actions.next()
             },
-            modifier = Modifier.weight(1f).height(82.dp),
+            modifier = Modifier.weight(1f).height(82.dp).expressivePress(nextInteraction),
+            interactionSource = nextInteraction,
             colors = skipColors,
         ) {
             Icon(Icons.Rounded.SkipNext, stringResource(R.string.immersive_player_next), Modifier.size(28.dp))
@@ -519,6 +542,7 @@ internal fun PlayerActionRow(state: ImmersivePlayerState, actions: ImmersivePlay
     }
 }
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun PlayerModeSegment(
     icon: ImageVector,
@@ -533,22 +557,29 @@ private fun PlayerModeSegment(
     val foreground = MaterialTheme.colorScheme.onSurface
     val targetBackground = if (active) activeBackground else foreground.copy(alpha = 0.07f)
     val targetRadius = if (active) 24.dp else 8.dp
-    val animatedBackground by animateColorAsState(targetBackground, label = "modeBackground")
-    val animatedRadius by animateDpAsState(targetRadius, label = "modeCorners")
+    val motion = MaterialTheme.motionScheme
     val reduceMotion = rememberReduceMotion()
+    val animatedBackground by animateColorAsState(
+        targetBackground, if (reduceMotion) snap() else motion.fastEffectsSpec(), label = "modeBackground",
+    )
+    val animatedRadius by animateDpAsState(
+        targetRadius, if (reduceMotion) snap() else motion.fastSpatialSpec(), label = "modeCorners",
+    )
+    val source = remember { MutableInteractionSource() }
     val activate = {
         Haptics.click()
         onClick()
     }
     val interaction = if (cyclesModes) {
-        Modifier.clickable(role = Role.Button, onClick = activate)
+        Modifier.clickable(interactionSource = source, indication = ripple(), role = Role.Button, onClick = activate)
     } else {
-        Modifier.toggleable(value = active, role = Role.Checkbox, onValueChange = { activate() })
+        Modifier.toggleable(value = active, interactionSource = source, indication = ripple(), role = Role.Checkbox, onValueChange = { activate() })
     }
     Box(
         modifier = modifier
-            .clip(RoundedCornerShape(if (reduceMotion) targetRadius else animatedRadius))
-            .background(if (reduceMotion) targetBackground else animatedBackground)
+            .expressivePress(source)
+            .clip(RoundedCornerShape(animatedRadius.coerceAtLeast(0.dp)))
+            .background(animatedBackground)
             .then(interaction),
         contentAlignment = Alignment.Center,
     ) {
