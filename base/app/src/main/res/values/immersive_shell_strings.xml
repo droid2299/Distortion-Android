@@ -9,4 +9,9 @@
     <string name="immersive_shell_shuffle">Shuffle</string>
     <string name="immersive_shell_see_all">See all</string>
     <string name="immersive_shell_now_playing">Now playing</string>
+    <string name="home_your_mix">Your\nMix</string>
+    <string name="home_play_mix">Play your mix</string>
+    <string name="home_mix_unavailable">This mix couldn’t be played.</string>
+    <string name="home_continue_listening">Continue Listening</string>
+    <string name="home_recently_played">Recently Played</string>
 </resources>

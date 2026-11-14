@@ -140,7 +140,7 @@ private const val THIN_DP = 56f
 private const val LARGE_DP = 200f
 
 /** The glass's own body over the refracted page: dark, so white text holds on any artwork. */
-internal val GlassTint = Color(0xFF1C1C22).copy(alpha = 0.42f)
+internal val GlassTint: Color get() = if (Immersive.dark) Color(0xFF1C1C22).copy(alpha = 0.42f) else Color.White.copy(alpha = 0.65f)
 
 /** Alpha of the body on large glass: more opaque, there is text on it. */
 private const val LARGE_TINT_ALPHA = 0.60f

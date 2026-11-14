@@ -76,7 +76,7 @@ object QueueSync {
 
     private suspend fun reconcile(local: List<String>, spare: String?) {
         // Spotify slow to send its queue: waited for a moment rather than this edit dropped.
-        val q = api.player.queue.value ?: withTimeoutOrNull(QUEUE_ECHO_MS * 2) { api.player.queue.first { it != null } }
+        val q = Graph.playback.queue.value ?: withTimeoutOrNull(QUEUE_ECHO_MS * 2) { Graph.playback.queue.first { it != null } }
             ?: return log("not synced: Spotify sent no queue")
         val items = q.queued.filter { it.kind == ItemKind.TRACK && it.uri.startsWith(TRACK_PREFIX) }
         val plan = synchronized(owned) { QueueSyncRules.plan(local, items.map { it.uri }, HashMap(owned), spare) }
@@ -86,18 +86,18 @@ object QueueSync {
         if (stale()) return
         if (plan.remove.isNotEmpty()) {
             val gone = plan.remove.map(items::get)
-            api.player.removeFromQueue(gone)
+            Graph.playback.removeFromQueue(gone)
             synchronized(owned) { gone.forEach { take(it.uri, 1) } }
         }
         for (insert in plan.inserts) for (batch in insert.uris.chunked(BATCH)) {
             if (stale()) return
             val before = insert.beforeIndex?.let(items::get)
-            if (before == null) api.player.addToQueue(batch) else api.player.insertInQueue(batch, before)
+            if (before == null) Graph.playback.addToQueue(batch) else Graph.playback.insertInQueue(batch, before)
             synchronized(owned) { batch.forEach { owned[it] = (owned[it] ?: 0) + 1 } }
         }
         log("Spotify's queue follows the local one: ${plan.inserts.sumOf { it.uris.size }} added, ${plan.remove.size} removed")
         // The next sync reads the queue with these edits in it.
-        withTimeoutOrNull(QUEUE_ECHO_MS) { api.player.queue.first { it !== q } }
+        withTimeoutOrNull(QUEUE_ECHO_MS) { Graph.playback.queue.first { it !== q } }
     }
 
     private fun take(uri: String, n: Int) {
@@ -118,7 +118,7 @@ object QueueSync {
         if (!ConnectMirrorPref.on) return list to emptyList()
         // The new local queue is made of what Spotify's holds now: the sync owns those, nothing else.
         synchronized(owned) { owned.clear() }
-        val queued = api.player.queue.value?.queued.orEmpty().filter { it.kind == ItemKind.TRACK && it.uri.startsWith(TRACK_PREFIX) }
+        val queued = Graph.playback.queue.value?.queued.orEmpty().filter { it.kind == ItemKind.TRACK && it.uri.startsWith(TRACK_PREFIX) }
         if (queued.isEmpty()) return list to emptyList()
         val next = list.drop(at + 1)
         val ways = QueueSyncRules.adopt(next.map { t -> LocalPlayer.spotifyIdOf(t).let { if (it.isBlank()) "" else TRACK_PREFIX + it } }, queued.map { it.uri })

@@ -261,7 +261,7 @@ fun ImmersiveProfileScreen(navController: NavController, userId: String, userNam
                         .onSuccess { blocked = true; following = false }
                         .onFailure { android.widget.Toast.makeText(context, R.string.profile_block_failed, android.widget.Toast.LENGTH_SHORT).show() }
                 }
-            }) { Text(stringResource(R.string.profile_block), style = Immersive.BodyStrong.copy(color = Color(0xFFF15E6C))) }
+            }) { Text(stringResource(R.string.profile_block), style = Immersive.BodyStrong.copy(color = Immersive.Destructive)) }
         },
         dismissButton = {
             TextButton(onClick = { blockAsk = false }) { Text(stringResource(R.string.cancel), style = Immersive.BodyStrong.copy(color = Immersive.Accent)) }

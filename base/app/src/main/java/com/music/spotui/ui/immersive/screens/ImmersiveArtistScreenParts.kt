@@ -104,6 +104,7 @@ private fun LazyListState.headerTop(artHeightPx: Float): Float =
 @Composable
 internal fun ArtistBackdrop(
     imageUrl: String?,
+    pageColor: Color,
     artHeight: Dp,
     listState: LazyListState,
     modifier: Modifier = Modifier,
@@ -158,10 +159,10 @@ internal fun ArtistBackdrop(
                             0.00f to Color.Black.copy(alpha = 0.35f),
                             0.22f to Color.Transparent,
                             0.45f to Color.Transparent,
-                            0.65f to Immersive.Page.copy(alpha = 0.30f),
-                            0.82f to Immersive.Page.copy(alpha = 0.72f),
-                            0.94f to Immersive.Page.copy(alpha = 0.95f),
-                            1.00f to Immersive.Page,
+                            0.65f to pageColor.copy(alpha = 0.30f),
+                            0.82f to pageColor.copy(alpha = 0.72f),
+                            0.94f to pageColor.copy(alpha = 0.95f),
+                            1.00f to pageColor,
                         ),
                     ),
             )
@@ -284,8 +285,8 @@ internal fun ArtistTopReleaseCard(
             .immersiveClickable(onClick = onClick, pressedScale = 0.98f)
             // A light veil rather than a dark panel, which reads as a hole in a black page.
             .clip(shape)
-            .background(Color.White.copy(alpha = 0.07f), shape)
-            .border(1.dp, Color.White.copy(alpha = 0.10f), shape)
+            .background(Immersive.scheme.surfaceContainer, shape)
+            .border(1.dp, Immersive.Separator, shape)
             .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {

@@ -210,7 +210,7 @@ fun ImmersiveRecentlyPlayedScreen(navController: NavController) {
                                             Haptics.click()
                                             expanded = if (key in expanded) expanded - key else expanded + key
                                         },
-                                        onOpen = { openContext(group.context, navController) },
+                                        onOpen = { openRecentContext(group.context, navController) },
                                     )
                                     if (groupIndex < section.groups.lastIndex && key !in expanded) {
                                         ImmersiveRowDivider(ImmersiveRowDividerInset)
@@ -396,7 +396,7 @@ private fun playUri(item: RecentItem): String =
  * own pages, the rest go to their playlist, album, artist or show page; a lone track (a row with
  * no context) plays.
  */
-private fun openContext(context: RecentItem, navController: NavController) {
+internal fun openRecentContext(context: RecentItem, navController: NavController) {
     val id = context.uri.substringAfterLast(':')
     when {
         context.uri == LIKED_URI || context.kind == MediaKind.COLLECTION -> navController.navigate(Routes.Liked.route)

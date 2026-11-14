@@ -75,7 +75,7 @@ import com.music.spotui.ui.screens.shareDiagnosticReport
 import kotlinx.coroutines.launch
 
 /** Where the Immersive Settings are: the list of categories, one category, or a choice inside it. */
-private enum class SettingsPage { Root, Playback, Sources, Lyrics, StreamingWifi, StreamingCell, Crossfade, Downloads, DownloadQuality, Storage, Data, Display, Look, Rotation, Language, LyricsLanguage, App, Accounts }
+private enum class SettingsPage { Root, Playback, Sources, Lyrics, StreamingWifi, StreamingCell, Crossfade, Downloads, DownloadQuality, Storage, Data, Display, Rotation, Language, LyricsLanguage, App, Accounts }
 
 private val StreamingChoices = listOf(
     Triple(StreamingQuality.AUTO, R.string.quality_streaming_auto, R.string.quality_streaming_auto_detail),
@@ -145,7 +145,6 @@ fun ImmersiveSettingsScreen(navController: NavController) {
             SettingsPage.Storage -> StoragePage(back)
             SettingsPage.Data -> DataPage(back)
             SettingsPage.Display -> DisplayPage(open, back)
-            SettingsPage.Look -> LookPage(back)
             SettingsPage.Rotation -> RotationPage(back)
             SettingsPage.Language -> LanguagePage(back)
             SettingsPage.LyricsLanguage -> LyricsLanguagePage(back)
@@ -836,48 +835,12 @@ private fun DisplayPage(open: (SettingsPage) -> Unit, back: () -> Unit) {
     val ctx = LocalContext.current
     var canvasWifiOnly by remember { mutableStateOf(com.music.spotui.data.preferences.isCanvasWifiOnly(ctx)) }
     val energy by app.myspoti.power.EnergySettings.state.collectAsStateWithLifecycle()
-    val look = com.music.spotui.data.preferences.LookPref.look
+    val look = com.music.spotui.data.preferences.Look.IMMERSIVE
     val rotation = com.music.spotui.data.preferences.OrientationPref.mode
     val language = remember { com.music.spotui.data.AppLanguage.current(ctx) }
     val auto = stringResource(R.string.language_auto)
     ImmersivePage(title = stringResource(R.string.settings_section_display), onBack = back) {
-        immersiveGroup("look") {
-            row {
-                ImmersiveGroupRow(
-                    stringResource(R.string.settings_look_title),
-                    value = stringResource(if (look == com.music.spotui.data.preferences.Look.CLASSIC) R.string.look_classic else R.string.look_immersive),
-                    chevron = true, onClick = { open(SettingsPage.Look) },
-                )
-            }
-            row { AccentRow(com.music.spotui.data.preferences.Look.IMMERSIVE) }
-            // Material You is the Classic look's: this look's colours come from the playing cover.
-            if (look == com.music.spotui.data.preferences.Look.CLASSIC && com.music.spotui.data.preferences.DynamicColorPref.available) row {
-                ImmersiveSwitchRow(stringResource(R.string.settings_dynamic_color_title), checked = com.music.spotui.data.preferences.DynamicColorPref.on,
-                    onChecked = { com.music.spotui.data.preferences.DynamicColorPref.set(ctx, it) }, detail = stringResource(R.string.settings_dynamic_color_detail))
-            }
-            row {
-                ImmersiveSwitchRow(stringResource(R.string.settings_system_font_title), checked = com.music.spotui.data.preferences.AppFontPref.system,
-                    onChecked = { com.music.spotui.data.preferences.AppFontPref.set(ctx, it) }, detail = stringResource(R.string.settings_system_font_detail))
-            }
-        }
         immersiveGroup("display") {
-            if (look == com.music.spotui.data.preferences.Look.IMMERSIVE) row {
-                val glass = com.music.spotui.ui.immersive.shell.liquidGlassAvailability()
-                val unsupported = glass == com.music.spotui.ui.immersive.shell.LiquidGlassAvailability.UNSUPPORTED
-                ImmersiveSwitchRow(
-                    stringResource(R.string.settings_liquid_glass_title),
-                    checked = com.music.spotui.data.preferences.LiquidGlassPref.on && !unsupported,
-                    enabled = !unsupported,
-                    onChecked = { com.music.spotui.data.preferences.LiquidGlassPref.set(ctx, it) },
-                    detail = stringResource(
-                        when (glass) {
-                            com.music.spotui.ui.immersive.shell.LiquidGlassAvailability.UNSUPPORTED -> R.string.settings_liquid_glass_unsupported
-                            com.music.spotui.ui.immersive.shell.LiquidGlassAvailability.REDUCED -> R.string.settings_liquid_glass_reduced
-                            com.music.spotui.ui.immersive.shell.LiquidGlassAvailability.AVAILABLE -> R.string.settings_liquid_glass_detail
-                        },
-                    ),
-                )
-            }
             row {
                 ImmersiveSwitchRow(stringResource(R.string.settings_amoled_theme), checked = energy.blackPreference,
                     onChecked = app.myspoti.power.EnergySettings::setBlackBackground, detail = stringResource(R.string.settings_amoled_theme_subtitle))
@@ -957,54 +920,6 @@ private fun rotationLabel(mode: String): Int = when (mode) {
 }
 
 /** The accent colour of one look, for everyone (the same palette the supporter sheet uses). */
-@Composable
-private fun AccentRow(look: com.music.spotui.data.preferences.Look) {
-    val ctx = LocalContext.current
-    androidx.compose.foundation.layout.Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp)) {
-        Text(stringResource(R.string.supporter_accent), style = Immersive.Body)
-        Row(horizontalArrangement = Arrangement.spacedBy(14.dp), modifier = Modifier.padding(top = 10.dp)) {
-            for (a in com.music.spotui.data.api.SupportReminder.Accent.entries) {
-                val selected = com.music.spotui.data.api.SupportReminder.accentOf(look) == a
-                val name = stringResource(when (a) {
-                    com.music.spotui.data.api.SupportReminder.Accent.GREEN -> R.string.color_green
-                    com.music.spotui.data.api.SupportReminder.Accent.BLUE -> R.string.color_blue
-                    com.music.spotui.data.api.SupportReminder.Accent.PURPLE -> R.string.color_purple
-                    com.music.spotui.data.api.SupportReminder.Accent.PINK -> R.string.color_pink
-                    com.music.spotui.data.api.SupportReminder.Accent.ORANGE -> R.string.color_orange
-                })
-                Box(
-                    Modifier.size(38.dp)
-                        .semantics { contentDescription = name; role = Role.RadioButton }
-                        .clip(CircleShape).background(a.color)
-                        .then(if (selected) Modifier.border(3.dp, Immersive.Text, CircleShape) else Modifier)
-                        .clickable { com.music.spotui.data.api.SupportReminder.setAccent(ctx, look, a) },
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun LookPage(back: () -> Unit) {
-    val ctx = LocalContext.current
-    val current = com.music.spotui.data.preferences.LookPref.look
-    ImmersivePage(title = stringResource(R.string.settings_look_title), onBack = back) {
-        immersiveGroup("choices") {
-            for (l in com.music.spotui.data.preferences.Look.entries) {
-                val classic = l == com.music.spotui.data.preferences.Look.CLASSIC
-                row {
-                    ImmersiveChoiceRow(
-                        stringResource(if (classic) R.string.look_classic else R.string.look_immersive),
-                        selected = current == l,
-                        detail = stringResource(if (classic) R.string.look_classic_detail else R.string.look_immersive_detail),
-                        onClick = { com.music.spotui.data.preferences.LookPref.set(ctx, l) },
-                    )
-                }
-            }
-        }
-    }
-}
-
 @Composable
 private fun RotationPage(back: () -> Unit) {
     val ctx = LocalContext.current

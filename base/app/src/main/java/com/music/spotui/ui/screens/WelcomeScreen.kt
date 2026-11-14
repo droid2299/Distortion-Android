@@ -104,10 +104,10 @@ fun WelcomeScreen(onLogin: () -> Unit) {
                             scaleX = s; scaleY = s
                         }
                         .clip(RoundedCornerShape(32.dp))
-                        .background(tone(0xFF181818)),
+                        .background(androidx.compose.material3.MaterialTheme.colorScheme.primaryContainer),
                 )
                 Spacer(Modifier.height(28.dp))
-                Text("Myspoti", color = AppText, fontFamily = AppSans, fontWeight = FontWeight.ExtraBold, fontSize = 40.sp,
+                Text("Distortion", color = AppText, fontFamily = AppSans, fontWeight = FontWeight.ExtraBold, fontSize = 40.sp,
                     modifier = Modifier.rise(1))
                 Spacer(Modifier.height(12.dp))
                 Box(Modifier.rise(2)) { Features() }
@@ -134,7 +134,7 @@ fun WelcomeScreen(onLogin: () -> Unit) {
                         .then(if (focused) Modifier.border(3.dp, Color.White, RoundedCornerShape(50)) else Modifier)
                         .background(AppAccent),
                 ) {
-                    Text(stringResource(R.string.welcome_login), color = Color.Black, fontFamily = AppSans,
+                    Text(stringResource(R.string.welcome_login), color = androidx.compose.material3.MaterialTheme.colorScheme.onPrimary, fontFamily = AppSans,
                         fontWeight = FontWeight.Bold, fontSize = 17.sp)
                 }
                 Text(

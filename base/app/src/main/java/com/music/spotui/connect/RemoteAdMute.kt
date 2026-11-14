@@ -131,7 +131,7 @@ object RemoteAdMute {
             runCatching { api.devices.refresh() }
             val activeId = api.devices.devices.value.firstOrNull { it.active }?.id
             if (Rules.restoresOwed(o.deviceId, o.at, activeId, ad, System.currentTimeMillis())) {
-                runCatching { api.player.setVolume(o.level) }
+                runCatching { Graph.playback.setVolume(o.level) }
                     .onSuccess { if (owed === o) owed = null; forget(); log("level put back on a device muted for an earlier ad") }
             } else if (System.currentTimeMillis() - o.at >= OWED_MAX_AGE_MS) { owed = null; forget() }
         }
@@ -144,7 +144,7 @@ object RemoteAdMute {
         val m = Muted(active.id, level!!, System.currentTimeMillis())
         muted = m
         remember(m)
-        val sent = runCatching { api.player.setVolume(0.0) }
+        val sent = runCatching { Graph.playback.setVolume(0.0) }
         if (sent.isFailure) {
             muted = null
             forget()
@@ -176,7 +176,7 @@ object RemoteAdMute {
             log("$why: the device no longer plays, its level is put back when it does")
             return@withContext
         }
-        val sent = runCatching { api.player.setVolume(m.level) }
+        val sent = runCatching { Graph.playback.setVolume(m.level) }
         if (sent.isSuccess) { forget(); log("$why: level put back") }
         else { owed = m; log("$why: level not put back (${sent.exceptionOrNull()?.message?.take(80)}), tried again later") }
     }

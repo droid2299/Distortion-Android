@@ -211,6 +211,7 @@
   var console = Object.freeze({ log: myspoti.log, info: myspoti.log, warn: myspoti.log, error: myspoti.log });
   var fixed = { writable: false, configurable: false, enumerable: false };
   Object.defineProperty(global, 'myspoti', Object.assign({ value: Object.freeze(myspoti) }, fixed));
+  Object.defineProperty(global, 'distortion', Object.assign({ value: myspoti }, fixed));
   Object.defineProperty(global, 'console', Object.assign({ value: console }, fixed));
   Object.defineProperty(global, '__dispatch', Object.assign({ value: dispatch }, fixed));
 

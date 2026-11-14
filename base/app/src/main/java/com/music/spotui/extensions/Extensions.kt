@@ -56,6 +56,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
@@ -1188,6 +1189,9 @@ object Extensions {
     /** The inactive extensions and what their `status` said (their rows and pages show it). */
     private val _statuses = MutableStateFlow<Map<String, app.myspoti.extensions.ExtensionStatus>>(emptyMap())
     val statuses: StateFlow<Map<String, app.myspoti.extensions.ExtensionStatus>> = _statuses.asStateFlow()
+    private val _probeResults = MutableStateFlow<Map<String, app.myspoti.extensions.ExtensionStatus>>(emptyMap())
+    val probeResults = _probeResults.asStateFlow()
+
 
     /**
      * Asks [id]'s `status` (at most [STATUS_MS]). `live: false`: it is inactive, skipped for songs'
@@ -1220,6 +1224,7 @@ object Extensions {
             else -> "status: no answer (${s.detail ?: "no detail"}) in $ms ms, still used"
         })
         _statuses.value = health.inactiveNow()
+        _probeResults.update { it + (id to s) }
     }
 
     private fun probeAll() = runtimes.forEach { (id, rt) -> scope.launch { probe(id, rt) } }
@@ -1438,7 +1443,7 @@ object Extensions {
         if (com.music.spotui.data.DataSaver.active) throw ExtensionException("the data saver is on")
         val c = uri.toURL().openConnection() as HttpURLConnection
         c.connectTimeout = 15_000; c.readTimeout = 20_000; c.useCaches = false
-        c.setRequestProperty("User-Agent", "Myspoti-Extensions/1")
+        c.setRequestProperty("User-Agent", "Distortion-Extensions/1")
         c.setRequestProperty("Cache-Control", "no-cache"); c.setRequestProperty("Pragma", "no-cache")
         try {
             if (c.responseCode !in 200..299) throw ExtensionException("the server answered ${c.responseCode}")
@@ -1518,7 +1523,9 @@ object Extensions {
         mirrorGone(id)
         runningSha.remove(id)
         runtimes.remove(id)?.close(); ExtensionAuth.cancel(id)
-        health.forget(id); _statuses.value = health.inactiveNow()
+        health.forget(id)
+        _probeResults.update { it - id }
+        _statuses.value = health.inactiveNow()
         cooldown.forget(id); dismissSignIn(id)
         misses.clear()
         refreshProvided()
@@ -1539,6 +1546,7 @@ object Extensions {
         probing[id]?.join()
         if (runtimes[id] !== rt) return
         health.forget(id)
+        _probeResults.update { it - id }
         _statuses.value = health.inactiveNow()
         probe(id, rt)
     }
@@ -1609,6 +1617,7 @@ object Extensions {
             val keys = settingsOf(e.id).all().keys.map { app.myspoti.extensions.Setting.baseKey(it) }.distinct()
             if (keys.isNotEmpty()) scope.launch { keys.forEach { sendSetting(e.id, it, pressed = false) } }
             health.forget(e.id)
+            _probeResults.update { it - e.id }
             runtimes[e.id]?.let { rt -> scope.launch { probe(e.id, rt) } }
         }
         _statuses.value = health.inactiveNow()

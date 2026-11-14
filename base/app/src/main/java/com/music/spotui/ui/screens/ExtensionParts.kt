@@ -129,20 +129,35 @@ internal fun toastError(ctx: Context, t: Throwable) {
     Toast.makeText(ctx.applicationContext, ctx.getString(R.string.extensions_error, t.message ?: t.toString()), Toast.LENGTH_LONG).show()
 }
 
+private fun showInstallFailure(ctx: Context, id: String, error: Throwable) {
+    if (error is kotlinx.coroutines.CancellationException) return
+    val detail = app.myspoti.extensions.PlayAttempt.maskText(error.message ?: error.javaClass.simpleName)
+    ExtensionStore.installFailures.value = ExtensionStore.installFailures.value + (id to detail)
+    toastError(ctx, error)
+}
+
 /** Reads [zip] and opens the install prompt; a refused package says why. */
-internal fun offer(ctx: Context, zip: ByteArray, source: String, origin: app.myspoti.extensions.Origin? = null) {
+internal fun offer(ctx: Context, zip: ByteArray, source: String, origin: app.myspoti.extensions.Origin? = null, entryId: String? = null) {
     runCatching { ExtensionPackage.read(zip).localized(Extensions.language()) }
         .onSuccess { p -> pending.value = PendingInstall(zip, p, source, Extensions.plan(p), origin) }
-        .onFailure { toastError(ctx, it) }
+        .onFailure { if (entryId == null) toastError(ctx, it) else showInstallFailure(ctx, entryId, it) }
 }
 
 /** Downloads a repository's package for [entry] (a spinner on its button meanwhile), then the prompt. */
 internal suspend fun installFromStore(ctx: Context, repo: String, entry: Catalog.Entry) {
+    if (entry.id in ExtensionStore.busy.value) return
     ExtensionStore.busy.value = ExtensionStore.busy.value + entry.id
-    runCatching { Extensions.fetch(repo, entry) }
-        .onSuccess { f -> offer(ctx, f.zip, f.origin?.let { "https://github.com/${it.repo}" } ?: repo, f.origin) }
-        .onFailure { toastError(ctx, it) }
-    ExtensionStore.busy.value = ExtensionStore.busy.value - entry.id
+    ExtensionStore.installFailures.value = ExtensionStore.installFailures.value - entry.id
+    try {
+        val fetched = Extensions.fetch(repo, entry)
+        offer(ctx, fetched.zip, fetched.origin?.let { "https://github.com/${it.repo}" } ?: repo, fetched.origin, entry.id)
+    } catch (cancelled: kotlinx.coroutines.CancellationException) {
+        throw cancelled
+    } catch (failure: Exception) {
+        showInstallFailure(ctx, entry.id, failure)
+    } finally {
+        ExtensionStore.busy.value = ExtensionStore.busy.value - entry.id
+    }
 }
 
 /** The system file picker, for a package (.zip). */
@@ -240,7 +255,17 @@ internal fun InstallPrompt() {
                         // Not the prompt's scope: closing the prompt cancelled it, and the cancelled
                         // (yet finished) install showed as an error.
                         installScope.launch {
-                            runCatching { Extensions.install(p.zip, p.pkg, Grants.keys(m), p.source, clashes, { choice[it] != false }, noticeAccepted = true, origin = p.origin) }.onFailure { toastError(ctx, it) }
+                            ExtensionStore.installFailures.value = ExtensionStore.installFailures.value - m.id
+                            ExtensionStore.busy.value = ExtensionStore.busy.value + m.id
+                            try {
+                                Extensions.install(p.zip, p.pkg, Grants.keys(m), p.source, clashes, { choice[it] != false }, noticeAccepted = true, origin = p.origin)
+                            } catch (cancelled: kotlinx.coroutines.CancellationException) {
+                                throw cancelled
+                            } catch (failure: Exception) {
+                                showInstallFailure(ctx, m.id, failure)
+                            } finally {
+                                ExtensionStore.busy.value = ExtensionStore.busy.value - m.id
+                            }
                         }
                     },
                 ) { Text(stringResource(if (plan is InstallPlan.Fresh) R.string.extensions_install else R.string.extensions_update), color = AppAccent) }

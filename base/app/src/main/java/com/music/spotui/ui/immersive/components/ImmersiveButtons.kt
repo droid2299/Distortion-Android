@@ -63,8 +63,8 @@ fun ImmersiveButton(
 ) {
     // Lighting up (Shuffle on) fades the fill and the content instead of swapping them in one frame.
     val reduce = rememberReduceMotion()
-    val content by animateColorAsState(if (filled) Color.White else Immersive.Accent, stateFade(reduce), label = "buttonContent")
-    val fill by animateColorAsState(if (filled) Immersive.Accent else Immersive.Raised, stateFade(reduce), label = "buttonFill")
+    val content by animateColorAsState(if (filled) Immersive.scheme.onPrimary else Immersive.scheme.onSecondaryContainer, stateFade(reduce), label = "buttonContent")
+    val fill by animateColorAsState(if (filled) Immersive.Accent else Immersive.scheme.secondaryContainer, stateFade(reduce), label = "buttonFill")
     Row(
         modifier = modifier
             .immersiveClickable(onClick = onClick, enabled = enabled)

@@ -74,6 +74,10 @@ class SandboxTest {
         assertEquals("""{"v":true}""", eval("return (function () {}) instanceof Function && typeof Function.prototype.call === 'function';"))
     }
 
+    @Test fun distortionApiMatchesLegacyApi() {
+        assertEquals("""{"v":true}""", eval("return distortion === myspoti && typeof distortion.http.get === 'function';"))
+    }
+
     @Test fun builtInObjectsCannotBeReplaced() {
         assertEquals("""{"v":"kept"}""", eval("try { myspoti = null; } catch (e) {} try { myspoti.http = null; } catch (e) {} return typeof myspoti.http.get === 'function' ? 'kept' : 'lost';"))
         assertEquals("""{"v":"undefined"}""", eval("return typeof __host;"))
@@ -292,7 +296,7 @@ class SandboxTest {
         }
         assertEquals(ExtensionStatus(true, "ok"), runtime("myspoti.provide('status', function () { return { live: true, detail: 'ok' }; });", m).use { ExtensionStatus.probe(it, 3_000) })
         // No status hook: live.
-        assertEquals(ExtensionStatus.LIVE, runtime("myspoti.provide('lyrics', function () { return null; });", m).use { ExtensionStatus.probe(it, 3_000) })
+        assertEquals(ExtensionStatus.unknown(null), runtime("myspoti.provide('lyrics', function () { return null; });", m).use { ExtensionStatus.probe(it, 3_000) })
     }
 
     @Test fun aStatusThatThrowsIsLateOrIsNotOneIsUnknownAndStaysInUse() {

@@ -9,4 +9,6 @@
     <string name="immersive_queue_reorder">Move in queue</string>
     <string name="immersive_queue_shuffle">Shuffle</string>
     <string name="immersive_queue_repeat">Repeat</string>
+    <string name="immersive_lyrics_synced">Synced</string>
+    <string name="immersive_lyrics_static">Static</string>
 </resources>

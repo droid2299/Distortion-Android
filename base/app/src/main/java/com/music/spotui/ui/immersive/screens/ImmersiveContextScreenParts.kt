@@ -87,7 +87,7 @@ internal fun rememberTrackTapper(): TrackTapper {
  * The Classic pages' gesture, drawn in the Immersive look's colours.
  */
 @Composable
-internal fun ImmersiveSwipeToQueue(song: SongsModel, content: @Composable () -> Unit) {
+internal fun ImmersiveSwipeToQueue(song: SongsModel, background: Color = Immersive.Page, content: @Composable () -> Unit) {
     val context = LocalContext.current
     val haptic = LocalHapticFeedback.current
     val scope = rememberCoroutineScope()
@@ -115,7 +115,7 @@ internal fun ImmersiveSwipeToQueue(song: SongsModel, content: @Composable () -> 
         Box(
             modifier = Modifier
                 .offset { IntOffset(offset.value.roundToInt(), 0) }
-                .background(Immersive.Page)
+                .background(background)
                 .pointerInput(song.id) {
                     detectHorizontalDragGestures(
                         onDragEnd = {

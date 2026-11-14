@@ -85,10 +85,9 @@ class Palette {
             .into(object : CustomTarget<Bitmap>() {
                 override fun onResourceReady(resource: Bitmap, transition: Transition<in Bitmap>?) {
                     // A palette needs no detail: 50 px keeps the scaling (and its allocation) small.
-                    val scaledBitmap = Bitmap.createScaledBitmap(resource, 50, 50, true)
-
                     Palette
-                        .from(scaledBitmap)
+                        .from(resource)
+                        .resizeBitmapArea(2_500)
                         .generate { palette ->
                         val lightVibrantColor = palette?.let { it.mutedSwatch ?: it.darkMutedSwatch ?: it.dominantSwatch ?: it.vibrantSwatch }?.rgb
                         lightVibrantColor?.let {

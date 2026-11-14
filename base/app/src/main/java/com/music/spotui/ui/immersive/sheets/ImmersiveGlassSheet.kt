@@ -41,23 +41,10 @@ fun ImmersiveGlassSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = Color.Transparent,
+        containerColor = Immersive.Raised,
         tonalElevation = 0.dp,
-        dragHandle = null,
         contentWindowInsets = { WindowInsets(0, 0, 0, 0) },
     ) {
-        CompositionLocalProvider(LocalOverscrollFactory provides rememberImmersiveOverscrollFactory()) {
-            Column(Modifier.fillMaxWidth().immersiveGlassSurface(ImmersiveSheetShape)) {
-                Box(Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 6.dp), contentAlignment = Alignment.Center) {
-                    Box(
-                        Modifier
-                            .size(width = 34.dp, height = 4.dp)
-                            .clip(CircleShape)
-                            .background(Immersive.Text.copy(alpha = 0.35f)),
-                    )
-                }
-                content()
-            }
-        }
+        Column(Modifier.fillMaxWidth()) { content() }
     }
 }

@@ -121,7 +121,7 @@ private fun LazyItemScope.queueMotion(): Modifier =
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ImmersiveQueuePanel(modifier: Modifier = Modifier, contentPadding: PaddingValues = PaddingValues()) {
+fun ImmersiveQueuePanel(modifier: Modifier = Modifier, contentPadding: PaddingValues = PaddingValues(), showCurrent: Boolean = true) {
     val queue by SongPlayer.engineQueue
     val song = Graph.currentSongState
     val shuffle = song.shuffle.value
@@ -277,7 +277,7 @@ fun ImmersiveQueuePanel(modifier: Modifier = Modifier, contentPadding: PaddingVa
                 onRepeat = { SongPlayer.cycleRepeat() },
             )
         }
-        if (hasCurrent) {
+        if (hasCurrent && showCurrent) {
             item(key = "heading-now") {
                 QueueHeading(
                     title = stringResource(R.string.immersive_queue_now_playing),
@@ -306,7 +306,7 @@ fun ImmersiveQueuePanel(modifier: Modifier = Modifier, contentPadding: PaddingVa
                     Text(
                         text = stringResource(R.string.clear_queue),
                         style = Immersive.Subhead,
-                        color = Immersive.TextSecondary,
+                        color = Immersive.Text.copy(alpha = 0.60f),
                         modifier = Modifier
                             .clip(CircleShape)
                             .clickable { SongPlayer.clearQueue() }
@@ -346,12 +346,12 @@ fun ImmersiveQueuePanel(modifier: Modifier = Modifier, contentPadding: PaddingVa
             }
             items(order.subList(autoAt, order.size), key = { it }) { k -> rowItem(k) }
         }
-        if (!hasCurrent && order.isEmpty()) {
+        if ((!hasCurrent || !showCurrent) && order.isEmpty()) {
             item(key = "empty") {
                 Text(
                     text = stringResource(R.string.immersive_queue_empty),
                     style = Immersive.Body,
-                    color = Immersive.TextSecondary,
+                    color = Immersive.Text.copy(alpha = 0.60f),
                     modifier = Modifier.padding(top = 32.dp),
                 )
             }
@@ -364,7 +364,7 @@ private data class QRow(val key: String, val item: SongPlayer.QueueItem, val que
 
 private const val SLOW_REPORT_MS = 3_000L
 /** The carried row's veil: light, so it reads as lifted without a dark box over the cover's colours. */
-private val CARRIED_ROW = Color.White.copy(alpha = 0.14f)
+private val CARRIED_ROW get() = Immersive.Text.copy(alpha = 0.14f)
 /** While a row is carried the others fade to this: what it passes over stays faint under it. */
 private const val DIMMED_ALPHA = 0.4f
 
@@ -463,7 +463,7 @@ private fun QueueEntry(row: QRow, removed: SnapshotStateList<String>, dragging: 
                     Icon(
                         Icons.Rounded.Close,
                         contentDescription = stringResource(R.string.immersive_queue_remove),
-                        tint = Immersive.TextSecondary,
+                        tint = Immersive.Text.copy(alpha = 0.60f),
                         modifier = Modifier.size(22.dp),
                     )
                 }
@@ -481,7 +481,7 @@ private fun QueueEntry(row: QRow, removed: SnapshotStateList<String>, dragging: 
                 Icon(
                     Icons.Rounded.DragHandle,
                     contentDescription = stringResource(R.string.immersive_queue_reorder),
-                    tint = Immersive.TextSecondary,
+                    tint = Immersive.Text.copy(alpha = 0.60f),
                     modifier = handle.size(40.dp).padding(8.dp),
                 )
             },
@@ -499,7 +499,7 @@ private fun QueueHeader(
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         Text(
             text = stringResource(R.string.immersive_queue_title),
-            style = Immersive.Title,
+            style = Immersive.Title.copy(color = Immersive.Text),
             modifier = Modifier.weight(1f),
         )
         QueueToggle(Icons.Rounded.Shuffle, stringResource(R.string.immersive_queue_shuffle), shuffle, onShuffle)
@@ -521,10 +521,10 @@ private fun QueueToggle(icon: ImageVector, description: String, on: Boolean, onC
         modifier = Modifier
             .size(36.dp)
             .clip(CircleShape)
-            .background(if (on) Color.White else Color.White.copy(alpha = 0.14f))
+            .background(if (on) Immersive.Accent else Immersive.scheme.secondaryContainer)
             .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null, onClick = onClick),
     ) {
-        Icon(icon, contentDescription = description, tint = if (on) Color.Black else Color.White, modifier = Modifier.size(20.dp))
+        Icon(icon, contentDescription = description, tint = if (on) Immersive.scheme.onPrimary else Immersive.Text, modifier = Modifier.size(20.dp))
     }
 }
 
@@ -537,8 +537,8 @@ private fun QueueHeading(
     Row(modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         Text(
             text = title,
-            style = Immersive.BodyStrong,
-            color = Color.White.copy(alpha = 0.75f),
+            style = Immersive.Headline,
+            color = Immersive.Text,
             modifier = Modifier.weight(1f),
         )
         trailing()
@@ -577,7 +577,7 @@ private fun QueueRow(
             modifier = Modifier
                 .size(48.dp)
                 .clip(Immersive.CoverSmall)
-                .background(Color.White.copy(alpha = 0.08f)),
+                .background(Immersive.Text.copy(alpha = 0.08f)),
         )
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.Center) {
@@ -595,7 +595,7 @@ private fun QueueRow(
                 }
                 Text(
                     text = artist,
-                    style = Immersive.Subhead,
+                    style = Immersive.Subhead.copy(color = Immersive.Text.copy(alpha = 0.60f)),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )

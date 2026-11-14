@@ -3,6 +3,10 @@ package com.music.spotui.di
 import android.app.Application
 import app.myspoti.host.android.MyspotiRuntime
 import com.music.spotui.data.api.Api
+import com.music.spotui.data.engine.DistortionLibrary
+import com.music.spotui.data.engine.DistortionPlayback
+import com.music.spotui.data.engine.ExistingLibrary
+import com.music.spotui.data.engine.ExistingPlayback
 import com.music.spotui.ui.repository.AppRepository
 
 /** Manual replacement for Spotui's Hilt graph: app-wide singletons. */
@@ -44,6 +48,8 @@ object Graph {
     }
 
     val api: Api by lazy { Api(app) }
+    val playback: DistortionPlayback = ExistingPlayback { MyspotiRuntime.api.player }
+    val library: DistortionLibrary = ExistingLibrary { MyspotiRuntime.api.library }
     val repository: AppRepository by lazy { AppRepository(api) }
     val currentSongState: CurrentSongState by lazy { CurrentSongState() }
 }

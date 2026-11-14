@@ -302,7 +302,7 @@ class Api constructor(
         val out = ArrayList<ArtistsModel>()
         var offset = 0
         while (true) {
-            val page = runCatching { api.library.items(filter = LibraryFilter.ARTISTS, offset = offset, limit = 50) }.getOrNull() ?: break
+            val page = runCatching { Graph.library.items(filter = LibraryFilter.ARTISTS, offset = offset, limit = 50) }.getOrNull() ?: break
             page.items.filter { it.kind == MediaKind.ARTIST }.forEach { out += ArtistsModel(it.name, cover(it.images), it.uri.substringAfterLast(':')) }
             offset = page.nextOffset ?: break
         }
@@ -350,7 +350,7 @@ class Api constructor(
         val folders = ArrayList<String>()
         var offset = 0
         while (true) {
-            val page = runCatching { api.library.items(filter = filter, folderUri = folderUri, offset = offset, limit = 50) }.getOrElse {
+            val page = runCatching { Graph.library.items(filter = filter, folderUri = folderUri, offset = offset, limit = 50) }.getOrElse {
                 if (it is CancellationException) throw it
                 Log.e("Api", "getFollowedShows ($filter${folderUri?.let { f -> " in $f" }.orEmpty()}) failed at $offset", it)
                 if (offset == 0) return Result.failure(it)
@@ -875,12 +875,12 @@ class Api constructor(
 
     /** The newest Liked Songs: one page of 50. */
     private suspend fun likedHead(): List<SongsModel> =
-        api.library.likedTracks(0, 50).items.map { songOf(it.track).copy(addedAt = it.addedAt.orEmpty()) }
+        Graph.library.likedTracks(0, 50).items.map { songOf(it.track).copy(addedAt = it.addedAt.orEmpty()) }
 
     private suspend fun allLiked(onPage: suspend (List<SongsModel>) -> Unit): List<SongsModel> {
         fun songs(p: app.myspoti.api.Page<app.myspoti.api.SavedTrack>) = p.items.map { songOf(it.track).copy(addedAt = it.addedAt.orEmpty()) }
-        val first = api.library.likedTracks(0, LIKED_PAGE)
-        return PagedFetch.inOrder(songs(first), first.total, LIKED_PAGE, fetch = { o -> songs(api.library.likedTracks(o, LIKED_PAGE)) }, onBatch = onPage)
+        val first = Graph.library.likedTracks(0, LIKED_PAGE)
+        return PagedFetch.inOrder(songs(first), first.total, LIKED_PAGE, fetch = { o -> songs(Graph.library.likedTracks(o, LIKED_PAGE)) }, onBatch = onPage)
     }
 
     /**
@@ -1059,10 +1059,10 @@ class Api constructor(
     }
 
     private suspend fun libraryLevel(folderUri: String?, filter: LibraryFilter = LibraryFilter.ALL): List<app.myspoti.api.LibraryItem> {
-        val first = api.library.items(filter = filter, folderUri = folderUri, offset = 0, limit = 50)
+        val first = Graph.library.items(filter = filter, folderUri = folderUri, offset = 0, limit = 50)
         // 40 pages at most, as before (2,000 items); the rest four at a time instead of one by one.
         return PagedFetch.inOrder(first.items, minOf(first.total, 40 * 50), 50,
-            fetch = { o -> api.library.items(filter = filter, folderUri = folderUri, offset = o, limit = 50).items })
+            fetch = { o -> Graph.library.items(filter = filter, folderUri = folderUri, offset = o, limit = 50).items })
     }
 
     /** Flat library (Android Auto, pickers): Liked Songs, playlists, then albums. */

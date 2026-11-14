@@ -58,7 +58,7 @@ import com.music.spotui.ui.immersive.Immersive
 val ImmersiveShelfCardWidth = 150.dp
 
 /** Share of the row a lead-shelf card takes, so the next one peeks in past it. */
-private const val HERO_CARD_FRACTION = 0.70f
+private const val HERO_CARD_FRACTION = 0.64f
 
 /** How wide a lead-shelf card is ever allowed to get: a caption over some artwork, not a poster. */
 private val HERO_CARD_MAX_WIDTH = 320.dp
@@ -201,7 +201,7 @@ fun ImmersiveShelfCard(
             if (playing) ImmersivePlayingBars(Modifier.align(Alignment.Center))
             badge?.invoke(this)
         }
-        Spacer(Modifier.height(10.dp))
+        Spacer(Modifier.height(6.dp))
         Text(
             text = title,
             style = Immersive.Body.copy(

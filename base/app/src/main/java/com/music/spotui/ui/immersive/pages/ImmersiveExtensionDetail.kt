@@ -132,6 +132,7 @@ fun ImmersiveExtensionEntryScreen(navController: NavController, id: String) {
     val registry by Extensions.registry.collectAsState()
     val repos by ExtensionStore.repos.collectAsState()
     val busy by ExtensionStore.busy.collectAsState()
+    val installFailures by ExtensionStore.installFailures.collectAsState()
     val ratings by ExtensionStore.ratings.collectAsState()
     val downloads by ExtensionStore.downloads.collectAsState()
     LaunchedEffect(registry.repositories) { ExtensionStore.refresh(registry.repositories) }
@@ -162,6 +163,11 @@ fun ImmersiveExtensionEntryScreen(navController: NavController, id: String) {
         }
         // The buttons keep their own 12 dp, 8 dp more make the gutter.
         if (e.repo != null) item(key = "ext:rate") { Box(Modifier.padding(horizontal = 8.dp)) { RateButtons(e.repo!!) } }
+        installFailures[id]?.let { failure ->
+            immersiveBlock("install-error") {
+                Text(stringResource(R.string.extensions_error, failure), style = Immersive.Subhead.copy(color = Immersive.Destructive))
+            }
+        }
         item(key = "ext:state") {
             Column(Modifier.padding(horizontal = Immersive.Gutter, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 if (action == StoreAction.INCOMPATIBLE) Text(incompatibleLine(e), style = Immersive.Subhead.copy(color = Warning))
@@ -219,6 +225,7 @@ fun ImmersiveExtensionScreen(navController: NavController, id: String) {
     val logTick by Extensions.logTick.collectAsState()
     val repos by ExtensionStore.repos.collectAsState()
     val busy by ExtensionStore.busy.collectAsState()
+    val installFailures by ExtensionStore.installFailures.collectAsState()
     val checking by ExtensionUpdates.checking.collectAsState()
     LaunchedEffect(registry.repositories) { ExtensionStore.refresh(registry.repositories) }
     val e = registry.find(id)
@@ -272,6 +279,11 @@ fun ImmersiveExtensionScreen(navController: NavController, id: String) {
             }
         }
 
+        installFailures[id]?.let { failure ->
+            immersiveBlock("install-error") {
+                Text(stringResource(R.string.extensions_error, failure), style = Immersive.Subhead.copy(color = Immersive.Destructive))
+            }
+        }
         // One state: why it is off, inactive, its last error, else whether it runs.
         immersiveGroup("enabled") {
             row {
@@ -425,7 +437,7 @@ private fun SettingRow(id: String, s: Setting) {
             Text(s.label, style = Immersive.Caption)
             Box(
                 Modifier.padding(top = 6.dp).fillMaxWidth()
-                    .background(Color.White.copy(alpha = 0.08f), Immersive.Button)
+                    .background(Immersive.scheme.surfaceContainerHighest, Immersive.Button)
                     .padding(horizontal = 14.dp, vertical = 12.dp),
             ) {
                 BasicTextField(

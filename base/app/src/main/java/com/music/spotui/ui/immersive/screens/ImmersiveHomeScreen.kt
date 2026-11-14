@@ -5,25 +5,50 @@
  */
 package com.music.spotui.ui.immersive.screens
 
-import com.music.spotui.ui.immersive.shell.immersiveHazeSource
+import android.widget.Toast
+import app.myspoti.api.RecentItem
+import app.myspoti.host.android.MyspotiRuntime
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Surface
+import androidx.compose.ui.text.style.TextOverflow
+import com.music.spotui.ui.immersive.components.SectionHeader
+import com.music.spotui.ui.immersive.pages.openRecentContext
+import com.music.spotui.ui.navigation.PlayerSheet
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import com.music.spotui.ui.components.arrivingRow
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
-import androidx.compose.material.icons.rounded.NotificationsNone
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Newspaper
+import androidx.compose.material.icons.rounded.Pause
+import androidx.compose.material.icons.rounded.PlayArrow
+import androidx.compose.material.icons.rounded.Settings
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FilledIconButton
+import androidx.compose.material3.FilledTonalIconButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -33,25 +58,25 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.style.TextGeometricTransform
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import app.myspoti.engine.R
+import com.music.spotui.data.api.Api
 import com.music.spotui.data.api.Features
 import com.music.spotui.data.api.ProfileCache
 import com.music.spotui.data.api.Response
-import com.music.spotui.data.api.Api
 import com.music.spotui.data.entity.HomeFeedModel
 import com.music.spotui.data.entity.HomeItem
 import com.music.spotui.data.entity.HomeSection
@@ -62,21 +87,11 @@ import com.music.spotui.di.SongPlayer
 import com.music.spotui.ui.components.pressHint
 import com.music.spotui.ui.immersive.Immersive
 import com.music.spotui.ui.immersive.components.ImmersiveCover
-import com.music.spotui.ui.immersive.components.ImmersiveLargeAlbumCard
 import com.music.spotui.ui.immersive.components.ImmersiveMessageState
 import com.music.spotui.ui.immersive.components.ImmersiveShelf
 import com.music.spotui.ui.immersive.components.ImmersiveShelfCard
-import com.music.spotui.ui.immersive.components.ImmersiveShelfRow
-import com.music.spotui.ui.immersive.components.SectionHeader
 import com.music.spotui.ui.immersive.components.immersiveClickable
 import com.music.spotui.ui.immersive.components.immersiveFeedSkeleton
-import com.music.spotui.ui.immersive.components.immersiveHeroCardWidth
-import com.music.spotui.ui.immersive.shell.ImmersiveFloatingHeader
-import com.music.spotui.ui.immersive.shell.ImmersiveHeaderContentHeight
-import com.music.spotui.ui.immersive.shell.LocalBarControlSize
-import com.music.spotui.ui.immersive.shell.immersiveChromeScroll
-import com.music.spotui.ui.immersive.shell.immersiveHeaderContentPadding
-import com.music.spotui.ui.immersive.shell.rememberTopBarCollapse
 import com.music.spotui.ui.navigation.Routes
 import com.music.spotui.ui.navigation.TabReselect
 import com.music.spotui.ui.navigation.albumRoute
@@ -85,18 +100,14 @@ import com.music.spotui.ui.navigation.playlistRoute
 import com.music.spotui.ui.navigation.showRoute
 import com.music.spotui.ui.screens.ContextViewModel
 import com.music.spotui.ui.viewmodel.HomeViewModel
+import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.launch
 
-/**
- * Home in the Immersive look: the greeting as the page's large title with the profile disc at its
- * end, the facet pills, then the feed — the first carousel as big cards, the rest as shelves. The
- * data, clicks, prefetch and profile actions are those of the Classic Home screen.
- */
 @Composable
 fun ImmersiveHomeScreen(navController: NavController) {
     val homeViewModel: HomeViewModel = viewModel()
     val home by homeViewModel.home.collectAsState()
     val feed = (home as? Response.Success)?.data
-    val facet = homeViewModel.facet.value
     val context = LocalContext.current
     LaunchedEffect(Unit) { ProfileCache.ensure(context) }
     // An old feed is read again when Home shows again (see HomeViewModel.refreshIfStale).
@@ -112,8 +123,6 @@ fun ImmersiveHomeScreen(navController: NavController) {
         }
     }
 
-    val homeTitle = stringResource(R.string.navigationbar_musicappitems_home_title)
-    val title = feed?.greeting?.takeIf { it.isNotBlank() } ?: homeTitle
     var showProfile by remember { mutableStateOf(false) }
     if (showProfile) {
         ImmersiveProfileSheet(
@@ -150,108 +159,270 @@ fun ImmersiveHomeScreen(navController: NavController) {
         if (top.isNotEmpty()) ContextViewModel.prefetchSoon(top)
     }
 
-    Box(Modifier.fillMaxSize().background(Immersive.Page)) {
-        LazyColumn(
-            state = listState,
-            // The greeting is the floating header's own title, so the feed starts right under it
-            // (it used to be a large title under an empty bar row: the gap at the top of Home).
-            contentPadding = PaddingValues(top = immersiveHeaderContentPadding(), bottom = Immersive.BottomChrome),
-            modifier = Modifier.fillMaxSize().immersiveHazeSource().immersiveChromeScroll(),
-        ) {
-            item(key = "home:facets") {
-                ImmersiveHomeFacets(
-                    facet,
-                    labels = mapOf(
-                        "" to stringResource(R.string.filter_chip_all_label),
-                        "music-chip" to stringResource(R.string.recents_content_filter_music),
-                        "podcasts-chip" to stringResource(R.string.ad_category_title_podcasts),
-                        "audiobooks-chip" to stringResource(R.string.audiobooks_title),
-                    ),
-                    podcasts = Features.PODCASTS,
-                    select = homeViewModel::selectFacet,
-                )
-            }
-            when {
-                feed != null && feed.sections.isNotEmpty() -> {
-                    shortcuts?.let { tiles ->
-                        item(key = "home:shortcuts") {
-                            // The feed fades in over its placeholder (see immersiveFeedSkeleton).
-                            Box(arrivingRow()) {
-                                ShortcutGrid(navController, tiles, playingContext)
-                            }
-                        }
-                    }
-                    carousels.forEachIndexed { index, section ->
-                        item(key = "home:section:$index:${section.title}") {
-                            // The lead carousel gets the big cards, unless it is a row of artists.
-                            val hero = index == 0 && section.items.none { it is HomeItem.Artist }
-                            Box(arrivingRow()) {
-                                if (hero) HeroSection(navController, section, playingContext) else ShelfSection(navController, section, playingContext)
-                            }
-                        }
-                    }
-                    // Sections from extensions (home.sections), after Spotify's own.
-                    item(key = "home:extensions") {
-                        com.music.spotui.extensions.ExtensionBlocks(app.myspoti.extensions.Hook.HOME, app.myspoti.extensions.Surface.HOME, "{}")
-                    }
+    val mix = remember(carousels) {
+        carousels.firstNotNullOfOrNull { section ->
+            section.items.filterIsInstance<HomeItem.Playlist>()
+                .firstOrNull { it.id.isNotBlank() && it.id != Api.HomeCache.LIKED_SONGS_ID }
+        }
+    }
+    val artwork = remember(mix, carousels) {
+        (listOfNotNull(mix) + carousels.asSequence().flatMap { it.items.asSequence() }
+            .filter { it is HomeItem.Playlist || it is HomeItem.Album }.take(12).toList())
+            .filter { it.imageUrl.isNotBlank() }
+            .distinctBy { it.imageUrl }
+            .take(3)
+    }
+    val recent = rememberHomeRecents()
+    val topInset = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+    LazyColumn(
+        state = listState,
+        contentPadding = PaddingValues(top = topInset + 12.dp, bottom = Immersive.BottomChrome),
+        modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background),
+    ) {
+        item(key = "home:actions") {
+            Row(
+                Modifier.fillMaxWidth().padding(horizontal = 20.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.End),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                ProfileDisc(onClick = { showProfile = true })
+                FilledTonalIconButton(onClick = { navController.navigate(Routes.WhatsNew.route) }) {
+                    Icon(Icons.Rounded.Newspaper, stringResource(R.string.whats_new_title))
                 }
-                home is Response.Loading -> immersiveFeedSkeleton(firstIsHero = true)
-                else -> item(key = "home:message") {
-                    ImmersiveMessageState(
-                        message = stringResource(if (home is Response.Error) R.string.home_error else R.string.home_empty),
-                        actionLabel = if (home is Response.Error) stringResource(R.string.home_retry) else null,
-                        onAction = if (home is Response.Error) ({ homeViewModel.retry() }) else null,
-                    )
+                FilledTonalIconButton(onClick = { navController.navigate(Routes.Settings.route) }) {
+                    Icon(Icons.Rounded.Settings, stringResource(R.string.settings_title))
                 }
             }
         }
-        // The greeting, the bell and the profile disc on floating glass; the feed scrolls under it.
-        ImmersiveFloatingHeader(title, collapse = rememberTopBarCollapse(listState, 24.dp)) {
-            // Friend activity, out of the tab bar: beside the profile, as Spotify has it.
-            com.music.spotui.ui.immersive.shell.ImmersiveBarAction(
-                androidx.compose.ui.graphics.vector.ImageVector.vectorResource(R.drawable.ic_friends_big),
-                contentDescription = stringResource(R.string.friends_title),
-                onClick = { navController.navigate(com.music.spotui.ui.navigation.Routes.Friends.route) },
-            )
-            val size = LocalBarControlSize.current
-            WhatsNewBell(size) { navController.navigate(Routes.WhatsNew.route) }
-            // The tap area is the header's full height and reaches past the disc toward the
-            // title, so the small disc of the minimized bar is still easy to hit.
-            Box(
-                Modifier
-                    .height(ImmersiveHeaderContentHeight)
-                    .width(size + 20.dp)
-                    .immersiveClickable(onClick = { showProfile = true }),
-                contentAlignment = Alignment.CenterEnd,
+        when {
+            sections.isNotEmpty() -> {
+                if (mix != null) {
+                    item(key = "home:mix") {
+                        HomeMixFeature(navController, mix, artwork, playingContext)
+                    }
+                }
+                item(key = "home:continue") { HomeContinueListening() }
+                if (recent.isNotEmpty()) {
+                    item(key = "home:recents", contentType = "home:shelf") {
+                        ImmersiveShelf(
+                            title = stringResource(R.string.home_recently_played),
+                            onSeeAll = { navController.navigate(Routes.Recent.route) },
+                        ) {
+                            items(recent, key = { it.uri }, contentType = { "recent" }) { entry ->
+                                ImmersiveShelfCard(
+                                    title = entry.title,
+                                    subtitle = entry.subtitle,
+                                    imageUrl = entry.images.firstOrNull()?.url,
+                                    onClick = { openRecentContext(entry, navController) },
+                                    modifier = Modifier.width(com.music.spotui.ui.immersive.components.ImmersiveShelfCardWidth),
+                                )
+                            }
+                        }
+                    }
+                }
+                shortcuts?.takeIf { it.isNotEmpty() }?.let { tiles ->
+                    item(key = "home:shortcuts", contentType = "home:shelf") {
+                        ShelfSection(navController, HomeSection(stringResource(R.string.home_quick_access), tiles), playingContext)
+                    }
+                }
+                carousels.forEachIndexed { index, section ->
+                    item(key = "home:section:$index:${section.title}", contentType = "home:shelf") {
+                        ShelfSection(navController, section, playingContext)
+                    }
+                }
+                item(key = "home:extensions") {
+                    com.music.spotui.extensions.ExtensionBlocks(app.myspoti.extensions.Hook.HOME, app.myspoti.extensions.Surface.HOME, "{}")
+                }
+            }
+            home is Response.Loading -> immersiveFeedSkeleton(firstIsHero = false)
+            else -> item(key = "home:message") {
+                ImmersiveMessageState(
+                    message = stringResource(if (home is Response.Error) R.string.home_error else R.string.home_empty),
+                    actionLabel = if (home is Response.Error) stringResource(R.string.home_retry) else null,
+                    onAction = if (home is Response.Error) ({ homeViewModel.retry() }) else null,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun rememberHomeRecents(): List<RecentItem> {
+    var recent by remember { mutableStateOf(emptyList<RecentItem>()) }
+    val latestTrack by remember {
+        derivedStateOf { SongPlayer.nowPlaying.value.uri }
+    }
+    LaunchedEffect(latestTrack) {
+        if (recent.isNotEmpty()) kotlinx.coroutines.delay(1_000)
+        try {
+            recent = withContext(Dispatchers.IO) {
+                MyspotiRuntime.api.recents.recentEntries(0, 40).items.asSequence()
+                    .filterNot { it.saved }
+                    .map { it.item }
+                    .filter { it.uri.isNotBlank() && it.title.isNotBlank() }
+                    .distinctBy { it.uri }
+                    .take(8)
+                    .toList()
+            }
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (_: Exception) {
+        }
+    }
+    return recent
+}
+
+@Composable
+private fun HomeContinueListening() {
+    val song = Graph.currentSongState
+    val title = song.title.value
+    if (title.isBlank()) return
+    val playing = song.playingState.value
+    Column(Modifier.padding(bottom = 12.dp)) {
+        SectionHeader(stringResource(R.string.home_continue_listening))
+        Surface(
+            onClick = { PlayerSheet.show() },
+            modifier = Modifier.fillMaxWidth().padding(horizontal = Immersive.Gutter),
+            shape = RoundedCornerShape(22.dp),
+            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        ) {
+            Row(
+                Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                Box(
-                    Modifier.size(size).graphicsLayer { scaleX = size / 44.dp; scaleY = scaleX },
-                    contentAlignment = Alignment.Center,
-                ) {
-                    ProfileDisc(onClick = null)
+                ImmersiveCover(song.coverUri.value, Modifier.size(52.dp), border = false)
+                Column(Modifier.weight(1f)) {
+                    Text(title, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(song.singer.value, style = MaterialTheme.typography.bodyMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
+                FilledTonalIconButton(onClick = { if (playing) SongPlayer.pause() else SongPlayer.play() }) {
+                    Icon(
+                        if (playing) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
+                        stringResource(if (playing) R.string.immersive_player_pause else R.string.immersive_player_play),
+                    )
                 }
             }
         }
     }
 }
 
-/** The bell left of the profile disc: opens "What's New". Its tap area is the header's full height, as the disc's is. */
 @Composable
-private fun WhatsNewBell(size: androidx.compose.ui.unit.Dp, onClick: () -> Unit) {
-    Box(
-        Modifier
-            .height(ImmersiveHeaderContentHeight)
-            .width(size)
-            .immersiveClickable(onClick = onClick),
-        contentAlignment = Alignment.Center,
-    ) {
-        androidx.compose.material3.Icon(
-            androidx.compose.material.icons.Icons.Rounded.NotificationsNone,
-            contentDescription = stringResource(R.string.whats_new_title),
-            tint = Immersive.Text,
-            modifier = Modifier.size(size * 0.55f),
-        )
+private fun HomeMixFeature(
+    navController: NavController,
+    mix: HomeItem.Playlist,
+    artwork: List<HomeItem>,
+    playingContext: State<String>,
+) {
+    val scope = rememberCoroutineScope()
+    val context = LocalContext.current
+    val playback: ContextViewModel = viewModel()
+    val scheme = MaterialTheme.colorScheme
+    var loading by remember(mix.id) { mutableStateOf(false) }
+    val playing = mix.isPlayingIn(playingContext.value)
+    val unavailable = stringResource(R.string.home_mix_unavailable)
+
+    Column(Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 28.dp)) {
+        BoxWithConstraints(Modifier.fillMaxWidth()) {
+            val heroWidth = minOf(maxWidth, 540.dp)
+            val titleSize = (heroWidth.value * 0.175f).coerceIn(38f, 84f)
+            val playSize = (heroWidth * 0.30f).coerceIn(72.dp, 118.dp)
+            Column(Modifier.width(heroWidth).align(Alignment.TopCenter)) {
+                Box(Modifier.fillMaxWidth().height(heroWidth * 0.66f)) {
+                    Column(
+                        Modifier.align(Alignment.CenterStart).padding(bottom = 16.dp)
+                            .width(heroWidth - playSize - 8.dp)
+                            .immersiveClickable(onClick = { onHomeItemClick(navController, mix) }),
+                    ) {
+                        Text(
+                            stringResource(R.string.home_your_mix),
+                            style = MaterialTheme.typography.displayLarge.copy(
+                                fontSize = titleSize.sp,
+                                lineHeight = (titleSize * 0.94f).sp,
+                                fontWeight = FontWeight.Bold,
+                                textGeometricTransform = TextGeometricTransform(scaleX = 1.08f),
+                            ),
+                            color = scheme.onBackground,
+                        )
+                        Text(
+                            mix.name,
+                            modifier = Modifier.padding(top = 10.dp),
+                            style = MaterialTheme.typography.titleSmall,
+                            color = scheme.onSurfaceVariant,
+                            maxLines = 2,
+                        )
+                    }
+                    FilledIconButton(
+                        enabled = !loading,
+                        onClick = {
+                            when {
+                                playing -> SongPlayer.pause()
+                                SongPlayer.nowPlaying.value.contextUri == mix.contextUri() -> SongPlayer.play()
+                                else -> {
+                                    loading = true
+                                    scope.launch {
+                                        try {
+                                            val result = Graph.api.getPlaylistPage(mix.id).firstOrNull {
+                                                it is Response.Error || it is Response.Success && (it.data.tracks.isNotEmpty() || it.data.complete)
+                                            }
+                                            val page = (result as? Response.Success)?.data
+                                            val first = page?.tracks?.firstOrNull()
+                                            if (page != null && first != null) playback.play(page, first)
+                                            else Toast.makeText(context, unavailable, Toast.LENGTH_SHORT).show()
+                                        } catch (cancelled: CancellationException) {
+                                            throw cancelled
+                                        } catch (_: Exception) {
+                                            Toast.makeText(context, unavailable, Toast.LENGTH_SHORT).show()
+                                        } finally {
+                                            loading = false
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        modifier = Modifier.align(Alignment.BottomEnd).size(playSize),
+                        shape = CircleShape,
+                    ) {
+                        if (loading) {
+                            CircularProgressIndicator(Modifier.size(28.dp), strokeWidth = 3.dp)
+                        } else {
+                            Icon(
+                                if (playing) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
+                                stringResource(if (playing) R.string.immersive_player_pause else R.string.home_play_mix),
+                                Modifier.size(playSize * 0.34f),
+                            )
+                        }
+                    }
+                }
+                if (artwork.isNotEmpty()) {
+                    Box(Modifier.fillMaxWidth().padding(top = 38.dp).aspectRatio(1.48f)) {
+                        MixArtwork(
+                            artwork.first(), navController,
+                            Modifier.align(Alignment.Center).size(heroWidth * 0.48f, heroWidth * 0.70f).rotate(39f),
+                        )
+                        artwork.getOrNull(1)?.let { item ->
+                            MixArtwork(item, navController, Modifier.align(Alignment.TopStart).offset(y = 8.dp).size(heroWidth * 0.23f))
+                        }
+                        artwork.getOrNull(2)?.let { item ->
+                            MixArtwork(item, navController, Modifier.align(Alignment.BottomEnd).offset(y = (-4).dp).size(heroWidth * 0.23f))
+                        }
+                    }
+                }
+            }
+        }
     }
+}
+
+@Composable
+private fun MixArtwork(item: HomeItem, navController: NavController, modifier: Modifier) {
+    ImmersiveCover(
+        url = item.imageUrl,
+        modifier = modifier.clip(CircleShape).pressHint { prefetchHomeItem(item) }
+            .immersiveClickable(onClick = { onHomeItemClick(navController, item) }),
+        shape = CircleShape,
+        contentDescription = item.name,
+        border = false,
+    )
 }
 
 private fun visibleSections(feed: HomeFeedModel): List<HomeSection> =
@@ -319,34 +490,6 @@ private fun HomeItem.cardSubtitle(): String = when (this) {
     is HomeItem.Show -> subtitle
 }
 
-/** The lead carousel: big artwork cards with the caption over a scrim, the next one peeking in. */
-@Composable
-private fun HeroSection(navController: NavController, section: HomeSection, playingContext: State<String>) {
-    Column(Modifier.padding(bottom = 26.dp)) {
-        SectionHeader(section.title)
-        BoxWithConstraints {
-            // Measured: the card has a ceiling as well as a fraction, and the skeleton agrees.
-            val cardWidth = immersiveHeroCardWidth(maxWidth)
-            val keys = remember(section.items) { homeItemKeys(section.items) }
-            ImmersiveShelfRow {
-                items(section.items.size, key = { keys[it] }) { i ->
-                    val item = section.items[i]
-                    // One lambda per card, so the press hint's pointer input is not restarted by a recomposition.
-                    val hint = remember(item) { { prefetchHomeItem(item) } }
-                    ImmersiveLargeAlbumCard(
-                        title = item.name,
-                        subtitle = item.cardSubtitle(),
-                        imageUrl = item.imageUrl,
-                        onClick = { onHomeItemClick(navController, item) },
-                        modifier = Modifier.width(cardWidth).pressHint(hint),
-                        playing = item.isPlayingIn(playingContext.value),
-                    )
-                }
-            }
-        }
-    }
-}
-
 /** A titled row of square cards (round for artists). */
 @Composable
 private fun ShelfSection(navController: NavController, section: HomeSection, playingContext: State<String>) {
@@ -368,54 +511,6 @@ private fun ShelfSection(navController: NavController, section: HomeSection, pla
                     com.music.spotui.ui.components.NewEpisodeDot(item.id, Immersive.Accent, Modifier.align(Alignment.TopEnd).padding(8.dp))
                 }) else null,
             )
-        }
-    }
-}
-
-/** The two-column shortcuts the web home starts with: a small cover and a name on a raised tile. */
-@Composable
-private fun ShortcutGrid(navController: NavController, items: List<HomeItem>, playingContext: State<String>) {
-    Column(
-        modifier = Modifier.padding(horizontal = Immersive.Gutter).padding(bottom = 22.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
-    ) {
-        // Large windows: more tiles per row (two on phones).
-        val cols = com.music.spotui.ui.components.windowSize().columns(2, 280.dp)
-        items.chunked(cols).forEach { rowItems ->
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
-                rowItems.forEach { item ->
-                    val playing = item.isPlayingIn(playingContext.value)
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(56.dp)
-                            .pressHint { prefetchHomeItem(item) }
-                            .immersiveClickable(onClick = { onHomeItemClick(navController, item) })
-                            .clip(Immersive.CoverMedium)
-                            .background(Immersive.Raised),
-                    ) {
-                        ImmersiveCover(
-                            url = item.imageUrl,
-                            modifier = Modifier.size(56.dp),
-                            shape = Immersive.CoverMedium,
-                            border = false,
-                        )
-                        Text(
-                            text = item.name,
-                            style = Immersive.Subhead.copy(
-                                color = if (playing) Immersive.Accent else Immersive.Text,
-                                fontWeight = FontWeight.SemiBold,
-                                lineHeight = 17.sp,
-                            ),
-                            maxLines = 2,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.padding(horizontal = 10.dp).weight(1f),
-                        )
-                    }
-                }
-                repeat(cols - rowItems.size) { Box(Modifier.weight(1f)) }
-            }
         }
     }
 }

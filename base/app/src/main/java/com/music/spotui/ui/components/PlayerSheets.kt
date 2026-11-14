@@ -353,8 +353,11 @@ fun QualitySheet(onDismiss: () -> Unit) {
                 color = Green, fontSize = 15.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp),
             )
             // A song an extension gives: the sources asked for it, and why this one plays.
+            val currentTrackId = SongPlayer.nowPlaying.value.uri
+                .takeIf { it.startsWith("spotify:track:") }?.substringAfterLast(':')
             val extId = if (local) com.music.spotui.di.LocalPlayer.current()?.uri
-                ?.takeIf { it.scheme == com.music.spotui.extensions.ExtensionAudio.SCHEME }?.lastPathSegment else null
+                ?.takeIf { it.scheme == com.music.spotui.extensions.ExtensionAudio.SCHEME }?.lastPathSegment
+            else currentTrackId?.takeIf { com.music.spotui.extensions.Extensions.attempts.latest(it) != null }
             var why by remember { androidx.compose.runtime.mutableStateOf(false) }
             if (extId != null) {
                 Text(stringResource(R.string.why_source_title), color = AppText, fontSize = 15.sp,

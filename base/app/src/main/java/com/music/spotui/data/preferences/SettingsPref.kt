@@ -320,9 +320,7 @@ object PlayerSourceLinePref {
 }
 
 /**
- * "Capsule in the player" (Settings > Display, Immersive look): the capsule at the bottom of the
- * player (devices, with shuffle and repeat when [PlayerModesPref] is on). On by default; off, the
- * player's menu has a Listen on row for the devices.
+ * Show the output button in the player header. When hidden, Listen on is available in the track menu.
  */
 object PlayerCapsulePref {
     private const val KEY = "immersive_player_capsule"
@@ -339,13 +337,11 @@ object PlayerCapsulePref {
 }
 
 /**
- * "Shuffle and repeat in the player" (Settings > Display, Immersive look): on, the player's
- * bottom capsule holds shuffle, repeat and devices (2.2); off, only devices, as in 2.1.0 (the
- * queue panel keeps shuffle and repeat). Off by default: the owner's call, and asked on Discord.
+ * Show shuffle and repeat beside the favorite control in the full player.
  */
 object PlayerModesPref {
     private const val KEY = "immersive_player_modes"
-    var on by androidx.compose.runtime.mutableStateOf(prefs(com.music.spotui.di.Graph.app).getBoolean(KEY, false))
+    var on by androidx.compose.runtime.mutableStateOf(prefs(com.music.spotui.di.Graph.app).getBoolean(KEY, true))
         private set
 
     fun set(c: Context, value: Boolean) {

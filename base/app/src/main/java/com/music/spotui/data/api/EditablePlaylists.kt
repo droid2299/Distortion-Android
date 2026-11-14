@@ -1,5 +1,6 @@
 package com.music.spotui.data.api
 
+import com.music.spotui.di.Graph
 import app.myspoti.api.LibraryFilter
 import app.myspoti.api.MediaKind
 import app.myspoti.api.best
@@ -109,13 +110,12 @@ object EditablePlaylists {
 
     /** Playlist uri → cover, as the library shows them, folders included. */
     private suspend fun libraryCovers(): Map<String, String> {
-        val api = MyspotiRuntime.api
         val out = HashMap<String, String>()
         suspend fun walk(folderUri: String?, depth: Int) {
             var offset = 0
             repeat(40) {
                 val page = runCatching {
-                    api.library.items(filter = LibraryFilter.ALL, folderUri = folderUri, offset = offset, limit = 50)
+                    Graph.library.items(filter = LibraryFilter.ALL, folderUri = folderUri, offset = offset, limit = 50)
                 }.getOrNull() ?: return
                 for (item in page.items) when (item.kind) {
                     MediaKind.FOLDER -> if (depth < 5) walk(item.uri, depth + 1)
@@ -141,7 +141,7 @@ object EditablePlaylists {
         val read = runCatching {
             var offset = 0
             repeat(40) {
-                val page = api.library.items(filter = LibraryFilter.ALL, folderUri = folderUri, offset = offset, limit = 50)
+                val page = Graph.library.items(filter = LibraryFilter.ALL, folderUri = folderUri, offset = offset, limit = 50)
                 items += page.items
                 offset = page.nextOffset ?: return@runCatching
             }

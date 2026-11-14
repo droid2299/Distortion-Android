@@ -22,7 +22,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -33,6 +33,8 @@ import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.SkipNext
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -61,15 +63,14 @@ import com.music.spotui.di.Haptics
 import com.music.spotui.di.SongPlayer
 import com.music.spotui.ui.components.titleMarquee
 import com.music.spotui.ui.immersive.Immersive
-import com.music.spotui.ui.immersive.shell.immersiveGlassSurface
 import com.music.spotui.ui.navigation.PlayerSheet
 import com.music.spotui.ui.viewmodel.PlayerViewModel
 import kotlin.math.abs
 
-private val GLYPH_SLOT = 40.dp
-private val GLYPH_SIZE = 32.dp
-private val ART_CORNER = 8.dp
-private val MINI_HEIGHT = 56.dp
+private val GLYPH_SLOT = 48.dp
+private val GLYPH_SIZE = 28.dp
+private val ART_CORNER = 6.dp
+private val MINI_HEIGHT = 60.dp
 
 /** How far the capsule is swiped along to change track. */
 private val TRACK_SWIPE_THRESHOLD = 72.dp
@@ -94,23 +95,23 @@ fun ImmersiveMiniPlayer(modifier: Modifier = Modifier) {
     val playing = vm.currentSongPlayingState.value
     val adPlaying = SongPlayer.adPlaying
     val buffering = SongPlayer.isBuffering
-    val shape = RoundedCornerShape(MINI_HEIGHT / 2)
+    val shape = RoundedCornerShape(20.dp)
     val capsuleSource = remember { MutableInteractionSource() }
 
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .height(MINI_HEIGHT)
+            .heightIn(min = MINI_HEIGHT)
             // Where the Classic sheet rises from; kept up to date for the pages that read it.
             .onGloballyPositioned { PlayerSheet.miniTop = it.boundsInWindow().top }
             .miniPlayerGestures()
-            .immersiveGlassSurface(shape, interactionSource = capsuleSource)
+            .background(Immersive.scheme.secondaryContainer, shape)
             .clip(shape)
             .clickable(interactionSource = capsuleSource, indication = null) { PlayerSheet.show() }
             .padding(horizontal = 12.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Box(Modifier.size(40.dp).clip(RoundedCornerShape(ART_CORNER)).background(Color.Black.copy(alpha = 0.18f))) {
+        Box(Modifier.size(44.dp).clip(RoundedCornerShape(ART_CORNER)).background(Color.Black.copy(alpha = 0.18f))) {
             GlideImage(
                 model = cover.takeIf { it.isNotBlank() },
                 contentDescription = null,
@@ -118,17 +119,17 @@ fun ImmersiveMiniPlayer(modifier: Modifier = Modifier) {
                 transition = CrossFade,
                 loading = placeholder(R.drawable.placeholder),
                 failure = placeholder(R.drawable.placeholder),
-                modifier = Modifier.size(40.dp),
+                modifier = Modifier.size(44.dp),
             )
             // The outgoing cover dissolving into this one.
-            com.music.spotui.ui.components.SongBlendCover(blend, Modifier.size(40.dp))
+            com.music.spotui.ui.components.SongBlendCover(blend, Modifier.size(44.dp))
         }
         Spacer(Modifier.width(10.dp))
         Column(Modifier.weight(1f).graphicsLayer { alpha = blend?.wordsAlpha() ?: 1f }) {
             Text(
                 text = if (adPlaying) stringResource(R.string.immersive_player_ad) else title,
                 // Title and artist set close, as the official mini player: the default line heights left a gap.
-                style = Immersive.BodyStrong.copy(fontSize = 15.sp, lineHeight = 19.sp),
+                style = Immersive.BodyStrong.copy(color = Immersive.scheme.onSecondaryContainer, fontSize = 15.sp, lineHeight = 19.sp),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 // Once per song then rests: the mini player is always on screen.
@@ -136,50 +137,48 @@ fun ImmersiveMiniPlayer(modifier: Modifier = Modifier) {
             )
             if (!adPlaying) {
                 Text(
-                    text = singer, style = Immersive.Subhead.copy(lineHeight = 16.sp), maxLines = 1, overflow = TextOverflow.Ellipsis,
+                    text = singer, style = Immersive.Subhead.copy(color = Immersive.scheme.onSecondaryContainer), maxLines = 1, overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.titleMarquee(iterations = 1),
                 )
             }
         }
-        // The spinner and the button hand over in a short fade, not in one frame.
+        val iconColors = IconButtonDefaults.iconButtonColors(contentColor = Immersive.scheme.onSecondaryContainer)
         com.music.spotui.ui.components.LoadedFade(buffering) { loading ->
-        if (loading) {
-            Box(Modifier.size(GLYPH_SLOT), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(color = Immersive.Text, strokeWidth = 2.dp, modifier = Modifier.size(22.dp))
-            }
-        } else {
-            Box(
-                Modifier.size(GLYPH_SLOT).clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) {
-                    Haptics.click()
-                    // The same optimistic update as the Classic mini player: the glyph flips at once.
-                    if (playing) SongPlayer.pause() else SongPlayer.play()
-                    vm.updateSongState(cover, vm.currentSongTitle.value, vm.currentSongSinger.value, !playing, vm.currentSongId.value, vm.currentSongIndex.value, vm.currentSongAlbum.value)
-                },
-                contentAlignment = Alignment.Center,
-            ) {
-                // Play and pause swap as in the full player.
-                com.music.spotui.ui.components.GlyphSwap(playing) { on ->
-                    Icon(
-                        imageVector = if (on) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
-                        contentDescription = stringResource(if (on) R.string.immersive_player_pause else R.string.immersive_player_play),
-                        tint = Immersive.Text,
-                        modifier = Modifier.size(GLYPH_SIZE),
-                    )
+            if (loading) {
+                Box(Modifier.size(GLYPH_SLOT), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator(color = Immersive.scheme.onSecondaryContainer, strokeWidth = 2.dp, modifier = Modifier.size(22.dp))
+                }
+            } else {
+                IconButton(
+                    onClick = {
+                        Haptics.click()
+                        if (playing) SongPlayer.pause() else SongPlayer.play()
+                        vm.updateSongState(cover, vm.currentSongTitle.value, vm.currentSongSinger.value, !playing, vm.currentSongId.value, vm.currentSongIndex.value, vm.currentSongAlbum.value)
+                    },
+                    modifier = Modifier.size(GLYPH_SLOT),
+                    colors = iconColors,
+                ) {
+                    com.music.spotui.ui.components.GlyphSwap(playing) { on ->
+                        Icon(
+                            imageVector = if (on) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
+                            contentDescription = stringResource(if (on) R.string.immersive_player_pause else R.string.immersive_player_play),
+                            modifier = Modifier.size(GLYPH_SIZE),
+                        )
+                    }
                 }
             }
         }
-        }
-        Box(
-            Modifier.size(GLYPH_SLOT).clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) {
+        IconButton(
+            onClick = {
                 Haptics.click()
                 SongPlayer.swipeNext()
             },
-            contentAlignment = Alignment.Center,
+            modifier = Modifier.size(GLYPH_SLOT),
+            colors = iconColors,
         ) {
             Icon(
                 imageVector = Icons.Rounded.SkipNext,
                 contentDescription = stringResource(R.string.immersive_player_next),
-                tint = Immersive.Text,
                 modifier = Modifier.size(GLYPH_SIZE),
             )
         }

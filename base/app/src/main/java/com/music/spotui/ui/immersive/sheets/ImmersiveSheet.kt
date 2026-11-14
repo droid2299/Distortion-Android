@@ -79,48 +79,19 @@ import com.music.spotui.ui.look.rememberReduceMotion
 val ImmersiveSheetShape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
 
 /** The ground of a sheet that is not about one cover (BitChord's player drawer, without its blur). */
-private val FlatSheetColor = Color(0xFF121212)
 
 /** What a sheet is painted in: [background] under everything, [accent] for values, ticks and highlights. */
 @Immutable
 data class ImmersiveSheetTint(val background: Color, val accent: Color)
 
 /** The tint of the sheet being drawn, read by the rows so they take the cover's accent. */
-val LocalImmersiveSheetTint = compositionLocalOf { ImmersiveSheetTint(FlatSheetColor, Immersive.Accent) }
+val LocalImmersiveSheetTint = compositionLocalOf { ImmersiveSheetTint(Immersive.Raised, Immersive.Accent) }
 
 /** How a row is drawn: the sheet's full-width list, or the compact rows of a held item's popup. */
 enum class ImmersiveRowStyle { Sheet, Menu }
 
 /** Set by whichever surface the rows are drawn on; see [ImmersiveHeldContextMenu]. */
 val LocalImmersiveRowStyle = staticCompositionLocalOf { ImmersiveRowStyle.Sheet }
-
-/**
- * A cover's colours made into a sheet tint: a deep wash of its dominant colour for the ground
- * and a brightened version for the accent. Without a cover ([imageUrl] null) the flat ground and
- * Myspoti's own accent. The first sight of a cover warms in; a known one is right on the first
- * frame, and "reduce motion" turns the fade into a cut.
- */
-@Composable
-fun rememberImmersiveSheetTint(imageUrl: String?): ImmersiveSheetTint {
-    val hasCover = !imageUrl.isNullOrBlank()
-    val colors = rememberArtworkColors(if (hasCover) spotifyImageUrl(imageUrl) ?: imageUrl else null).colors
-    val seed = colors.firstOrNull() ?: Immersive.Accent
-    val target = remember(seed, hasCover) {
-        if (!hasCover) return@remember ImmersiveSheetTint(FlatSheetColor, Immersive.Accent)
-        val hsl = FloatArray(3)
-        ColorUtils.colorToHSL(seed.toArgb(), hsl)
-        val ground = floatArrayOf(hsl[0], hsl[1].coerceIn(0.25f, 0.6f), 0.14f)
-        val accent = floatArrayOf(hsl[0], hsl[1].coerceIn(0.55f, 1f), 0.68f)
-        ImmersiveSheetTint(
-            Color(ColorUtils.HSLToColor(ground)),
-            Color(ColorUtils.HSLToColor(accent)),
-        )
-    }
-    val spec = if (rememberReduceMotion()) snap<Color>() else tween(ImmersiveMotion.SHEET_TINT_MS)
-    val background by animateColorAsState(target.background, spec, label = "sheetTintBackground")
-    val accent by animateColorAsState(target.accent, spec, label = "sheetTintAccent")
-    return ImmersiveSheetTint(background, accent)
-}
 
 /**
  * The bottom sheet of the Immersive look. A Material modal sheet, so it drags with the finger,
@@ -143,9 +114,8 @@ fun ImmersiveSheet(
     scrollable: Boolean = true,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    val tint = rememberImmersiveSheetTint(imageUrl)
+    val tint = ImmersiveSheetTint(Immersive.Raised, Immersive.Accent)
     val maxHeight = LocalConfiguration.current.screenHeightDp.dp * maxHeightFraction
-    val canBlur = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
@@ -158,34 +128,9 @@ fun ImmersiveSheet(
     ) {
         CompositionLocalProvider(
             LocalImmersiveSheetTint provides tint,
-            LocalOverscrollFactory provides rememberImmersiveOverscrollFactory(),
         ) {
             Box(modifier.fillMaxWidth().clip(ImmersiveSheetShape)) {
-                Box(Modifier.matchParentSize().background(tint.background)) {
-                    if (canBlur && !imageUrl.isNullOrBlank()) {
-                        GlideImage(
-                            model = spotifyImageUrl(imageUrl) ?: imageUrl,
-                            contentDescription = null,
-                            contentScale = ContentScale.Crop,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .fillMaxHeight(WASH_FRACTION)
-                                // Overscaled so the blur's clamped edges never reach a visible one.
-                                .graphicsLayer { scaleX = 1.4f; scaleY = 1.4f }
-                                .blur(72.dp, BlurredEdgeTreatment.Unbounded),
-                        )
-                    }
-                    Box(
-                        Modifier.fillMaxSize().background(
-                            Brush.verticalGradient(
-                                0f to tint.background.copy(alpha = 0.40f),
-                                0.20f to tint.background.copy(alpha = 0.55f),
-                                0.55f to tint.background.copy(alpha = 0.85f),
-                                WASH_FRACTION to tint.background,
-                            ),
-                        ),
-                    )
-                }
+                Box(Modifier.matchParentSize().background(tint.background))
                 Column(
                     Modifier
                         .fillMaxWidth()
@@ -215,8 +160,6 @@ fun ImmersiveSheet(
     }
 }
 
-/** How far down a tinted sheet the blurred cover reaches. */
-private const val WASH_FRACTION = 0.75f
 
 /** The sheet's heading: [title] in the page-title face, an optional quiet [subtitle] under it. */
 @Composable

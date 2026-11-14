@@ -102,22 +102,8 @@ fun App() {
     // The look (Settings > Display) switches the shell live. The nav host keeps one place in the
     // tree in both looks, so a switch keeps the back stack, the pages' state and the playback.
     val immersive = com.music.spotui.ui.navigation.isImmersive()
-    val haze = com.music.spotui.ui.immersive.shell.rememberImmersiveHazeState()
-    // Liquid Glass (Settings > Display): the pages record themselves for the glass to refract.
-    // Not provided while it is off or unsupported, so nothing is recorded for no reader.
-    val glassPage = com.music.spotui.ui.immersive.shell.rememberImmersiveBackdrop()
-    val liquidGlass = immersive && com.music.spotui.ui.immersive.shell.rememberLiquidGlassActive()
-    // Without it (Android 12+), the frost blurs the same recording, which follows page and tab
-    // transitions frame by frame where Haze lagged behind.
-    val frostPage = immersive && !liquidGlass && android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S
-    // The floating chrome's fold (iOS 26): pages scroll it through immersiveChromeScroll().
-    val chrome = com.music.spotui.ui.immersive.shell.rememberImmersiveChromeState()
     androidx.compose.runtime.CompositionLocalProvider(
         com.music.spotui.ui.look.LocalReduceMotion provides com.music.spotui.ui.look.rememberReduceMotion(),
-        com.music.spotui.ui.immersive.shell.LocalImmersiveHaze provides if (immersive) haze else null,
-        com.music.spotui.ui.immersive.shell.LocalImmersiveBackdrop provides if (liquidGlass) glassPage else null,
-        com.music.spotui.ui.immersive.shell.LocalImmersiveFrostPage provides if (frostPage) glassPage else null,
-        com.music.spotui.ui.immersive.shell.LocalImmersiveChrome provides if (immersive) chrome else null,
     ) {
     // Large windows (tablets, foldables, DeX): Classic's tabs in a rail at the side, the
     // Immersive tab bar on the left edge (ImmersiveBottomChrome); phones keep the bottom bars.
@@ -126,6 +112,7 @@ fun App() {
       androidx.compose.foundation.layout.Row(Modifier.fillMaxSize()) {
         // Before the Scaffold, in a group of its own: the nav host keeps its place when the
         // window grows or shrinks past the threshold (back stack and pages kept).
+        if (large && immersive) com.music.spotui.ui.immersive.shell.DistortionNavigationRail(navController)
         if (large && !immersive) com.music.spotui.ui.navigation.MainNavigationRail(navController)
         Scaffold(
             modifier = Modifier.weight(1f),
@@ -191,7 +178,7 @@ private fun SupportPrompt() {
     androidx.compose.runtime.LaunchedEffect(Unit) {
         kotlinx.coroutines.delay(12_000)
         val signedIn = context.getSharedPreferences("myspoti_prefs", android.content.Context.MODE_PRIVATE).getBoolean("LoggedIn", false)
-        show = signedIn && !updateCardOpen.value && com.music.spotui.data.api.SupportReminder.isDue(context)
+        show = false
     }
     if (!show) return
     val close = { com.music.spotui.data.api.SupportReminder.shown(context); show = false }
@@ -394,7 +381,7 @@ private fun UpdateDialog(
                 modifier = Modifier.padding(top = 18.dp),
             )
             androidx.compose.material3.Text(
-                "Myspoti $version", color = AppText.copy(alpha = 0.7f),
+                "Distortion $version", color = AppText.copy(alpha = 0.7f),
                 fontFamily = com.music.spotui.ui.theme.AppSans, fontSize = 15.sp, modifier = Modifier.padding(top = 6.dp),
             )
             // What's new (the release's CHANGELOG section), scrollable if long.

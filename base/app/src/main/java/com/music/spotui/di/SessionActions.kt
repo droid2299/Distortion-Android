@@ -59,7 +59,7 @@ object SessionActions {
         LocalPlayer.stop()
         com.music.spotui.video.MusicVideoController.clearSession()
         PlaybackService.end()
-        runCatching { MyspotiRuntime.scope.launch { runCatching { MyspotiRuntime.api.player.pause() } } }
+        runCatching { MyspotiRuntime.scope.launch { runCatching { Graph.playback.pause() } } }
         com.music.spotui.ui.screens.ContextViewModel.clearCache()
         com.music.spotui.data.api.Api.HomeCache.clear()
         com.music.spotui.data.api.Api.LikedCache.tracks = null

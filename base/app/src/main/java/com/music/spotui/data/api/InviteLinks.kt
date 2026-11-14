@@ -1,5 +1,6 @@
 package com.music.spotui.data.api
 
+import com.music.spotui.di.Graph
 import android.content.Context
 import android.util.Log
 import app.myspoti.engine.R
@@ -76,7 +77,7 @@ object InviteLinks {
             val m = Regex("""spotify\.com/(?:intl-[a-z-]+/)?(track|album|playlist|artist|show|episode)/([A-Za-z0-9]{22})""").find(target) ?: return@launch
             runCatching {
                 MyspotiRuntime.api.ready.first { it }
-                MyspotiRuntime.api.player.play("spotify:${m.groupValues[1]}:${m.groupValues[2]}")
+                Graph.playback.play("spotify:${m.groupValues[1]}:${m.groupValues[2]}")
             }
         }
         return true

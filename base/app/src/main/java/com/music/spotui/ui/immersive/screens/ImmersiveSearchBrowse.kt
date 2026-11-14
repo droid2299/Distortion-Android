@@ -95,92 +95,35 @@ internal fun BrowseTileRow(
     }
 }
 
-/**
- * A solid stripe down the left and the category's cover filling the rest, redrawn as a duotone
- * of the stripe's colour so every card reads as one tinted sleeve rather than a photo pasted
- * onto a swatch. Only the artwork: the caller sizes, clips and makes it clickable.
- */
 @OptIn(ExperimentalGlideComposeApi::class)
 @Composable
 internal fun BrowseTileCard(tile: BrowseTile, modifier: Modifier = Modifier) {
-    val tone = remember(tile.color) { moodTone(tile.color) }
     val artwork = spotifyImageUrl(tile.image)
-    Box(modifier = modifier.background(tone.stripe)) {
-        Box(
-            Modifier
-                .align(Alignment.CenterEnd)
-                .fillMaxHeight()
-                .fillMaxWidth(1f - StripeFraction)
-                .background(tone.placeholder),
-        ) {
-            if (artwork != null) {
-                GlideImage(
-                    model = artwork,
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
-                    transition = CrossFade,
-                    colorFilter = tone.duotone,
-                    modifier = Modifier.fillMaxSize(),
-                )
-            }
+    Box(modifier = modifier.background(Immersive.scheme.secondaryContainer)) {
+        if (artwork != null) {
+            GlideImage(
+                model = artwork,
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                transition = CrossFade,
+                modifier = Modifier.fillMaxSize(),
+            )
         }
-        // Pale stripes would swallow white type; a soft shade under the title keeps it legible.
-        Box(
-            Modifier
-                .matchParentSize()
-                .background(Brush.verticalGradient(0f to Color.Black.copy(alpha = .24f), .62f to Color.Transparent)),
-        )
+        if (artwork != null) Box(Modifier.matchParentSize().background(Brush.verticalGradient(
+            0f to Color.Transparent,
+            0.48f to Color.Black.copy(alpha = 0.12f),
+            1f to Color.Black.copy(alpha = 0.72f),
+        )))
         Text(
             text = tile.title,
-            style = Immersive.BodyStrong.copy(
-                color = Color.White,
-                fontWeight = FontWeight.Bold,
-                shadow = Shadow(Color.Black.copy(alpha = .35f), offset = Offset(0f, 1f), blurRadius = 6f),
-            ),
+            style = Immersive.Headline.copy(color = if (artwork == null) Immersive.scheme.onSecondaryContainer else Color.White, fontWeight = FontWeight.Bold),
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.align(Alignment.TopStart).padding(horizontal = 14.dp, vertical = 12.dp),
+            modifier = Modifier.align(Alignment.BottomStart).padding(horizontal = 14.dp, vertical = 12.dp),
         )
     }
 }
 
-private class MoodTone(val stripe: Color, val placeholder: Color, val duotone: ColorFilter)
-
-private fun moodTone(base: Color): MoodTone {
-    // A touch of black keeps a bright palette from glowing against the black page.
-    val stripe = lerp(base, Color.Black, .08f)
-    val shadow = lerp(base, Color.Black, .68f)
-    val highlight = lerp(base, Color.White, .32f)
-    return MoodTone(
-        stripe = stripe,
-        placeholder = lerp(shadow, highlight, .45f),
-        duotone = duotone(shadow, highlight),
-    )
-}
-
-/** Maps each pixel's luminance onto the ramp [shadow] to [highlight]. */
-private fun duotone(shadow: Color, highlight: Color): ColorFilter {
-    fun channel(from: Float, to: Float): FloatArray {
-        val span = to - from
-        return floatArrayOf(span * .299f, span * .587f, span * .114f, 0f, from * 255f)
-    }
-    return ColorFilter.colorMatrix(
-        ColorMatrix(
-            channel(shadow.red, highlight.red) +
-                channel(shadow.green, highlight.green) +
-                channel(shadow.blue, highlight.blue) +
-                floatArrayOf(0f, 0f, 0f, 1f, 0f),
-        ),
-    )
-}
-
-/** Gap between tiles, in both directions. */
 private val TileSpacing = 12.dp
-
-private val TileShape = RoundedCornerShape(18.dp)
-
-/** Width over height; a two-column phone row lands at about 100 dp tall. */
+private val TileShape = RoundedCornerShape(10.dp)
 private const val TileAspect = 1.72f
-
-/** How much of the card the solid stripe covers before the artwork starts. */
-private const val StripeFraction = .28f

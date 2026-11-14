@@ -1,5 +1,6 @@
 package com.music.spotui.ui.immersive.sheets
 
+import com.music.spotui.di.Graph
 import android.content.Context
 import android.widget.Toast
 import androidx.compose.foundation.layout.Box
@@ -298,7 +299,7 @@ fun ImmersiveSongOptionsSheet(
         if (song.url.startsWith("episode:")) {
             val episodeUri = "spotify:episode:" + song.url.removePrefix("episode:")
             val saved by produceState<Boolean?>(null, episodeUri) {
-                value = runCatching { app.myspoti.host.android.MyspotiRuntime.api.library.contains(listOf(episodeUri)).single() }.getOrNull()
+                value = runCatching { Graph.library.contains(listOf(episodeUri)).single() }.getOrNull()
             }
             ImmersiveSheetRow(Icons.Rounded.Bookmark, stringResource(if (saved == true) R.string.episode_unsave else R.string.episode_save), enabled = saved != null) {
                 val save = saved != true

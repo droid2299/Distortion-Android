@@ -499,7 +499,7 @@ class ContextViewModel(
         // plays from there, with the other such files of the list; one not found cannot play,
         // the next song that can does.
         with(com.music.spotui.data.local.LocalFileMatch) {
-            val sorted = sort.apply(p.tracks)
+            val sorted by lazy { sort.apply(p.tracks) }
             if (song.isUnmatchedLocal) {
                 val after = sorted.drop(sorted.indexOfFirst { it.id == song.id && it.rowUid == song.rowUid } + 1)
                 val next = (after + sorted).firstOrNull { !it.isUnmatchedLocal } ?: return
@@ -521,10 +521,10 @@ class ContextViewModel(
         val app = Graph.app
         val store = com.music.spotui.data.offline.OfflineStore
         val limited = com.music.spotui.data.DataSaver.active || !store.isOnline(app)
-        val ids = com.music.spotui.data.offline.LocalPlayPlan.localIds(
+        val ids = if (store.isDownloaded(song.spotifyTrackId)) com.music.spotui.data.offline.LocalPlayPlan.localIds(
             sort.apply(p.tracks).map { it.spotifyTrackId }, song.spotifyTrackId, p.complete,
             offline = !store.isOnline(app), dataSaver = com.music.spotui.data.DataSaver.active, isDownloaded = store::isDownloaded,
-        )
+        ) else null
         if (ids != null) {
             val local = ids.mapNotNull { store.tracks[it] }
             val at = local.indexOfFirst { it.trackId == song.spotifyTrackId }.coerceAtLeast(0)
@@ -1495,7 +1495,7 @@ object SmartShuffle {
         recommended.value = recommended.value - id
         if (!list.startsWith("spotify:playlist:")) {
             if (SongPlayer.currentTrackId == id) SongPlayer.setLiked(true)
-            else keepScope.launch { runCatching { MyspotiRuntime.api.library.add(listOf("spotify:track:$id")) } }
+            else keepScope.launch { runCatching { Graph.library.add(listOf("spotify:track:$id")) } }
             android.widget.Toast.makeText(context, context.getString(R.string.snackbar_added_to_liked_songs), android.widget.Toast.LENGTH_SHORT).show()
             return
         }

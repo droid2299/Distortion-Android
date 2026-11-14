@@ -43,7 +43,9 @@ import com.music.spotui.ui.immersive.Immersive
 import com.music.spotui.ui.immersive.components.immersiveClickable
 import com.music.spotui.ui.immersive.shell.ImmersiveLargeTitle
 import com.music.spotui.ui.immersive.shell.ImmersiveTopBar
-import com.music.spotui.ui.immersive.shell.immersiveChromeScroll
+import com.music.spotui.ui.immersive.shell.ImmersiveFloatingHeader
+import com.music.spotui.ui.immersive.shell.immersiveHeaderContentPadding
+import com.music.spotui.ui.immersive.shell.rememberTopBarCollapse
 import com.music.spotui.ui.immersive.shell.immersiveHazeSource
 import com.music.spotui.ui.immersive.shell.immersiveTopContentPadding
 import com.music.spotui.ui.look.rememberReduceMotion
@@ -71,27 +73,27 @@ internal fun ImmersivePage(
     largeTitleTrailing: (@Composable RowScope.() -> Unit)? = null,
     actions: (@Composable RowScope.() -> Unit)? = null,
     bottomPadding: Dp = Immersive.BottomChrome,
+    rootTab: Boolean = false,
     verticalArrangement: Arrangement.Vertical = Arrangement.Top,
     content: LazyListScope.() -> Unit,
 ) {
     ImmersivePageFrame {
         LazyColumn(
             state = listState,
-            contentPadding = PaddingValues(top = immersiveTopContentPadding(), bottom = bottomPadding),
+            contentPadding = PaddingValues(top = if (rootTab) immersiveHeaderContentPadding() else immersiveTopContentPadding(), bottom = bottomPadding),
             verticalArrangement = verticalArrangement,
-            modifier = modifier.fillMaxSize().immersiveHazeSource().immersiveChromeScroll(),
+            modifier = modifier.fillMaxSize().immersiveHazeSource(),
         ) {
-            item(key = "page:title", contentType = "page:title") {
+            if (!rootTab) item(key = "page:title", contentType = "page:title") {
                 ImmersiveLargeTitle(title = title, subtitle = subtitle, trailing = largeTitleTrailing)
             }
             content()
         }
-        ImmersiveTopBar(
-            title = title,
-            listState = listState,
-            onBack = onBack,
-            actions = actions,
-        )
+        if (rootTab) {
+            ImmersiveFloatingHeader(title = title, collapse = rememberTopBarCollapse(listState, 24.dp))
+        } else {
+            ImmersiveTopBar(title = title, listState = listState, onBack = onBack, actions = actions)
+        }
     }
 }
 
@@ -248,16 +250,6 @@ internal fun ImmersiveSwitchRow(
             checked = checked,
             onCheckedChange = null,
             enabled = enabled,
-            colors = SwitchDefaults.colors(
-                checkedThumbColor = Color.White,
-                checkedTrackColor = Immersive.Accent,
-                uncheckedThumbColor = Color.White,
-                uncheckedTrackColor = Color(0xFF3A3A3F),
-                uncheckedBorderColor = Color.Transparent,
-                disabledCheckedTrackColor = Immersive.Accent.copy(alpha = 0.4f),
-                disabledUncheckedTrackColor = Color(0xFF2A2A2E),
-                disabledUncheckedBorderColor = Color.Transparent,
-            ),
         )
     }
 }

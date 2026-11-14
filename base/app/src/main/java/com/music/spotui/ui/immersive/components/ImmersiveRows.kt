@@ -49,7 +49,7 @@ import com.music.spotui.ui.components.DownloadBadge
 import com.music.spotui.ui.immersive.Immersive
 
 /** The cover of a row, and the height that lines the rows up (4 dp above and below it make [Immersive.RowHeight]). */
-private val RowCover = 52.dp
+private val RowCover = 48.dp
 
 /** A numbered row's track-number column, the number centred in it: room for three digits. */
 private val TrackNumberWidth = 24.dp
@@ -60,7 +60,7 @@ private val RowMoreOutset = 14.dp
 /** Where a divider under a track row starts: clear of the cover. */
 val ImmersiveRowDividerInset = Immersive.Gutter + RowCover + 14.dp
 
-private val RowTitle = Immersive.Body.copy(fontWeight = FontWeight.Medium)
+private val RowTitle get() = Immersive.Body.copy(fontWeight = FontWeight.Medium)
 
 /**
  * One track row for search results, album and playlist pages, the library: a 52 dp cover (or
@@ -135,20 +135,22 @@ fun ImmersiveSongRow(
         gapAfterLeading = if (trackNumber == null) 14.dp else Immersive.Gutter,
         trailingText = if (showDuration && song.durationMs > 0) formatDuration(song.durationMs) else null,
         onMore = onMore,
-        subtitleLeading = if (offline != null) ({
-            DownloadBadge(offline, size = 14.dp)
-            Spacer(Modifier.width(6.dp))
-        }) else null,
-        trailing = if (liked) ({
+        trailing = if (liked || offline != null || trailing != null) ({
             trailing?.invoke()
-            Spacer(Modifier.width(8.dp))
-            Icon(
-                Icons.Rounded.Star,
-                contentDescription = stringResource(R.string.liked_song),
-                tint = Immersive.Accent,
-                modifier = Modifier.size(18.dp),
-            )
-        }) else trailing,
+            if (offline != null) {
+                Spacer(Modifier.width(8.dp))
+                DownloadBadge(offline, size = 16.dp)
+            }
+            if (liked) {
+                Spacer(Modifier.width(8.dp))
+                Icon(
+                    Icons.Rounded.Star,
+                    contentDescription = stringResource(R.string.liked_song),
+                    tint = Immersive.Accent,
+                    modifier = Modifier.size(18.dp),
+                )
+            }
+        }) else null,
     )
 }
 
@@ -236,7 +238,7 @@ private fun RowScaffold(
                     }
                 },
             )
-            .padding(horizontal = Immersive.Gutter, vertical = 4.dp),
+            .padding(horizontal = Immersive.Gutter, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         leading()

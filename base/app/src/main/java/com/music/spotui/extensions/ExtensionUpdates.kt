@@ -67,7 +67,7 @@ object ExtensionUpdates {
         c.connectTimeout = 15_000; c.readTimeout = 20_000; c.useCaches = false
         c.instanceFollowRedirects = follow
         c.requestMethod = method
-        c.setRequestProperty("User-Agent", "Myspoti-Extensions/1")
+        c.setRequestProperty("User-Agent", "Distortion-Extensions/1")
         c.setRequestProperty("Cache-Control", "no-cache"); c.setRequestProperty("Pragma", "no-cache")
         accept?.let { c.setRequestProperty("Accept", it) }
         token?.let { c.setRequestProperty("Authorization", "Bearer $it") }

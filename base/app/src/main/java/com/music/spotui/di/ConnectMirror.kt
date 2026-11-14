@@ -202,17 +202,17 @@ object ConnectMirror {
             Lead.Nothing -> {}
             is Lead.Start -> start(lead.uri, lead.positionMs)
             // A play still waiting (see [start]) is held instead: nothing plays there yet.
-            Lead.Pause -> { want = w?.copy(paused = true); if (!elsewhere && pendingContext == null) command(ECHO_MS) { api.player.pause() } }
+            Lead.Pause -> { want = w?.copy(paused = true); if (!elsewhere && pendingContext == null) command(ECHO_MS) { Graph.playback.pause() } }
             is Lead.Resume -> {
                 // Another device took Connect meanwhile: a resume would resume it; the song is played here again.
                 if (elsewhere) start(uri, positionMs)
                 else if (pendingContext != null) { want = w?.copy(paused = false); main.removeCallbacks(sendPlay); sendPlay.run() }
                 else {
                     want = w?.copy(paused = false)
-                    command(ECHO_MS) { lead.alignMs?.let { api.player.seek(it) }; api.player.resume() }
+                    command(ECHO_MS) { lead.alignMs?.let { Graph.playback.seek(it) }; Graph.playback.resume() }
                 }
             }
-            is Lead.Align -> if (!elsewhere && pendingContext == null) { log("${lead.ms - (webAt(w) ?: lead.ms)} ms out of step: the page is put back"); command(ECHO_MS) { api.player.seek(lead.ms) } }
+            is Lead.Align -> if (!elsewhere && pendingContext == null) { log("${lead.ms - (webAt(w) ?: lead.ms)} ms out of step: the page is put back"); command(ECHO_MS) { Graph.playback.seek(lead.ms) } }
         }
     }
 
@@ -297,7 +297,7 @@ object ConnectMirror {
                 playNow(w.uri, w.uri)
             } else backOff(w)
             is Follow.Play -> { moved(web, s); followIfHere(f.uri, "${f.uri} picked on another device") { SongPlayer.followRemotePlay(item, s.contextUri, f.positionMs) } }
-            is Follow.Align -> command(ECHO_MS) { api.player.seek(f.ms) }
+            is Follow.Align -> command(ECHO_MS) { Graph.playback.seek(f.ms) }
             Follow.Back -> if (pendingContext != null) Unit else {
                 log("the page went on to ${web.uri} by itself while ${t.title} is to play again here: put back on ${w.uri}, not followed")
                 playNow(w.uri, w.uri)
@@ -359,7 +359,7 @@ object ConnectMirror {
         landed = false; lastWeb = null; gapFrom = null
         // One try each time from now on: a miss goes to the next, longer wait.
         retries = MAX_RETRIES; resends = MAX_RESENDS
-        command(ECHO_MS) { api.player.pause() }
+        command(ECHO_MS) { Graph.playback.pause() }
         pendingContext = w.uri; newSong = false
         main.removeCallbacks(sendPlay); main.postDelayed(sendPlay, delayMs)
     }
@@ -440,7 +440,7 @@ object ConnectMirror {
         command(PLAY_ECHO_MS) { live ->
             // Before the play: the page picks the song's file with the quality it has then.
             page.setMirroring(true)
-            if (!api.player.localMute) api.player.setLocalMute(true)
+            if (!Graph.playback.localMute) Graph.playback.setLocalMute(true)
             val device = if (first) activeElsewhere() else null
             if (QueueSyncRules.pullsHere(first, elsewhere = device != null)) {
                 log("$device has playback: pulled here before the page plays")
@@ -450,21 +450,21 @@ object ConnectMirror {
             // Ended meanwhile: no play that would be heard next to the local player.
             if (!live()) return@command
             val s = page.state.value
-            val queued = api.player.queue.value?.queued.orEmpty()
+            val queued = Graph.playback.queue.value?.queued.orEmpty()
             val way = if (newSong) QueueSyncRules.way(uri, s?.item?.uri, s?.isPaused == false, queued.map { it.uri }) else QueueSyncRules.Way.Play
             when (way) {
                 QueueSyncRules.Way.Already -> {
                     log("the page plays $uri already (gone on to its queued copy): kept in step")
                     val web = s?.positionAt(System.currentTimeMillis()) ?: at
-                    if (kotlin.math.abs(web - at) > MirrorRules.DRIFT_MS) api.player.seek(at)
+                    if (kotlin.math.abs(web - at) > MirrorRules.DRIFT_MS) Graph.playback.seek(at)
                 }
                 is QueueSyncRules.Way.Skip -> {
                     log("$uri played from Spotify's queue")
-                    api.player.skipTo(queued[way.index])
+                    Graph.playback.skipTo(queued[way.index])
                     QueueSync.consumed(uri)
-                    if (at > MirrorRules.DRIFT_MS) api.player.seek(at)
+                    if (at > MirrorRules.DRIFT_MS) Graph.playback.seek(at)
                 }
-                QueueSyncRules.Way.Play -> api.player.play(context, trackUri = uri.takeIf { it != context }, positionMs = at)
+                QueueSyncRules.Way.Play -> Graph.playback.play(context, trackUri = uri.takeIf { it != context }, positionMs = at)
             }
         }
     }
@@ -498,8 +498,8 @@ object ConnectMirror {
         // fails must not leave the page unheard or at its lowest quality.
         ending = MyspotiRuntime.scope.launch {
             lock.withLock {
-                if (heard) runCatching { api.player.pause() }.onFailure { log("ending: pause failed: ${it.message}") }
-                runCatching { api.player.setLocalMute(false) }.onFailure { log("ending: unmute failed: ${it.message}") }
+                if (heard) runCatching { Graph.playback.pause() }.onFailure { log("ending: pause failed: ${it.message}") }
+                runCatching { Graph.playback.setLocalMute(false) }.onFailure { log("ending: unmute failed: ${it.message}") }
                 runCatching { page.setMirroring(false) }.onFailure { log("ending: quality not restored: ${it.message}") }
             }
         }

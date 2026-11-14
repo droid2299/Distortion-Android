@@ -66,8 +66,8 @@ fun ThinSlider(
     loading: Boolean = false,
     idleHeight: Dp = 7.dp,
     activeHeight: Dp = 12.dp,
-    activeColor: Color = Color.White.copy(alpha = 0.92f),
-    inactiveColor: Color = Color.White.copy(alpha = 0.26f),
+    activeColor: Color = androidx.compose.material3.MaterialTheme.colorScheme.primary,
+    inactiveColor: Color = androidx.compose.material3.MaterialTheme.colorScheme.surfaceContainerHighest,
 ) = ThinSlider(
     value = { value },
     onValueChange = onValueChange,
@@ -103,11 +103,11 @@ fun ThinSlider(
     loading: Boolean = false,
     idleHeight: Dp = 7.dp,
     activeHeight: Dp = 12.dp,
-    activeColor: Color = Color.White.copy(alpha = 0.92f),
-    inactiveColor: Color = Color.White.copy(alpha = 0.26f),
+    activeColor: Color = androidx.compose.material3.MaterialTheme.colorScheme.primary,
+    inactiveColor: Color = androidx.compose.material3.MaterialTheme.colorScheme.surfaceContainerHighest,
     /** An AutoMix mix's stretch of the bar (fractions), read in the draw; null with none. */
     mixZone: () -> ClosedFloatingPointRange<Float>? = { null },
-    mixColor: Color = Color.White,
+    mixColor: Color = androidx.compose.material3.MaterialTheme.colorScheme.tertiary,
     /** The mix's beat, 0..1, read in the draw: the stretch thickens and glows with it. */
 ) {
     var dragging by remember { mutableStateOf(false) }

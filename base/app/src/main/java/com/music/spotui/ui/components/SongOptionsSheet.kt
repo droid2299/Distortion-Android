@@ -1,5 +1,6 @@
 package com.music.spotui.ui.components
 
+import com.music.spotui.di.Graph
 import com.music.spotui.ui.theme.tone
 import com.music.spotui.ui.theme.AppText
 import com.music.spotui.ui.theme.AppMuted
@@ -316,7 +317,7 @@ fun SongOptionsSheet(
             if (song.url.startsWith("episode:")) {
                 val episodeUri = "spotify:episode:" + song.url.removePrefix("episode:")
                 val saved by androidx.compose.runtime.produceState<Boolean?>(null, episodeUri) {
-                    value = runCatching { app.myspoti.host.android.MyspotiRuntime.api.library.contains(listOf(episodeUri)).single() }.getOrNull()
+                    value = runCatching { Graph.library.contains(listOf(episodeUri)).single() }.getOrNull()
                 }
                 MenuRow(Icons.Outlined.Bookmark, stringResource(if (saved == true) R.string.episode_unsave else R.string.episode_save), enabled = saved != null) {
                     val save = saved != true

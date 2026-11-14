@@ -64,7 +64,7 @@ fun CoverGlow(coverUrl: String?, height: Dp, modifier: Modifier = Modifier) {
 /** Gives every list and page inside [content] the Immersive look's iOS-style rubber-band overscroll. */
 @Composable
 fun ImmersiveOverscrollHost(content: @Composable () -> Unit) {
-    CompositionLocalProvider(LocalOverscrollFactory provides rememberImmersiveOverscrollFactory(), content = content)
+    content()
 }
 
 /**

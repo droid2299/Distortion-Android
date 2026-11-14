@@ -2,6 +2,8 @@ package com.music.spotui.ui.immersive.pages
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -47,6 +49,7 @@ import com.music.spotui.ui.immersive.Immersive
 import com.music.spotui.ui.immersive.components.ImmersiveListRow
 import com.music.spotui.ui.immersive.components.ImmersiveMessageState
 import com.music.spotui.ui.immersive.components.ImmersiveShelfCard
+import com.music.spotui.ui.immersive.components.ImmersiveCover
 import com.music.spotui.ui.immersive.components.immersiveSongListSkeleton
 import com.music.spotui.ui.immersive.components.immersiveClickable
 import com.music.spotui.ui.immersive.motion.immersiveItemPlacement
@@ -79,9 +82,26 @@ fun ImmersiveNewReleasesScreen(navController: NavController) {
             Graph.api.newReleases().map { ReleaseTile(it.spotifyId, it.name, it.artists, it.coverUri, it.artists) }
         }.getOrDefault(emptyList())
     }
-    // Large windows: more releases per row (two on phones).
-    val cols = com.music.spotui.ui.components.windowSize().columns(2, 220.dp)
-    ImmersivePage(title = stringResource(R.string.browse_new_releases), onBack = { navController.popBackStack() }) {
+    ImmersivePage(title = stringResource(R.string.bottom_tab_new), onBack = { navController.popBackStack() }, rootTab = true) {
+        val features = latest?.takeIf { it.isNotEmpty() } ?: followed.orEmpty()
+        if (features.isNotEmpty()) item(key = "new:features") {
+            BoxWithConstraints(Modifier.padding(bottom = 18.dp)) {
+                val featureWidth = minOf(maxWidth * 0.82f, 360.dp)
+                LazyRow(
+                    contentPadding = PaddingValues(horizontal = Immersive.Gutter),
+                    horizontalArrangement = Arrangement.spacedBy(14.dp),
+                ) {
+                    itemsIndexed(features.take(8), key = { i, t -> "feature:${t.id}:$i" }) { _, t ->
+                        Column(Modifier.width(featureWidth).immersiveClickable(onClick = { navController.navigate(t.route()) })) {
+                            Text(t.name, style = Immersive.Headline, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                            Text(t.artists, style = Immersive.Subhead, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                                modifier = Modifier.padding(bottom = 8.dp))
+                            ImmersiveCover(t.cover, Modifier.fillMaxWidth().aspectRatio(1.45f), Immersive.CoverMedium)
+                        }
+                    }
+                }
+            }
+        }
         fun section(key: String, title: Int, list: List<ReleaseTile>?) {
             item(key = "$key:header") { SectionHeader(stringResource(title)) }
             when {
@@ -89,19 +109,19 @@ fun ImmersiveNewReleasesScreen(navController: NavController) {
                 list.isEmpty() -> item(key = "$key:empty") {
                     Text(stringResource(R.string.nothing_here), style = Immersive.Subhead, modifier = Modifier.padding(horizontal = Immersive.Gutter, vertical = 4.dp))
                 }
-                else -> items(list.chunked(cols), key = { row -> "$key:" + row.first().id }) { pair ->
-                    Row(
+                else -> item(key = "$key:shelf") {
+                    LazyRow(
                         horizontalArrangement = Arrangement.spacedBy(14.dp),
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = Immersive.Gutter).padding(bottom = 18.dp),
+                        contentPadding = PaddingValues(horizontal = Immersive.Gutter),
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 18.dp),
                     ) {
-                        pair.forEach { t ->
+                        itemsIndexed(list, key = { i, t -> "$key:${t.id}:$i" }) { _, t ->
                             ImmersiveShelfCard(
                                 title = t.name, subtitle = t.detail.ifBlank { t.artists }, imageUrl = t.cover,
                                 onClick = { navController.navigate(t.route()) },
-                                modifier = Modifier.weight(1f),
+                                modifier = Modifier.width(180.dp),
                             )
                         }
-                        repeat(cols - pair.size) { Spacer(Modifier.weight(1f)) }
                     }
                 }
             }

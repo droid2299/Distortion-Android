@@ -15,11 +15,9 @@ package com.music.spotui.ui.immersive.player
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.Crossfade
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.runtime.LaunchedEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.music.spotui.ui.navigation.PlayerSheet
-import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -40,7 +38,6 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -55,18 +52,29 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.MoreHoriz
-import androidx.compose.material.icons.rounded.Star
-import androidx.compose.material.icons.rounded.StarBorder
+import androidx.compose.material.icons.rounded.Cast
+import androidx.compose.material.icons.rounded.Earbuds
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.IconToggleButton
+import com.music.spotui.data.preferences.PlayerCapsulePref
+import com.music.spotui.ui.components.AudioRoute
+import com.music.spotui.ui.components.rememberAudioRoute
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.automirrored.rounded.QueueMusic
+import androidx.compose.material.icons.rounded.KeyboardArrowDown
+import androidx.compose.material.icons.rounded.Lyrics
+import androidx.compose.material3.FilledTonalIconButton
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -79,7 +87,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.positionChange
 import androidx.compose.ui.input.pointer.pointerInput
@@ -89,17 +96,12 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Constraints
-import androidx.compose.ui.unit.constrainHeight
-import androidx.compose.ui.unit.constrainWidth
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.lerp
-import androidx.compose.ui.unit.offset
-import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import app.myspoti.engine.R
 import com.bumptech.glide.integration.compose.CrossFade
@@ -111,29 +113,21 @@ import com.music.spotui.ui.immersive.sheets.ImmersiveSongOptionsSheet
 import com.music.spotui.ui.immersive.Immersive
 import com.music.spotui.ui.immersive.lyrics.ImmersiveLyricsPanel
 import com.music.spotui.ui.immersive.lyrics.ImmersiveQueuePanel
-import com.music.spotui.ui.look.MeshGradientBackground
-import com.music.spotui.ui.look.MeshPalette
 import com.music.spotui.ui.look.lerp
-import com.music.spotui.ui.components.SongBlend
 import com.music.spotui.ui.components.SongBlendCover
 import com.music.spotui.ui.components.mixSqueeze
 import com.music.spotui.ui.components.mixWave
-import com.music.spotui.ui.components.titleMarquee
-import com.music.spotui.ui.look.rememberArtworkColors
 import com.music.spotui.ui.look.rememberPauseScale
 import kotlin.math.abs
 
 // Sizes and gaps of the portrait layout, as the player this follows has them.
 private val THUMB_SIZE = 54.dp
-private val HEADER_HEIGHT = 60.dp
 // Covers.large is 640px: the cover is always decoded at that, whatever size the box has right now.
 private const val COVER_DECODE_PX = 640
-private val ART_TITLE_GAP = 20.dp
 private val ART_BOX_TOP_PAD = 8.dp
-private val DISMISS_STRIP_HEIGHT = 32.dp
 
 /** The player's side margin. Scrollable panels reach back across it. */
-internal val PLAYER_GUTTER = 30.dp
+internal val PLAYER_GUTTER = 16.dp
 
 /**
  * How wide the player's content is ever allowed to get: a sleeve and a volume slider stretched
@@ -144,7 +138,7 @@ internal val PLAYER_MAX_WIDTH = 560.dp
 /** How long the sleeve takes to travel between the full player and the header. */
 private const val PANEL_TRAVEL_MS = com.music.spotui.ui.immersive.motion.ImmersiveMotion.LONG_MS
 
-private val ArtCorner = RoundedCornerShape(8.dp)
+private val ArtCorner = RoundedCornerShape(28.dp)
 /** How much bigger the cover is on an AutoMix beat (the player draws in around it meanwhile). */
 private const val MIX_BEAT_GROW = 0.025f
 
@@ -253,14 +247,9 @@ fun ImmersivePlayer(
     navController: NavController? = null,
 ) {
     val context = LocalContext.current
-    val palette = rememberArtworkColors(state.coverUrl.takeIf { it.isNotBlank() })
-    // A crossfade: the colours of the song going out, as they were when it began (the new cover's
-    // own come once it is loaded, and rememberArtworkColors keeps the old ones until then).
     val blend = state.blend
-    val outgoingPalette = remember(blend) { palette }
-    // The tint is the words' colour: it changes with them, half way.
-    val tintPalette = if (blend?.outgoingWords == true) outgoingPalette else palette
-    val tint by animateColorAsState(playerTintOf(tintPalette), tween(com.music.spotui.ui.immersive.motion.ImmersiveMotion.TINT_MS), label = "playerTint")
+    val scheme = MaterialTheme.colorScheme
+    val tint = scheme.onPrimaryContainer
 
     var panel by rememberSaveable { mutableIntStateOf(Panel.NONE) }
     var showMenu by remember { mutableStateOf(false) }
@@ -279,11 +268,6 @@ fun ImmersivePlayer(
     val pauseScale = rememberPauseScale(state.playing)
     val volume = rememberPlayerVolume()
 
-    // The song's Canvas, behind the player once its first frame is drawn. The cover opens into it:
-    // the clip fades in from a little closer while the sleeve grows and fades away. The lyrics or
-    // the queue close it the same way back: the clip (paused under them) fades out to the cover's
-    // backdrop and the sleeve returns as the header's thumbnail, rather than a still clip showing
-    // around the panel; closing the panel opens the cover into the clip again.
     val canvasUrl = rememberImmersiveCanvas(state)
     var canvasShown by remember(canvasUrl) {
         mutableStateOf(canvasUrl != null && com.music.spotui.ui.components.CanvasPlayer.isReady(canvasUrl))
@@ -310,42 +294,21 @@ fun ImmersivePlayer(
     // the clip stays full screen, so the controls sprang about over it and the wave crossed the
     // video (reported as the end of the mix bugging on a Canvas).
     val mixMotion = state.mixPulse.takeIf { panel == Panel.NONE && !canvasOn }
-    BoxWithConstraints(modifier.fillMaxSize().background(Color.Black).mixWave(mixMotion, Color.White)) {
+    BoxWithConstraints(modifier.fillMaxSize().background(scheme.primaryContainer).mixWave(mixMotion, scheme.primary)) {
         // Wider than tall (a phone on its side, a tablet), or a large portrait tablet: the cover
         // beside the controls. Very wide windows (DeX, large tablets): the lyrics and the queue
         // open in a third pane instead of over the cover.
         val window = com.music.spotui.ui.components.windowSize()
         val landscape = maxWidth > maxHeight || window.twoPane
         val sidePane = window.large && maxWidth >= SIDE_PANE_MIN_WIDTH
-        PlayerBackdrop(palette, outgoingPalette, blend, state.coverUrl)
-        if (canvasUrl != null) {
-            com.music.spotui.ui.screens.CanvasVideo(
-                url = canvasUrl,
-                onFirstFrame = { canvasShown = true },
-                // Still while the sheet is closed, the song paused or a panel covers it.
-                playing = PlayerSheet.open.value && state.playing && !state.buffering && panel == Panel.NONE,
-                modifier = Modifier.fillMaxSize().graphicsLayer {
-                    val o = canvasOpen.value
-                    alpha = o
-                    // Settles from slightly closer as it opens.
-                    val s = 1f + CANVAS_OPEN_ZOOM * (1f - o)
-                    scaleX = s
-                    scaleY = s
-                },
-            )
-            // The words and the controls read over any clip; darker again under an open panel.
-            Box(
-                Modifier.fillMaxSize().graphicsLayer { alpha = canvasOpen.value * (0.55f + 0.45f * collapse.value) }
-                    .background(CanvasShade),
-            )
-        }
         // An AutoMix mix: the content draws in with it and springs back after it, the backdrop stays.
         Box(Modifier.fillMaxSize().mixSqueeze(mixMotion)) {
         CompositionLocalProvider(LocalPlayerTint provides tint) {
-            if (landscape) LandscapePlayer(
+            if (lyricsOpen) {
+                FullPlayerLyrics(state, actions, onBack = { panel = Panel.NONE })
+            } else if (landscape) LandscapePlayer(
                 state = state,
                 actions = actions,
-                tint = tint,
                 panel = panel,
                 pauseScale = pauseScale,
                 volume = volume,
@@ -357,27 +320,25 @@ fun ImmersivePlayer(
                 onSourceLong = { showNerd = true },
                 sidePane = sidePane,
             ) else Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
-                // The handle: always hands its drags to the sheet.
-                Box(
-                    Modifier.fillMaxWidth().height(DISMISS_STRIP_HEIGHT).dragToClose()
-                        .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { actions.close() },
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Box(Modifier.width(36.dp).height(5.dp).clip(CircleShape).background(tint.copy(alpha = 0.35f)))
-                }
+                PlayerHeader(
+                    actions = actions,
+                    state = state,
+                    lyricsOpen = lyricsOpen,
+                    queueOpen = queueOpen,
+                    onToggleLyrics = { panel = if (lyricsOpen) Panel.NONE else Panel.LYRICS },
+                    onToggleQueue = { panel = if (queueOpen) Panel.NONE else Panel.QUEUE },
+                    onOpenDevices = { showDevices = true },
+                    onMore = if (navController != null && state.song != null) ({ showMenu = true }) else null,
+                )
 
                 // Everything that changes between the full player and the panels lives in this
                 // one weighted box, so the controls below it never move.
                 BoxWithConstraints(Modifier.weight(1f).fillMaxWidth()) {
                     val contentWidth = minOf(maxWidth - PLAYER_GUTTER * 2, PLAYER_MAX_WIDTH)
                     val left = (maxWidth - contentWidth) / 2
-                    val fullArt = minOf(contentWidth, maxHeight - ART_BOX_TOP_PAD - ART_TITLE_GAP - HEADER_HEIGHT - 16.dp)
+                    val fullArt = minOf(contentWidth * 0.86f, maxHeight - ART_BOX_TOP_PAD - 16.dp)
                         .coerceAtLeast(THUMB_SIZE)
-                    // While the player is whole the credits sit just above the scrubber and the cover is
-                    // centred in the room above them (centred as a pair, the spare height of a tall
-                    // phone all went between the credits and the scrubber: reported as the like and
-                    // more glyphs sitting far too high).
-                    val spare = (maxHeight - ART_BOX_TOP_PAD - fullArt - ART_TITLE_GAP - HEADER_HEIGHT - 16.dp)
+                    val spare = (maxHeight - ART_BOX_TOP_PAD - fullArt - 16.dp)
                         .coerceAtLeast(0.dp)
                     val groupTop = spare / 2
                     // Functions of the collapse, called at placement and measure: composition never reads them.
@@ -385,10 +346,6 @@ fun ImmersivePlayer(
                     fun artSize(): Dp = lerp(fullArt, THUMB_SIZE, p())
                     fun artTop(): Dp = ART_BOX_TOP_PAD + lerp(groupTop, 0.dp, p())
                     fun artStart(): Dp = left + lerp((contentWidth - fullArt) / 2, 0.dp, p())
-                    fun titleTop(): Dp = ART_BOX_TOP_PAD + lerp(spare + fullArt + ART_TITLE_GAP, 0.dp, p())
-                    fun titleStart(): Dp = lerp(0.dp, THUMB_SIZE + 12.dp, p())
-                    // The credits only crawl while they are the screen: over a list they would pull the eye.
-                    val scrolls by remember { derivedStateOf { collapse.value < 0.01f } }
 
                     // ---- The panel, under the header ----
                     val panelAlpha = { ((p() - 0.6f) / 0.4f).coerceIn(0f, 1f) }
@@ -397,20 +354,18 @@ fun ImmersivePlayer(
                         animationSpec = tween(250),
                         modifier = Modifier
                             .fillMaxSize()
-                            .padding(top = ART_BOX_TOP_PAD + HEADER_HEIGHT)
+                            .padding(top = 4.dp)
                             .graphicsLayer { alpha = panelAlpha() },
                         label = "playerPanel",
                     ) { shown ->
                         val inset = PaddingValues(start = left, end = left, top = 12.dp, bottom = 12.dp)
                         when (shown) {
-                            Panel.LYRICS -> ImmersiveLyricsPanel(Modifier.fillMaxSize(), inset)
-                            Panel.QUEUE -> ImmersiveQueuePanel(Modifier.fillMaxSize(), inset)
+                            Panel.QUEUE -> ImmersiveQueuePanel(Modifier.fillMaxSize(), inset, showCurrent = false)
                             else -> Box(Modifier.fillMaxSize())
                         }
                     }
 
-                    // ---- The cover: the whole sleeve, then the header's thumbnail ----
-                    Box(
+                    if (panel == Panel.NONE) Box(
                         modifier = Modifier
                             .offset { IntOffset(artStart().roundToPx(), artTop().roundToPx()) }
                             .layout { measurable, _ ->
@@ -419,25 +374,17 @@ fun ImmersivePlayer(
                                 layout(side, side) { placeable.place(0, 0) }
                             }
                             .graphicsLayer {
-                                // The pause step back, let go of as the cover collapses into the header.
-                                // With a Canvas, the sleeve opens into the clip: it grows and fades as the
-                                // clip comes in, and is the thumbnail again in the header.
-                                val opened = canvasOpen.value * (1f - p())
                                 val beat = 1f + MIX_BEAT_GROW * (state.mixPulse?.level() ?: 0f) * (1f - p())
-                                val scale = (pauseScale.value + (1f - pauseScale.value) * p()) * (1f + CANVAS_COVER_GROW * opened) * beat
+                                val scale = (pauseScale.value + (1f - pauseScale.value) * p()) * beat
                                 scaleX = scale
                                 scaleY = scale
-                                alpha = 1f - opened
-                                shadowElevation = 10.dp.toPx() * (1f - p()) * (1f - opened)
+                                shadowElevation = 10.dp.toPx() * (1f - p())
                                 shape = ArtCorner
                                 clip = true
                             }
                             .background(Color.Black.copy(alpha = 0.18f))
                             .dragToClose()
-                            .swipeToChangeTrack(enabled = panel == Panel.NONE, actions = actions)
-                            .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) {
-                                if (panel != Panel.NONE) panel = Panel.NONE
-                            },
+                            .swipeToChangeTrack(enabled = true, actions = actions),
                     ) {
                         GlideImage(
                             model = state.coverUrl.takeIf { it.isNotBlank() },
@@ -447,45 +394,20 @@ fun ImmersivePlayer(
                             loading = placeholder(R.drawable.placeholder),
                             failure = placeholder(R.drawable.placeholder),
                             modifier = Modifier.fillMaxSize(),
-                            // The box shrinks to the 60dp header thumbnail and grows back: Glide sizes the
-                            // request from the constraints it first sees, so without a fixed size a cover
-                            // first measured (or reloaded) while collapsed stays a small bitmap.
                             requestBuilderTransform = { it.override(COVER_DECODE_PX) },
                         )
                         SongBlendCover(blend, Modifier.fillMaxSize()) { it.override(COVER_DECODE_PX) }
+                        if (canvasUrl != null) {
+                            com.music.spotui.ui.screens.CanvasVideo(
+                                url = canvasUrl,
+                                onFirstFrame = { canvasShown = true },
+                                playing = PlayerSheet.open.value && state.playing && !state.buffering,
+                                modifier = Modifier.fillMaxSize().graphicsLayer { alpha = canvasOpen.value },
+                            )
+                        }
                     }
 
-                    // ---- Title + round glyphs ----
-                    Row(
-                        modifier = Modifier
-                            .offset {
-                                // Collapsed, the row shares the header with the thumbnail and the two
-                                // are not the same height: centred on it.
-                                IntOffset(
-                                    left.roundToPx(),
-                                    (titleTop() - lerp(0.dp, (HEADER_HEIGHT - THUMB_SIZE) / 2, p())).roundToPx(),
-                                )
-                            }
-                            .width(contentWidth)
-                            .layout { measurable, constraints ->
-                                val start = titleStart().roundToPx()
-                                val placeable = measurable.measure(constraints.offset(horizontal = -start))
-                                layout(
-                                    constraints.constrainWidth(placeable.width + start),
-                                    constraints.constrainHeight(placeable.height),
-                                ) { placeable.placeRelative(start, 0) }
-                            }
-                            .height(HEADER_HEIGHT)
-                            .dragToClose(),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        PlayerCredits(
-                            state = state, actions = actions, tint = tint, scrolls = scrolls, collapse = { p() },
-                            onMore = if (navController != null && state.song != null) ({ showMenu = true }) else null,
-                            onSource = { showQuality = true },
-                            onSourceLong = { showNerd = true },
-                        )
-                    }
+
                 }
 
                 // ---- Bottom: scrubber, transport, volume, toggles ----
@@ -498,12 +420,10 @@ fun ImmersivePlayer(
                         .align(Alignment.CenterHorizontally),
                 ) {
                     PlayerControlsBlock(
-                        state = state, actions = actions, volume = volume, lyricsOpen = lyricsOpen, queueOpen = queueOpen,
+                        state = state, actions = actions, volume = volume,
                         showVolume = com.music.spotui.data.preferences.PlayerVolumePref.on,
-                        // Lyrics and the queue are two things to show in one place: opening one closes the other.
-                        onToggleLyrics = { panel = if (lyricsOpen) Panel.NONE else Panel.LYRICS },
-                        onToggleQueue = { panel = if (queueOpen) Panel.NONE else Panel.QUEUE },
-                        onOpenDevices = { showDevices = true },
+                        onSource = { showQuality = true },
+                        onSourceLong = { showNerd = true },
                     )
                 }
             }
@@ -531,14 +451,7 @@ fun ImmersivePlayer(
 /** The cover opening into the Canvas, and the clip's fade in. */
 private const val CANVAS_OPEN_MS = 720
 /** How much closer the clip starts as it opens. */
-private const val CANVAS_OPEN_ZOOM = 0.08f
 /** How much the sleeve grows as it opens into the clip. */
-private const val CANVAS_COVER_GROW = 0.12f
-/** Over a Canvas: the handle and the credits at the top, the controls at the foot. */
-private val CanvasShade = Brush.verticalGradient(
-    listOf(Color.Black.copy(alpha = 0.45f), Color.Black.copy(alpha = 0.05f), Color.Black.copy(alpha = 0.35f), Color.Black.copy(alpha = 0.8f)),
-)
-
 /**
  * The Canvas of the song shown, as the Classic player finds it (same view model, cache and
  * settings: Canvases off, data saver, Wi-Fi only, energy saving); null when there is none.
@@ -560,183 +473,194 @@ private fun rememberImmersiveCanvas(state: ImmersivePlayerState): String? {
     return (if (canvas.trackId == trackId) canvas.url else known).takeIf { allowed && trackId.isNotBlank() && !state.adPlaying }
 }
 
-/**
- * The mesh behind the player. During a crossfade its colours go from [outgoing] to [palette] with
- * the fade's progress, read here so only the backdrop follows it frame by frame, not the player.
- */
-@Composable
-private fun PlayerBackdrop(palette: MeshPalette, outgoing: MeshPalette, blend: SongBlend?, trackKey: String) {
-    MeshGradientBackground(
-        palette = if (blend == null) palette else lerp(outgoing, palette, blend.progress()),
-        trackKey = trackKey,
-        // Following the fade, a short smoothing only: the new cover's colours, known a moment
-        // into it, do not jump in.
-        colorFadeMillis = if (blend == null) 1400 else 250,
-    )
-}
-
-/**
- * The credits row of the player: title (with its explicit badge), artist and the source line,
- * then the like glyph and, when [onMore] is given, the more glyph. [collapse] is the cover's
- * travel to the header (0 whole, 1 collapsed); the credits shrink with it.
- */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun RowScope.PlayerCredits(
+private fun PlayerCredits(
     state: ImmersivePlayerState,
     actions: ImmersivePlayerActions,
     tint: Color,
-    scrolls: Boolean,
-    collapse: () -> Float,
-    onMore: (() -> Unit)?,
     onSource: () -> Unit,
-    onSourceLong: () -> Unit = {},
+    onSourceLong: () -> Unit,
 ) {
-    // The header is a fixed HEADER_HEIGHT: the three lines are set tighter, so none is
-    // clipped at the bottom. The source line's room is kept from the start (it is only known
-    // a moment after the song starts), so its arrival fades in below the title and artist
-    // instead of moving them.
     val sourceLabel = com.music.spotui.ui.components.playingSourceLabel()
     val sourceShown = com.music.spotui.data.preferences.PlayerSourceLinePref.shown
-    val hasSource = sourceLabel.isNotBlank() && !state.adPlaying
-    val sourceAlpha by animateFloatAsState(if (hasSource) 1f else 0f, tween(250), label = "sourceLine")
-    val lineH = if (state.adPlaying) 24.sp else 22.sp
     Column(
-        Modifier
-            .weight(1f)
-            // Measured at its own height and centred on the header's: held to HEADER_HEIGHT, the
-            // source line was cut at the bottom with a larger font (reported twice).
-            .wrapContentHeight(unbounded = true)
-            // Scaling the already measured type is a draw-only operation.
-            .graphicsLayer {
-                val scale = 1f - 0.2f * collapse()
-                scaleX = scale
-                scaleY = scale
-                transformOrigin = TransformOrigin(0f, 0.5f)
-                // A crossfade: the outgoing song's words fade out, the new one's in, once.
-                alpha = state.blend?.wordsAlpha() ?: 1f
-            },
+        Modifier.fillMaxWidth().graphicsLayer { alpha = state.blend?.wordsAlpha() ?: 1f },
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(2.dp),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        Row(horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
             Text(
                 text = if (state.adPlaying) stringResource(R.string.immersive_player_ad) else state.title,
-                style = Immersive.Title.copy(fontSize = 20.sp, lineHeight = lineH),
+                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold),
+                textAlign = TextAlign.Center,
+                color = tint,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
-                modifier = Modifier
-                    .weight(1f, fill = false)
-                    // The marquee inside the tap target: scrolling leaves the target as it was.
-                    .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { actions.openAlbum() }
-                    .titleMarquee(enabled = scrolls, iterations = Int.MAX_VALUE),
+                modifier = Modifier.weight(1f, fill = false).clickable(onClick = actions.openAlbum),
             )
             if (state.explicit && !state.adPlaying) {
                 Spacer(Modifier.width(6.dp))
-                Box(
-                    Modifier.size(16.dp).clip(RoundedCornerShape(3.dp)).background(tint.copy(alpha = 0.5f)),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(
-                        text = stringResource(R.string.explicit_badge),
-                        style = Immersive.Caption.copy(fontSize = 10.sp, lineHeight = 10.sp, fontWeight = FontWeight.Bold),
-                        color = Color.Black,
-                    )
-                }
+                Text(stringResource(R.string.explicit_badge), style = MaterialTheme.typography.labelSmall, color = tint)
             }
         }
         if (!state.adPlaying) {
-            // One tap per artist when the song's artists are known; the whole line otherwise.
-            val credit = com.music.spotui.ui.components.rememberArtistCredit(state.trackId, state.artist, tint.copy(alpha = 0.55f)) { a -> actions.openArtistRef(a) }
+            val creditColor = tint.copy(alpha = 0.87f)
+            val credit = com.music.spotui.ui.components.rememberArtistCredit(state.trackId, state.artist, creditColor) { actions.openArtistRef(it) }
             Text(
                 text = credit ?: androidx.compose.ui.text.AnnotatedString(state.artist),
-                style = Immersive.Title.copy(fontSize = 20.sp, lineHeight = lineH, fontWeight = FontWeight.W500),
-                color = tint.copy(alpha = 0.55f),
+                style = MaterialTheme.typography.bodyLarge,
+                textAlign = TextAlign.Center,
+                color = creditColor,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
-                modifier = Modifier
-                    .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { actions.openArtist() }
-                    .titleMarquee(enabled = scrolls, iterations = Int.MAX_VALUE),
+                modifier = Modifier.clickable(onClick = actions.openArtist),
+            )
+            if (sourceShown && sourceLabel.isNotBlank()) {
+                Text(
+                    text = sourceLabel,
+                    style = MaterialTheme.typography.labelSmall,
+                    textAlign = TextAlign.Center,
+                    color = tint.copy(alpha = 0.75f),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.combinedClickable(onClick = onSource, onLongClick = onSourceLong),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun FullPlayerLyrics(
+    state: ImmersivePlayerState,
+    actions: ImmersivePlayerActions,
+    onBack: () -> Unit,
+) {
+    val scheme = MaterialTheme.colorScheme
+    Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
+        Box(
+            Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp).height(52.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            FilledTonalIconButton(
+                onClick = onBack,
+                modifier = Modifier.align(Alignment.CenterStart),
+                colors = IconButtonDefaults.filledTonalIconButtonColors(
+                    containerColor = scheme.surfaceContainerLowest,
+                    contentColor = scheme.onSurface,
+                ),
+            ) {
+                Icon(Icons.AutoMirrored.Rounded.ArrowBack, stringResource(R.string.immersive_player_lyrics_close))
+            }
+            Text(
+                stringResource(R.string.lyrics_card_title),
+                style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
+                color = scheme.onPrimaryContainer,
             )
         }
-        // What the sound is when Myspoti's own player plays it (an extension's stream, a
-        // download); a tap opens what plays and its quality. Same state as the Classic player.
-        if (!state.adPlaying && sourceShown) Text(
-            text = sourceLabel.ifEmpty { " " },
-            style = Immersive.Caption.copy(lineHeight = 14.sp),
-            color = tint.copy(alpha = 0.45f),
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier
-                .graphicsLayer { alpha = sourceAlpha }
-                .then(
-                    if (hasSource) Modifier.combinedClickable(interactionSource = remember { MutableInteractionSource() }, indication = null, onLongClick = onSourceLong, onClick = onSource)
-                    else Modifier,
-                ),
-        )
-    }
-    Spacer(Modifier.width(10.dp))
-    // Beside the credits rather than in the toggle row: liking is about this song.
-    CircleGlyph(
-        icon = if (state.liked) Icons.Rounded.Star else Icons.Rounded.StarBorder,
-        contentDescription = stringResource(if (state.liked) R.string.immersive_player_unlike else R.string.immersive_player_like),
-        onClick = actions.toggleLike,
-        active = state.liked,
-    )
-    if (onMore != null) {
-        Spacer(Modifier.width(8.dp))
-        CircleGlyph(
-            icon = Icons.Rounded.MoreHoriz,
-            contentDescription = stringResource(R.string.immersive_player_more),
-            onClick = onMore,
+        ImmersiveLyricsPanel(
+            modifier = Modifier.weight(1f).fillMaxWidth(),
+            playbackOverlay = { LyricsPlaybackControls(state, actions) },
         )
     }
 }
 
-/** Scrubber, transport, volume, the bottom row and the extensions' buttons: the controls under the cover. */
+@Composable
+private fun PlayerHeader(
+    actions: ImmersivePlayerActions,
+    state: ImmersivePlayerState,
+    lyricsOpen: Boolean,
+    queueOpen: Boolean,
+    onToggleLyrics: () -> Unit,
+    onToggleQueue: () -> Unit,
+    onOpenDevices: () -> Unit,
+    onMore: (() -> Unit)?,
+) {
+    val scheme = MaterialTheme.colorScheme
+    val route = rememberAudioRoute()
+    val container = scheme.onPrimaryContainer.copy(alpha = 0.13f)
+    val iconColors = IconButtonDefaults.filledTonalIconButtonColors(
+        containerColor = container,
+        contentColor = scheme.onPrimaryContainer,
+    )
+    val toggleColors = IconButtonDefaults.iconToggleButtonColors(
+        containerColor = container,
+        contentColor = scheme.onPrimaryContainer,
+        checkedContainerColor = scheme.primary,
+        checkedContentColor = scheme.onPrimary,
+    )
+    Row(
+        Modifier.fillMaxWidth().padding(horizontal = 12.dp).dragToClose(),
+        horizontalArrangement = Arrangement.spacedBy(2.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        FilledTonalIconButton(onClick = actions.close, colors = iconColors) {
+            Icon(Icons.Rounded.KeyboardArrowDown, stringResource(R.string.a11y_close_player))
+        }
+        Text(
+            text = stringResource(R.string.immersive_shell_now_playing),
+            style = MaterialTheme.typography.titleMedium,
+            color = scheme.onPrimaryContainer,
+            modifier = Modifier.weight(1f).padding(start = 6.dp),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+        if (PlayerCapsulePref.shown) {
+            FilledTonalIconButton(onClick = onOpenDevices, colors = iconColors) {
+                val airPods = state.deviceName == null && route.kind == AudioRoute.Kind.BLUETOOTH &&
+                    route.name.contains("airpods", ignoreCase = true)
+                Icon(
+                    if (airPods) Icons.Rounded.Earbuds else Icons.Rounded.Cast,
+                    stringResource(R.string.immersive_player_devices),
+                )
+            }
+        }
+        if (onMore != null) {
+            FilledTonalIconButton(onClick = onMore, colors = iconColors) {
+                Icon(Icons.Rounded.MoreHoriz, stringResource(R.string.immersive_player_more))
+            }
+        }
+        IconToggleButton(checked = lyricsOpen, onCheckedChange = { onToggleLyrics() }, colors = toggleColors) {
+            Icon(
+                Icons.Rounded.Lyrics,
+                stringResource(if (lyricsOpen) R.string.immersive_player_lyrics_close else R.string.immersive_player_lyrics),
+            )
+        }
+        IconToggleButton(checked = queueOpen, onCheckedChange = { onToggleQueue() }, colors = toggleColors) {
+            Icon(
+                Icons.AutoMirrored.Rounded.QueueMusic,
+                stringResource(if (queueOpen) R.string.immersive_player_queue_close else R.string.immersive_player_queue),
+            )
+        }
+    }
+}
+
 @Composable
 private fun PlayerControlsBlock(
     state: ImmersivePlayerState,
     actions: ImmersivePlayerActions,
     volume: PlayerVolume,
-    lyricsOpen: Boolean,
-    queueOpen: Boolean,
     showVolume: Boolean,
-    onToggleLyrics: () -> Unit,
-    onToggleQueue: () -> Unit,
-    onOpenDevices: () -> Unit,
+    onSource: () -> Unit,
+    onSourceLong: () -> Unit,
 ) {
-    PlayerScrubber(state = state, onSeek = actions.seekTo)
+    PlayerCredits(state, actions, MaterialTheme.colorScheme.onPrimaryContainer, onSource, onSourceLong)
+    Spacer(Modifier.height(6.dp))
+    PlayerScrubber(state, actions.seekTo, expressive = true)
     Spacer(Modifier.height(8.dp))
-    TransportRow(
-        isPlaying = state.playing,
-        isLoading = state.buffering,
-        onPrevious = actions.previous,
-        onPlayPause = actions.playPause,
-        onNext = actions.next,
-    )
-    Spacer(Modifier.height(if (showVolume) 12.dp else 4.dp))
+    MusicTransportRow(state, actions)
     if (showVolume) {
         VolumeRow(volume)
-        // The volume slider already has room below its drawn track.
-        Spacer(Modifier.height(6.dp))
     }
-    PlayerActionRow(
-        lyricsOpen = lyricsOpen,
-        queueOpen = queueOpen,
-        shuffleEnabled = state.shuffle || state.smart,
-        smartEnabled = state.smart,
-        repeatMode = state.repeatMode,
-        deviceActive = state.deviceName != null,
-        onToggleLyrics = onToggleLyrics,
-        onToggleQueue = onToggleQueue,
-        onToggleShuffle = actions.toggleShuffle,
-        onCycleRepeat = actions.cycleRepeat,
-        onOpenDevices = onOpenDevices,
-    )
-    // Buttons from extensions (player.buttons), under the player's own controls.
+    Spacer(Modifier.height(if (showVolume) 6.dp else 22.dp))
+    Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+        PlayerActionRow(state, actions)
+    }
     val extTrack = remember(state.title, state.artist) { com.music.spotui.extensions.Extensions.currentTrack() }
     com.music.spotui.extensions.MirrorIndicator()
     com.music.spotui.extensions.ExtensionPlayerButtons(extTrack)
-    Spacer(Modifier.height(18.dp))
+    Spacer(Modifier.height(12.dp))
 }
 
 /**
@@ -749,7 +673,6 @@ private fun PlayerControlsBlock(
 private fun LandscapePlayer(
     state: ImmersivePlayerState,
     actions: ImmersivePlayerActions,
-    tint: Color,
     panel: Int,
     pauseScale: State<Float>,
     volume: PlayerVolume,
@@ -762,14 +685,10 @@ private fun LandscapePlayer(
     sidePane: Boolean = false,
 ) {
     Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
-        // The handle: always hands its drags to the sheet.
-        Box(
-            Modifier.fillMaxWidth().height(DISMISS_STRIP_HEIGHT).dragToClose()
-                .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { actions.close() },
-            contentAlignment = Alignment.Center,
-        ) {
-            Box(Modifier.width(36.dp).height(5.dp).clip(CircleShape).background(tint.copy(alpha = 0.35f)))
-        }
+        PlayerHeader(
+            actions, state, panel == Panel.LYRICS, panel == Panel.QUEUE,
+            onToggleLyrics, onToggleQueue, onOpenDevices, onMore,
+        )
         Row(
             Modifier.weight(1f).fillMaxWidth().padding(start = PLAYER_GUTTER, end = PLAYER_GUTTER, bottom = 8.dp),
             horizontalArrangement = Arrangement.spacedBy(PLAYER_GUTTER),
@@ -780,8 +699,7 @@ private fun LandscapePlayer(
                 // With a side pane the cover stays: the panels open in the third column.
                 Crossfade(targetState = if (sidePane) Panel.NONE else panel, animationSpec = tween(250), modifier = Modifier.fillMaxSize(), label = "playerLandscapePanel") { shown ->
                     when (shown) {
-                        Panel.LYRICS -> ImmersiveLyricsPanel(Modifier.fillMaxSize(), PaddingValues(vertical = 4.dp))
-                        Panel.QUEUE -> ImmersiveQueuePanel(Modifier.fillMaxSize(), PaddingValues(vertical = 4.dp))
+                        Panel.QUEUE -> ImmersiveQueuePanel(Modifier.fillMaxSize(), PaddingValues(vertical = 4.dp), showCurrent = false)
                         else -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                             Box(
                                 Modifier
@@ -819,22 +737,16 @@ private fun LandscapePlayer(
                 // The volume bar is the first thing to go when the window is low: the hardware keys do it too.
                 val showVolume = com.music.spotui.data.preferences.PlayerVolumePref.on && maxHeight >= LANDSCAPE_VOLUME_MIN_HEIGHT
                 Column(Modifier.widthIn(max = PLAYER_MAX_WIDTH).verticalScroll(rememberScrollState())) {
-                    Row(Modifier.fillMaxWidth().height(HEADER_HEIGHT), verticalAlignment = Alignment.CenterVertically) {
-                        PlayerCredits(state, actions, tint, scrolls = true, collapse = { 0f }, onMore = onMore, onSource = onSource, onSourceLong = onSourceLong)
-                    }
-                    Spacer(Modifier.height(8.dp))
                     PlayerControlsBlock(
                         state = state, actions = actions, volume = volume,
-                        lyricsOpen = panel == Panel.LYRICS, queueOpen = panel == Panel.QUEUE, showVolume = showVolume,
-                        onToggleLyrics = onToggleLyrics, onToggleQueue = onToggleQueue, onOpenDevices = onOpenDevices,
+                        showVolume = showVolume, onSource = onSource, onSourceLong = onSourceLong,
                     )
                 }
             }
             if (sidePane && panel != Panel.NONE) Box(Modifier.weight(1.1f).fillMaxHeight()) {
                 Crossfade(targetState = panel, animationSpec = tween(250), modifier = Modifier.fillMaxSize(), label = "playerSidePane") { shown ->
                     when (shown) {
-                        Panel.LYRICS -> ImmersiveLyricsPanel(Modifier.fillMaxSize(), PaddingValues(vertical = 4.dp))
-                        Panel.QUEUE -> ImmersiveQueuePanel(Modifier.fillMaxSize(), PaddingValues(vertical = 4.dp))
+                        Panel.QUEUE -> ImmersiveQueuePanel(Modifier.fillMaxSize(), PaddingValues(vertical = 4.dp), showCurrent = false)
                         else -> Box(Modifier.fillMaxSize())
                     }
                 }

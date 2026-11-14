@@ -12,6 +12,9 @@
  */
 package com.music.spotui.ui.immersive.lyrics
 
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material.icons.rounded.Abc
 import androidx.compose.material.icons.rounded.Translate
@@ -46,6 +49,7 @@ import androidx.compose.foundation.layout.calculateEndPadding
 import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -69,6 +73,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.structuralEqualityPolicy
 import androidx.compose.ui.Alignment
@@ -88,10 +93,12 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.unit.Dp
@@ -155,7 +162,11 @@ import com.music.spotui.ui.components.shareLyricLines
  * list keeps clear of whatever the player draws over it.
  */
 @Composable
-fun ImmersiveLyricsPanel(modifier: Modifier = Modifier, contentPadding: PaddingValues = PaddingValues()) {
+fun ImmersiveLyricsPanel(
+    modifier: Modifier = Modifier,
+    contentPadding: PaddingValues = PaddingValues(),
+    playbackOverlay: (@Composable () -> Unit)? = null,
+) {
     val context = androidx.compose.ui.platform.LocalContext.current
     val vm: LyricsViewModel = viewModel()
     val song = Graph.currentSongState
@@ -188,70 +199,126 @@ fun ImmersiveLyricsPanel(modifier: Modifier = Modifier, contentPadding: PaddingV
     androidx.activity.compose.BackHandler(enabled = selecting) { vm.stopSelecting() }
     DisposableEffect(vm) { onDispose { vm.stopSelecting() } }
 
-    when (val current = state) {
-        is LyricsViewModel.State.Loading -> LyricsSkeleton(
-            modifier.padding(contentPadding).padding(horizontal = Immersive.Gutter),
-        )
-        is LyricsViewModel.State.NotFound -> Box(
-            modifier.padding(contentPadding).padding(horizontal = Immersive.Gutter),
-            contentAlignment = Alignment.Center,
-        ) {
-            Text(
-                text = stringResource(R.string.immersive_lyrics_none),
-                style = Immersive.Headline,
-                color = Immersive.TextSecondary,
-            )
+    val expressive = playbackOverlay != null
+    val timedLyrics = (state as? LyricsViewModel.State.Loaded)?.lyrics
+    val canSync = remember(timedLyrics) { timedLyrics?.let { it.synced && it.lines.any { line -> line.timeMs > 0L } } == true }
+    var preferSynced by rememberSaveable { mutableStateOf(true) }
+    val useSync = canSync && preferSynced
+    Column(modifier) {
+        if (expressive) {
+            LyricsModeRow(canSync, useSync) { preferSynced = it }
         }
-        is LyricsViewModel.State.Loaded -> {
-            // A new track, or new lyrics for it, starts the list over: its scroll position and
-            // handover state belong to the lines they were made for.
-            key(trackKey, System.identityHashCode(current.lyrics)) {
-                Box(modifier) {
-                    // The translation the song options sheet turned on, line for line with the source's.
-                    LyricsList(
-                        current.lyrics, trackKey, Modifier.fillMaxSize(), contentPadding, vm,
-                        translations = current.translations.takeIf { current.showTranslation },
-                        romanizing = LyricsRomanizationPref.on && current.lyrics.hasRomanization,
+        Box(Modifier.weight(1f).fillMaxWidth()) {
+            val listModifier = Modifier.fillMaxSize()
+            val bottomInset = if (expressive && !selecting) 204.dp else 0.dp
+            val direction = LocalLayoutDirection.current
+            val listPadding = PaddingValues(
+                start = contentPadding.calculateStartPadding(direction),
+                end = contentPadding.calculateEndPadding(direction),
+                top = contentPadding.calculateTopPadding(),
+                bottom = contentPadding.calculateBottomPadding() + bottomInset,
+            )
+            when (val current = state) {
+                is LyricsViewModel.State.Loading -> LyricsSkeleton(
+                    listModifier.padding(contentPadding).padding(horizontal = Immersive.Gutter),
+                )
+                is LyricsViewModel.State.NotFound -> Box(
+                    listModifier.padding(contentPadding).padding(horizontal = Immersive.Gutter),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = stringResource(R.string.immersive_lyrics_none),
+                        style = Immersive.Headline,
+                        color = Immersive.Text.copy(alpha = 0.60f),
                     )
-                    // The romanization, when the lyrics have one, then the Classic screen's translation,
-                    // with its language setting and its service: the lyrics are only sent when it is
-                    // tapped. Not offered for a song already in that language.
-                    val target = com.music.spotui.ui.components.readerLanguage()
-                    val canRomanize = current.lyrics.hasRomanization
-                    val canTranslate = !LyricsViewModel.sameLanguage(current.sourceLanguage, target)
-                    if (!selecting && (canRomanize || canTranslate)) {
-                        val layoutDirection = LocalLayoutDirection.current
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            modifier = Modifier
-                                .align(Alignment.TopEnd)
-                                .padding(
-                                    top = contentPadding.calculateTopPadding(),
-                                    end = Immersive.Gutter + contentPadding.calculateEndPadding(layoutDirection),
-                                ),
-                        ) {
-                            if (canRomanize) LyricsToggle(
-                                icon = Icons.Rounded.Abc,
-                                description = stringResource(R.string.lyrics_romanize),
-                                on = LyricsRomanizationPref.on,
-                                onClick = { LyricsRomanizationPref.set(context, !LyricsRomanizationPref.on) },
+                }
+                is LyricsViewModel.State.Loaded -> {
+                    // A new track, or new lyrics for it, starts the list over: its scroll position and
+                    // handover state belong to the lines they were made for.
+                    key(trackKey, System.identityHashCode(current.lyrics)) {
+                        Box(listModifier) {
+                            // The translation the song options sheet turned on, line for line with the source's.
+                            LyricsList(
+                                current.lyrics, trackKey, Modifier.fillMaxSize(), listPadding, vm,
+                                expressive = expressive,
+                                followTiming = !expressive || useSync,
+                                translations = current.translations.takeIf { current.showTranslation },
+                                romanizing = LyricsRomanizationPref.on && current.lyrics.hasRomanization,
                             )
-                            if (canTranslate) LyricsToggle(
-                                icon = Icons.Rounded.Translate,
-                                description = stringResource(R.string.lyrics_fullscreen_chip_label_translate),
-                                on = current.showTranslation,
-                                loading = current.translating && current.translationRequested,
-                                onClick = { vm.toggleTranslation(target) },
+                            // The romanization, when the lyrics have one, then the Classic screen's translation,
+                            // with its language setting and its service: the lyrics are only sent when it is
+                            // tapped. Not offered for a song already in that language.
+                            val target = com.music.spotui.ui.components.readerLanguage()
+                            val canRomanize = current.lyrics.hasRomanization
+                            val canTranslate = !LyricsViewModel.sameLanguage(current.sourceLanguage, target)
+                            if (!selecting && (canRomanize || canTranslate)) {
+                                val layoutDirection = LocalLayoutDirection.current
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    modifier = Modifier
+                                        .align(Alignment.TopEnd)
+                                        .padding(
+                                            top = contentPadding.calculateTopPadding(),
+                                            end = Immersive.Gutter + contentPadding.calculateEndPadding(layoutDirection),
+                                        ),
+                                ) {
+                                    if (canRomanize) LyricsToggle(
+                                        icon = Icons.Rounded.Abc,
+                                        description = stringResource(R.string.lyrics_romanize),
+                                        on = LyricsRomanizationPref.on,
+                                        onClick = { LyricsRomanizationPref.set(context, !LyricsRomanizationPref.on) },
+                                    )
+                                    if (canTranslate) LyricsToggle(
+                                        icon = Icons.Rounded.Translate,
+                                        description = stringResource(R.string.lyrics_fullscreen_chip_label_translate),
+                                        on = current.showTranslation,
+                                        loading = current.translating && current.translationRequested,
+                                        onClick = { vm.toggleTranslation(target) },
+                                    )
+                                }
+                            }
+                            if (selecting) ShareBar(
+                                canShare = picked != null,
+                                onCancel = { vm.stopSelecting() },
+                                onShare = { picked?.let { shareLyricLines(context, current.lyrics, it, title, artist); vm.stopSelecting() } },
+                                modifier = Modifier.align(Alignment.BottomCenter).padding(contentPadding).padding(horizontal = Immersive.Gutter),
                             )
                         }
                     }
-                    if (selecting) ShareBar(
-                        canShare = picked != null,
-                        onCancel = { vm.stopSelecting() },
-                        onShare = { picked?.let { shareLyricLines(context, current.lyrics, it, title, artist); vm.stopSelecting() } },
-                        modifier = Modifier.align(Alignment.BottomCenter).padding(contentPadding).padding(horizontal = Immersive.Gutter),
-                    )
                 }
+            }
+            if (!selecting && playbackOverlay != null) {
+                Box(Modifier.align(Alignment.BottomCenter)) { playbackOverlay() }
+            }
+        }
+    }
+}
+
+@Composable
+private fun LyricsModeRow(canSync: Boolean, synced: Boolean, onModeChange: (Boolean) -> Unit) {
+    val scheme = MaterialTheme.colorScheme
+    Row(
+        Modifier.fillMaxWidth().padding(start = 24.dp, end = 24.dp, top = 14.dp, bottom = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        for (mode in listOf(true, false)) {
+            val selected = synced == mode
+            FilledTonalButton(
+                onClick = { onModeChange(mode) },
+                enabled = !mode || canSync,
+                modifier = Modifier.weight(1f).heightIn(min = 52.dp).semantics {
+                    this.selected = selected
+                },
+                colors = ButtonDefaults.filledTonalButtonColors(
+                    containerColor = if (selected) scheme.primary else scheme.onPrimaryContainer.copy(alpha = 0.13f),
+                    contentColor = if (selected) scheme.onPrimary else scheme.onPrimaryContainer,
+                ),
+            ) {
+                Text(
+                    stringResource(if (mode) R.string.immersive_lyrics_synced else R.string.immersive_lyrics_static),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+                )
             }
         }
     }
@@ -272,16 +339,16 @@ private fun LyricsToggle(
         modifier = modifier
             .size(36.dp)
             .clip(CircleShape)
-            .background(if (on) Color.White else Color.White.copy(alpha = 0.14f))
+            .background(if (on) Immersive.Accent else Immersive.scheme.secondaryContainer)
             .immersiveClickable(onClick = onClick, enabled = !loading, pressedScale = 0.9f),
     ) {
         if (loading) {
-            CircularProgressIndicator(color = Color.White, strokeWidth = 2.dp, modifier = Modifier.size(18.dp))
+            CircularProgressIndicator(color = Immersive.Text, strokeWidth = 2.dp, modifier = Modifier.size(18.dp))
         } else {
             Icon(
                 icon,
                 contentDescription = description,
-                tint = if (on) Color.Black else Color.White,
+                tint = if (on) Immersive.scheme.onPrimary else Immersive.Text,
                 modifier = Modifier.size(20.dp),
             )
         }
@@ -433,6 +500,8 @@ private fun LyricsList(
     modifier: Modifier,
     contentPadding: PaddingValues,
     vm: LyricsViewModel,
+    expressive: Boolean,
+    followTiming: Boolean,
     /** The lines translated, in the source's order; null while no translation is shown. */
     translations: List<String>? = null,
     /** Shows the lines' romanization under them. */
@@ -442,7 +511,7 @@ private fun LyricsList(
     val selecting by vm.selecting.collectAsState()
     val picked by vm.picked.collectAsState()
     val context = androidx.compose.ui.platform.LocalContext.current
-    val isSynced = remember(lyrics) { lyrics.synced && lyrics.lines.any { it.timeMs > 0L } }
+    val isSynced = followTiming && remember(lyrics) { lyrics.synced && lyrics.lines.any { it.timeMs > 0L } }
     val rows = remember(lyrics, isSynced) { panelLines(lyrics, isSynced) }
     val duet = remember(lyrics) { lyrics.hasDuet }
     val playing = Graph.currentSongState.playingState.value
@@ -479,13 +548,13 @@ private fun LyricsList(
     // starts on the downbeat arrives after it; started during the run-up, the words are under
     // your eye when they land. Kept apart from [activeRow] on purpose: this leads, and the
     // brightness and the sweep must not.
-    val leadLine by remember(rows, isSynced) {
+    val leadLine by remember(rows, isSynced, expressive) {
         derivedStateOf {
             if (!isSynced) {
                 -1
             } else {
                 val now = clock.longValue
-                activeRow(rows, now + scrollLead(rows, now))
+                activeRow(rows, if (expressive) now else now + scrollLead(rows, now))
             }
         }
     }
@@ -501,10 +570,13 @@ private fun LyricsList(
         derivedStateOf { listState.layoutInfo.viewportSize.height }
     }
     val keepScroll = remember(listState) { keepScrollInList(listState) }
+    LaunchedEffect(isSynced) {
+        if (!isSynced) listState.scrollToItem(0)
+    }
     var browsing by remember { mutableStateOf(false) }
 
     val reduceMotion = rememberReduceMotion()
-    val blurOk = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !reduceMotion
+    val blurOk = !expressive && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !reduceMotion
 
     LaunchedEffect(listState) {
         listState.interactionSource.interactions.collect { interaction ->
@@ -549,10 +621,22 @@ private fun LyricsList(
     var placed by remember { mutableStateOf(false) }
     // A newer line replaces an unfinished automatic scroll. Only a user's browsing gesture
     // should suspend following, not our own animation.
-    LaunchedEffect(focusLine, browsing, selecting) {
+    LaunchedEffect(focusLine, browsing, selecting, isSynced) {
         if (isSynced && !browsing && !selecting && focusLine >= 0 && focusLine in rows.indices) {
             snapshotFlow { listState.layoutInfo.viewportSize.height }.first { it > 0 }
             val visible = listState.layoutInfo.visibleItemsInfo.firstOrNull { it.index == focusLine }
+            val anchor = if (expressive) (listState.layoutInfo.viewportSize.height * 0.43f).toInt() else 0
+            if (expressive) {
+                if (!placed || reduceMotion) {
+                    listState.scrollToItem(focusLine, scrollOffset = -anchor)
+                    placed = true
+                } else if (visible != null) {
+                    listState.animateScrollBy((visible.offset - anchor).toFloat(), tween(320))
+                } else {
+                    listState.animateScrollToItem(focusLine, scrollOffset = -anchor)
+                }
+                return@LaunchedEffect
+            }
             when {
                 !placed -> {
                     listState.scrollToItem(focusLine, scrollOffset = 0)
@@ -577,6 +661,8 @@ private fun LyricsList(
 
     val layoutDirection = LocalLayoutDirection.current
     val density = LocalDensity.current
+    val gutter = if (expressive) 26.dp else Immersive.Gutter
+    val lyricColor = if (expressive) MaterialTheme.colorScheme.onPrimaryContainer else Immersive.Text
     LazyColumn(
         state = listState,
         modifier = modifier
@@ -585,10 +671,10 @@ private fun LyricsList(
         // Each row carries GLOW_ROOM of its own inset for the halo, so the list hands that
         // much back — otherwise the lines would sit a glow's width further apart and further in.
         contentPadding = PaddingValues(
-            start = (Immersive.Gutter + contentPadding.calculateStartPadding(layoutDirection) - GLOW_ROOM)
+            start = (gutter + contentPadding.calculateStartPadding(layoutDirection) - GLOW_ROOM)
                 .coerceAtLeast(0.dp),
-            top = contentPadding.calculateTopPadding() + 40.dp - GLOW_ROOM,
-            end = (Immersive.Gutter + contentPadding.calculateEndPadding(layoutDirection) - GLOW_ROOM)
+            top = contentPadding.calculateTopPadding() + (if (expressive) 24.dp else 40.dp) - GLOW_ROOM,
+            end = (gutter + contentPadding.calculateEndPadding(layoutDirection) - GLOW_ROOM)
                 .coerceAtLeast(0.dp),
             bottom = contentPadding.calculateBottomPadding() +
                 if (isSynced) with(density) { viewportHeight.toDp() } * 0.8f else 40.dp,
@@ -600,6 +686,8 @@ private fun LyricsList(
                 index = index,
                 row = row,
                 synced = isSynced,
+                expressive = expressive,
+                lyricColor = lyricColor,
                 activeRow = activeRow,
                 focusLine = focusLine,
                 run = run,
@@ -613,7 +701,7 @@ private fun LyricsList(
                 translation = translations?.getOrNull(row.sourceIndex)?.trim()?.takeIf { it.isNotEmpty() && !it.equals(row.text.trim(), ignoreCase = true) },
                 romanizing = romanizing,
                 duet = duet,
-                onNote = notes[index]?.let { n -> { noteOpen = n } },
+                onNote = if (expressive) null else notes[index]?.let { n -> { noteOpen = n } },
                 // A line Genius explains opens its note; any other starts picking lines to share.
                 onHold = if (selecting) null else notes[index]?.let { n ->
                     {
@@ -650,6 +738,8 @@ private fun PanelRow(
     index: Int,
     row: PanelLine,
     synced: Boolean,
+    expressive: Boolean,
+    lyricColor: Color,
     activeRow: Int,
     focusLine: Int,
     run: ScrollRun,
@@ -704,6 +794,7 @@ private fun PanelRow(
         targetValue = when {
             !synced -> 0.95f
             isActive || selected -> 1f
+            expressive -> 0.52f
             // Reading by hand is not following along: the stack flattens to one brightness.
             browsing -> BROWSING_ALPHA
             else -> LINE_FALLOFF_ALPHA[step]
@@ -717,10 +808,16 @@ private fun PanelRow(
         return
     }
 
-    val style = if (synced) {
+    val style = if (expressive) {
+        MaterialTheme.typography.headlineSmall.copy(
+            fontSize = 24.sp,
+            lineHeight = 31.sp,
+            fontWeight = if (isActive) FontWeight.Bold else FontWeight.Medium,
+        )
+    } else if (synced) {
         Immersive.Lyric
     } else {
-        Immersive.Lyric.copy(fontSize = 26.sp, lineHeight = 33.sp)
+        Immersive.Lyric.copy(fontSize = 28.sp, lineHeight = 36.sp)
     }
     val lane = endLane(row, duet)
     val lineStyle = remember(style, row.text, lane) { voiceStyle(style, row.text, lane) }
@@ -739,7 +836,7 @@ private fun PanelRow(
     val scale = animateFloatAsState(
         targetValue = when {
             pressed -> PRESSED_SCALE
-            isActive || !synced -> 1f
+            expressive || isActive || !synced -> 1f
             else -> INACTIVE_SCALE
         },
         animationSpec = tween(
@@ -755,7 +852,7 @@ private fun PanelRow(
         label = "lyricGlow",
     )
     val pickedFill by animateColorAsState(
-        if (selected) Color.White.copy(alpha = 0.16f) else Color.Transparent,
+        if (selected) Immersive.Text.copy(alpha = 0.16f) else Color.Transparent,
         tween(180), label = "lyricPicked",
     )
     val shape = Modifier
@@ -821,12 +918,7 @@ private fun PanelRow(
 
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
         Column(shape) {
-            NoteLayout(
-                text = row.text,
-                style = lineStyle,
-                measurer = noteMeasurer,
-                onNote = onNote,
-            ) {
+            val voice: @Composable () -> Unit = {
                 PanelVoice(
                     row = row,
                     clock = clock,
@@ -834,12 +926,19 @@ private fun PanelRow(
                     isActive = isActive,
                     sung = sung,
                     synced = synced,
+                    expressive = expressive,
+                    lyricColor = lyricColor,
                     browsing = browsing,
                     glowAlpha = glow,
                     room = GLOW_ROOM,
                     lane = lane,
                     modifier = Modifier.fillMaxWidth(),
                 )
+            }
+            if (onNote == null) {
+                voice()
+            } else {
+                NoteLayout(row.text, lineStyle, noteMeasurer, onNote, voice = voice)
             }
             // Under the words, smaller and dimmer, and they take the row's blur and brightness with
             // them: the backing vocals, then the romanization, then the translation. The romanization
@@ -857,7 +956,7 @@ private fun PanelRow(
                 Text(
                     text = romanized,
                     style = secondaryStyle(ROMANIZATION_STYLE, lane),
-                    color = Immersive.TextSecondary,
+                    color = Immersive.Text.copy(alpha = 0.60f),
                     modifier = Modifier.fillMaxWidth().padding(start = GLOW_ROOM, end = GLOW_ROOM, bottom = if (translation != null) 10.dp else GLOW_ROOM),
                 )
             }
@@ -865,7 +964,7 @@ private fun PanelRow(
                 Text(
                     text = translation,
                     style = secondaryStyle(TRANSLATION_STYLE, lane),
-                    color = Immersive.TextSecondary,
+                    color = Immersive.Text.copy(alpha = 0.60f),
                     modifier = Modifier.fillMaxWidth().padding(start = GLOW_ROOM, end = GLOW_ROOM, bottom = GLOW_ROOM),
                 )
             }
@@ -879,7 +978,7 @@ private fun ShareBar(canShare: Boolean, onCancel: () -> Unit, onShare: () -> Uni
     Column(modifier.fillMaxWidth().glass(RoundedCornerShape(26.dp)).padding(12.dp)) {
         Text(
             text = stringResource(R.string.lyrics_select_hint),
-            style = Immersive.Caption,
+            style = Immersive.Caption.copy(color = Immersive.Text.copy(alpha = 0.60f)),
             textAlign = TextAlign.Center,
             modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp),
         )
@@ -909,7 +1008,7 @@ private fun secondaryStyle(base: TextStyle, lane: Boolean?): TextStyle =
 
 // ─── Genius notes on the lines ───────────────────────────────────────────────────────────
 
-private val NOTE_PILL_COLOR = Color.White.copy(alpha = 0.09f)
+private val NOTE_PILL_COLOR get() = Immersive.Text.copy(alpha = 0.09f)
 private val NOTE_PILL_PAD_H = 7.dp
 private val NOTE_PILL_INSET = 3.dp
 private val NOTE_PILL_RADIUS = 12.dp
@@ -1003,12 +1102,12 @@ private fun NoteMark(onOpen: () -> Unit) {
             modifier = Modifier
                 .size(NOTE_MARK_SIZE)
                 .clip(CircleShape)
-                .background(Color.White.copy(alpha = 0.16f)),
+                .background(Immersive.Text.copy(alpha = 0.16f)),
         ) {
             Icon(
                 Icons.Rounded.FormatQuote,
                 contentDescription = null,
-                tint = Color.White.copy(alpha = 0.9f),
+                tint = Immersive.Text.copy(alpha = 0.9f),
                 modifier = Modifier.size(15.dp),
             )
         }
@@ -1055,6 +1154,8 @@ private fun PanelVoice(
     sung: Boolean,
     /** Whether the source stamps its lines at all. */
     synced: Boolean,
+    expressive: Boolean,
+    lyricColor: Color,
     browsing: Boolean,
     glowAlpha: Float,
     room: Dp,
@@ -1066,10 +1167,10 @@ private fun PanelVoice(
     // handover rather than cut, so a line warms as it is reached and cools as it is left.
     // Lyrics with no timing have no line being sung, and stay white throughout.
     val color by animateColorAsState(
-        targetValue = if (isActive || !synced) Color.White else Immersive.TextSecondary.copy(alpha = 0.85f),
+        targetValue = if (expressive || isActive || !synced) lyricColor else lyricColor.copy(alpha = 0.85f),
         label = "lyricLineColor",
     )
-    if (row.isWordSynced && synced) {
+    if (row.isWordSynced && synced && !expressive) {
         // Every word-synced line goes through the sweep, not just the playing one — a line
         // already sung is fully revealed and one still to come is not, which falls out of the
         // same arithmetic. Animating the tail lets a finished line close up as it dims away.
@@ -1096,7 +1197,7 @@ private fun PanelVoice(
         // lights whole, the moment it starts, and holds itself back at the same dim a swept
         // line's unsung words sit at until then.
         val lit by animateFloatAsState(
-            targetValue = if (!synced || sung || isActive) 1f else UNSUNG_ALPHA,
+            targetValue = if (expressive || !synced || sung || isActive) 1f else UNSUNG_ALPHA,
             label = "lyricLit",
         )
         Text(
@@ -1124,7 +1225,7 @@ private fun PanelBackground(
     modifier: Modifier = Modifier,
 ) {
     val color by animateColorAsState(
-        targetValue = if (isActive || !synced) Color.White else Immersive.TextSecondary.copy(alpha = 0.85f),
+        targetValue = if (isActive || !synced) Immersive.Text else Immersive.Text.copy(alpha = 0.60f).copy(alpha = 0.85f),
         label = "lyricBackgroundColor",
     )
     val dimmer = modifier.graphicsLayer { alpha = BACKGROUND_ALPHA }
@@ -1213,7 +1314,7 @@ private fun GapRow(
                         // Each dot owns its share of the break and fills across it.
                         val lit = (through * GAP_DOTS - dot).coerceIn(0f, 1f)
                         drawCircle(
-                            color = Color.White.copy(alpha = GAP_DOT_REST + (1f - GAP_DOT_REST) * lit),
+                            color = Immersive.Text.copy(alpha = GAP_DOT_REST + (1f - GAP_DOT_REST) * lit),
                             radius = radius,
                             center = Offset(radius + dot * stride, size.height / 2f),
                         )
@@ -1272,9 +1373,9 @@ private fun LyricsSkeleton(modifier: Modifier = Modifier) {
                                     val startX = -band + (sweep?.value ?: 0f) * (full + band * 2)
                                     val brush = Brush.horizontalGradient(
                                         colors = listOf(
-                                            Color.White.copy(alpha = 0.10f),
-                                            Color.White.copy(alpha = 0.26f),
-                                            Color.White.copy(alpha = 0.10f),
+                                            Immersive.Text.copy(alpha = 0.10f),
+                                            Immersive.Text.copy(alpha = 0.26f),
+                                            Immersive.Text.copy(alpha = 0.10f),
                                         ),
                                         startX = startX,
                                         endX = startX + band,

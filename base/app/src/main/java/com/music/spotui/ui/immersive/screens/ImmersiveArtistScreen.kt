@@ -27,7 +27,10 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.MoreHoriz
+import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.PersonAdd
+import androidx.compose.material.icons.rounded.Star
+import androidx.compose.material.icons.rounded.StarBorder
 import androidx.compose.material.icons.rounded.Shuffle
 import androidx.compose.material.icons.rounded.Verified
 import androidx.compose.material3.Icon
@@ -72,7 +75,6 @@ import com.music.spotui.ui.immersive.components.immersiveDetailSkeleton
 import com.music.spotui.ui.immersive.shell.ImmersiveBarAction
 import com.music.spotui.ui.immersive.shell.ImmersiveTopBar
 import com.music.spotui.ui.immersive.shell.immersiveHazeSource
-import com.music.spotui.ui.immersive.shell.immersiveChromeScroll
 import com.music.spotui.ui.immersive.shell.immersiveTopBarHeight
 import com.music.spotui.ui.navigation.Routes
 import com.music.spotui.ui.navigation.albumRoute
@@ -185,16 +187,16 @@ private fun ArtistNameHeader(
     Box(Modifier.fillMaxWidth()) {
         Spacer(Modifier.fillMaxWidth().height(artHeight + HeaderDrop - ArtistHeaderLift))
         Column(
-            modifier = Modifier.align(Alignment.BottomCenter),
+            modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(horizontal = Immersive.Gutter),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Text(
                 text = name,
-                style = Immersive.LargeTitle.copy(fontSize = 44.sp, lineHeight = 48.sp, fontWeight = FontWeight.ExtraBold),
+                style = Immersive.LargeTitle.copy(fontSize = 32.sp, lineHeight = 38.sp, fontWeight = FontWeight.Bold),
                 textAlign = TextAlign.Center,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.padding(start = Immersive.Gutter + 8.dp, end = Immersive.Gutter + 8.dp, top = 14.dp, bottom = 7.dp),
+                modifier = Modifier.padding(top = 14.dp, bottom = 7.dp),
             )
             extra?.invoke()
         }
@@ -213,6 +215,8 @@ private fun ArtistOverviewContent(
     val context = LocalContext.current
     val tracks = overview.topTracks
     val displayName = overview.name.ifBlank { artistName }
+    val imageUrl = overview.headerImage.ifBlank { overview.avatarImage }
+    val pageColor = Immersive.Page
 
     var menuSong by remember { mutableStateOf<SongsModel?>(null) }
     menuSong?.let { sel ->
@@ -221,6 +225,19 @@ private fun ArtistOverviewContent(
             navController = navController,
             context = context,
             onDismiss = { menuSong = null },
+        )
+    }
+    var showArtistAbout by remember(overview.id) { mutableStateOf(false) }
+    if (showArtistAbout) {
+        com.music.spotui.ui.immersive.sheets.ImmersiveAlertDialog(
+            onDismissRequest = { showArtistAbout = false },
+            title = { Text(stringResource(R.string.creator_biography_section_title), color = Immersive.Text) },
+            text = { Text(overview.biography.orEmpty(), color = Immersive.TextSecondary) },
+            confirmButton = {
+                androidx.compose.material3.TextButton(onClick = { showArtistAbout = false }) {
+                    Text(stringResource(R.string.bottom_actions_close), color = Immersive.Accent)
+                }
+            },
         )
     }
     var showArtistMenu by remember { mutableStateOf(false) }
@@ -280,11 +297,12 @@ private fun ArtistOverviewContent(
         fraction
     }
 
-    Box(Modifier.fillMaxSize()) {
+    Box(Modifier.fillMaxSize().background(pageColor)) {
         // The photo is drawn behind the list rather than in it, so both agree on its height
         // (artHeight) without being able to ask each other.
         ArtistBackdrop(
-            imageUrl = overview.headerImage.ifBlank { overview.avatarImage },
+            imageUrl = imageUrl,
+            pageColor = pageColor,
             artHeight = artHeight,
             listState = listState,
             modifier = Modifier.matchParentSize(),
@@ -292,7 +310,7 @@ private fun ArtistOverviewContent(
         LazyColumn(
             state = listState,
             contentPadding = PaddingValues(bottom = Immersive.BottomChrome),
-            modifier = Modifier.fillMaxSize().immersiveHazeSource().immersiveChromeScroll(),
+            modifier = Modifier.fillMaxSize().immersiveHazeSource(),
         ) {
             item(key = "header") {
                 ArtistNameHeader(name = displayName, artHeight = artHeight) {
@@ -321,16 +339,14 @@ private fun ArtistOverviewContent(
             item(key = "actions") {
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(horizontal = Immersive.Gutter + 8.dp).padding(top = 14.dp, bottom = 22.dp),
-                    horizontalArrangement = Arrangement.spacedBy(ActionGap, Alignment.CenterHorizontally),
+                    horizontalArrangement = Arrangement.spacedBy(if (overview.biography.isNullOrBlank()) ActionGap else 10.dp, Alignment.CenterHorizontally),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    ImmersiveCircleButton(
-                        icon = Icons.Rounded.Shuffle,
-                        contentDescription = stringResource(R.string.immersive_shell_shuffle),
-                        onClick = {
-                            if (tracks.isNotEmpty()) Graph.currentSongState.startShuffled(tracks.map { it.song })
-                        },
-                        tint = if (isThisArtist && Graph.currentSongState.shuffle.value) Immersive.Accent else Immersive.Text,
+                    if (!overview.biography.isNullOrBlank()) ImmersiveCircleButton(
+                        icon = Icons.Rounded.Info,
+                        contentDescription = stringResource(R.string.creator_biography_section_title),
+                        onClick = { showArtistAbout = true },
+                        tint = Immersive.Text,
                         size = SideButton,
                     )
                     ArtistPlayCircle(
@@ -344,10 +360,10 @@ private fun ArtistOverviewContent(
                         },
                         size = PlayButton,
                         iconScale = PLAY_ICON_SCALE,
-                        containerColor = Color.White,
+                        containerColor = Immersive.Accent,
                     )
                     ImmersiveCircleButton(
-                        icon = if (isFollowing) Icons.Rounded.Check else Icons.Rounded.PersonAdd,
+                        icon = if (isFollowing) Icons.Rounded.Star else Icons.Rounded.StarBorder,
                         contentDescription = stringResource(if (isFollowing) R.string.immersive_detail_unfollow else R.string.immersive_detail_follow),
                         onClick = {
                             val on = !(SongPlayer.library["spotify:artist:${overview.id}"] ?: following)
@@ -479,6 +495,11 @@ private fun ArtistOverviewContent(
             collapse = collapse,
             onBack = { navController.navigateUp() },
             actions = {
+                if (tracks.isNotEmpty()) ImmersiveBarAction(
+                    icon = Icons.Rounded.Shuffle,
+                    contentDescription = stringResource(R.string.immersive_shell_shuffle),
+                    onClick = { Graph.currentSongState.startShuffled(tracks.map { it.song }) },
+                )
                 ImmersiveBarAction(
                     icon = Icons.Rounded.MoreHoriz,
                     contentDescription = stringResource(R.string.content_description_context_menu),

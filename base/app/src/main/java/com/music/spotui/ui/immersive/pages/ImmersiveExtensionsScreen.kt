@@ -209,6 +209,9 @@ fun ImmersiveExtensionsScreen(navController: NavController) {
                 Text(stringResource(R.string.extensions_no_match), style = Immersive.Subhead)
             }
         } else {
+            item(key = "ext:playback") {
+                ExtensionPlaybackStatus(navController)
+            }
             val matches = { e: InstalledExtension ->
                 val m = Extensions.manifest(e.id)
                 (category == null || m?.category() == category) &&
@@ -279,6 +282,43 @@ fun ImmersiveExtensionsScreen(navController: NavController) {
 
 /** No repository yet: what extensions are, before anything is added. */
 @Composable
+private fun ExtensionPlaybackStatus(navController: NavController) {
+    val registry by Extensions.registry.collectAsState()
+    val statuses by Extensions.probeResults.collectAsState()
+    val errors by Extensions.errors.collectAsState()
+    val active = com.music.spotui.ui.components.playingExtensionName()
+    val source = if (active != null) com.music.spotui.ui.components.playingSourceLabel() else ""
+    val audioExtensions = registry.extensions.filter { app.myspoti.extensions.Action.AUDIO_SOURCE.key in it.granted }
+    if (audioExtensions.isEmpty()) return
+    Column(
+        Modifier.fillMaxWidth().padding(horizontal = Immersive.Gutter, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Text(stringResource(R.string.extensions_audio_status_title), style = Immersive.Headline)
+        Text(
+            source.ifBlank { active ?: stringResource(R.string.extensions_audio_none_playing) },
+            style = Immersive.Subhead,
+        )
+        audioExtensions.forEach { extension ->
+            val lastProbe = statuses[extension.id]
+            val status = when {
+                !extension.enabled -> stringResource(R.string.extension_off)
+                lastProbe?.live == false -> lastProbe.detail ?: stringResource(R.string.extensions_audio_unavailable)
+                errors[extension.id] != null -> stringResource(R.string.extensions_audio_check_error)
+                !Extensions.isRunning(extension.id) -> stringResource(R.string.extension_not_running)
+                lastProbe == null || !lastProbe.answered -> stringResource(R.string.extensions_audio_unverified)
+                else -> stringResource(R.string.extensions_audio_reachable)
+            }
+            Text(
+                stringResource(R.string.extensions_audio_status_row, extension.name, status),
+                modifier = Modifier.fillMaxWidth().immersiveClickable(onClick = { navController.navigate(installedRoute(extension.id)) }).padding(vertical = 6.dp),
+                style = Immersive.Caption,
+            )
+        }
+    }
+}
+
+@Composable
 private fun EmptyState() {
     Column(Modifier.fillMaxWidth()) {
         Text(stringResource(R.string.extensions_empty_title), style = Immersive.BodyStrong)
@@ -298,7 +338,7 @@ private fun RepoHeader(repo: ExtensionStore.Repo, onRefresh: () -> Unit, onRemov
                     Text(repo.catalog?.name ?: runCatching { java.net.URI(repo.url).host }.getOrNull() ?: repo.url, style = Immersive.BodyStrong,
                         maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
                     Spacer(Modifier.width(8.dp))
-                    if (official) ExtPill(stringResource(R.string.extensions_official_badge), androidx.compose.ui.graphics.Color.White, Immersive.Accent)
+                    if (official) ExtPill(stringResource(R.string.extensions_official_badge), Immersive.scheme.onPrimary, Immersive.Accent)
                     else ExtPill(stringResource(R.string.extensions_repo_yours), Warning, Warning.copy(alpha = 0.15f))
                 }
                 Text(repo.url, style = Immersive.Caption.copy(fontFamily = FontFamily.Monospace, fontSize = 10.sp), maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -340,6 +380,7 @@ private fun StoreRow(
     repo: String, e: Catalog.Entry, action: StoreAction, busy: Boolean, registry: Registry,
     onOpen: () -> Unit, onInstall: () -> Unit, onInstalled: () -> Unit, rating: app.myspoti.extensions.Rating? = null, hidden: Boolean = false,
 ) {
+    val installFailures by ExtensionStore.installFailures.collectAsState()
     ImmersiveExtRow(
         onClick = onOpen,
         leading = { ExtIcon(e.id, e.name, iconOf(repo, e), null) },
@@ -353,6 +394,9 @@ private fun StoreRow(
         if (action == StoreAction.INCOMPATIBLE) Text(incompatibleLine(e), style = Immersive.Caption.copy(color = Warning), maxLines = 1, overflow = TextOverflow.Ellipsis)
         else Text(e.description.ifBlank { authorLine(e.author, e.repo) }, style = Immersive.Caption, maxLines = 1, overflow = TextOverflow.Ellipsis)
         incompatibleWith(e, registry)?.let { Text(it, style = Immersive.Caption.copy(color = Warning), maxLines = 1, overflow = TextOverflow.Ellipsis) }
+        installFailures[e.id]?.let {
+            Text(stringResource(R.string.extensions_error, it), style = Immersive.Caption.copy(color = Immersive.Destructive), maxLines = 2, overflow = TextOverflow.Ellipsis)
+        }
         if (e.repo != null) RatingLine(rating, hidden)
         ActionIcons(e.preview().asks())
     }

@@ -7,7 +7,6 @@
 package com.music.spotui.ui.immersive.screens
 
 import com.music.spotui.ui.immersive.shell.immersiveHazeSource
-import com.music.spotui.ui.immersive.shell.immersiveChromeScroll
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.VisibilityThreshold
@@ -51,6 +50,13 @@ import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.PushPin
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.SwapVert
+import androidx.compose.material.icons.rounded.ChevronRight
+import androidx.compose.material.icons.rounded.LibraryMusic
+import androidx.compose.material.icons.rounded.QueueMusic
+import androidx.compose.material.icons.rounded.Person
+import androidx.compose.material.icons.rounded.Album
+import androidx.compose.material.icons.rounded.Podcasts
+import androidx.compose.material.icons.rounded.MusicNote
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -218,7 +224,7 @@ fun ImmersiveLibraryScreen(navController: NavController) {
     val chipError = if (showsFailed) stringResource(R.string.library_podcasts_error) else null
     val retry: () -> Unit = { if (showsFailed) vm.loadFollowedShows(); if (entries !is Response.Success) vm.load() }
 
-    val title = stringResource(R.string.navigationbar_musicappitems_yourlibrary_title)
+    val title = stringResource(R.string.immersive_library_title)
     val listState = rememberLazyListState()
     val gridState = rememberLazyGridState()
     val header: @Composable () -> Unit = {
@@ -235,6 +241,10 @@ fun ImmersiveLibraryScreen(navController: NavController) {
             onQuery = { searchQuery = it },
             kind = kind,
             onKind = { kind = LibraryChips.toggle(kind, it) },
+            recent = if (kind == LibraryChip.ALL && searchQuery.isBlank()) allEntries.asSequence()
+                .filter { !it.isFolder && it.addedAt.isNotBlank() }
+                .sortedByDescending { it.addedAt }.take(4).toList() else emptyList(),
+            onOpenRecent = { openLibraryEntry(it, navController) },
         )
     }
     val avatar = (account as? Response.Success)?.data
@@ -404,6 +414,8 @@ private fun LibraryHeader(
     onQuery: (String) -> Unit,
     kind: LibraryChip,
     onKind: (LibraryChip) -> Unit,
+    recent: List<LibraryEntry>,
+    onOpenRecent: (LibraryEntry) -> Unit,
 ) {
     Column {
         // The title itself scrolls the list to its top.
@@ -412,6 +424,64 @@ private fun LibraryHeader(
                 TabReselect.emit(Routes.Library.route)
             },
         ) { ImmersiveLargeTitle(title) }
+        AnimatedVisibility(
+            visible = searchActive,
+            enter = fadeIn() + expandVertically(),
+            exit = fadeOut() + shrinkVertically(),
+        ) {
+            ImmersiveSearchField(
+                query = query,
+                onQueryChange = onQuery,
+                onSubmit = {},
+                placeholder = stringResource(R.string.library_search_text_hint),
+                modifier = Modifier.padding(horizontal = Immersive.Gutter).padding(top = 4.dp, bottom = 4.dp),
+            )
+        }
+        Column(Modifier.padding(horizontal = Immersive.Gutter)) {
+            LibraryChipLabels.forEach { (k, label) ->
+                Row(
+                    modifier = Modifier.fillMaxWidth().immersiveClickable(onClick = { onKind(k) }).padding(vertical = 14.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(
+                        when (k) {
+                            LibraryChip.PLAYLISTS -> Icons.Rounded.QueueMusic
+                            LibraryChip.BY_ME -> Icons.Rounded.Person
+                            LibraryChip.ARTISTS -> Icons.Rounded.Person
+                            LibraryChip.ALBUMS -> Icons.Rounded.Album
+                            LibraryChip.PODCASTS -> Icons.Rounded.Podcasts
+                            LibraryChip.SONGS -> Icons.Rounded.MusicNote
+                            LibraryChip.ALL -> Icons.Rounded.LibraryMusic
+                        },
+                        contentDescription = null, tint = Immersive.Text, modifier = Modifier.size(22.dp),
+                    )
+                    Text(stringResource(label), style = Immersive.Body.copy(color = if (k == kind) Immersive.Accent else Immersive.Text),
+                        modifier = Modifier.weight(1f).padding(start = 14.dp))
+                    Icon(Icons.Rounded.ChevronRight, contentDescription = null, tint = Immersive.TextTertiary, modifier = Modifier.size(20.dp))
+                }
+                Box(Modifier.fillMaxWidth().padding(start = 36.dp).height(0.5.dp).background(Immersive.Separator))
+            }
+        }
+        if (recent.isNotEmpty()) {
+            SectionHeader(stringResource(R.string.library_sort_recently_added))
+            Column(Modifier.padding(horizontal = Immersive.Gutter), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                recent.chunked(2).forEach { row ->
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        row.forEach { entry ->
+                            Column(Modifier.weight(1f).immersiveClickable(onClick = { onOpenRecent(entry) })) {
+                                LibraryEntryCover(entry, Modifier.fillMaxWidth().aspectRatio(1f).clip(Immersive.CoverMedium))
+                                Text(entry.name, style = Immersive.Body.copy(fontWeight = FontWeight.Medium),
+                                    maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 6.dp))
+                                if (entry.subtitle.isNotBlank()) Text(entry.subtitle, style = Immersive.Subhead,
+                                    maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            }
+                        }
+                        if (row.size == 1) Spacer(Modifier.weight(1f))
+                    }
+                }
+            }
+            Spacer(Modifier.height(24.dp))
+        }
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.fillMaxWidth().padding(horizontal = Immersive.Gutter).padding(bottom = 2.dp),
@@ -438,24 +508,6 @@ private fun LibraryHeader(
                     .clickable(onClick = onToggleGrid)
                     .padding(7.dp),
             )
-        }
-        AnimatedVisibility(
-            visible = searchActive,
-            enter = fadeIn() + expandVertically(),
-            exit = fadeOut() + shrinkVertically(),
-        ) {
-            ImmersiveSearchField(
-                query = query,
-                onQueryChange = onQuery,
-                onSubmit = {},
-                placeholder = stringResource(R.string.library_search_text_hint),
-                modifier = Modifier.padding(horizontal = Immersive.Gutter).padding(top = 4.dp, bottom = 4.dp),
-            )
-        }
-        ImmersiveChipRow {
-            LibraryChipLabels.forEach { (k, label) ->
-                ImmersiveChip(stringResource(label), selected = k == kind) { onKind(k) }
-            }
         }
     }
 }
@@ -577,7 +629,7 @@ internal fun LibraryList(
         LazyColumn(
             state = listState,
             contentPadding = PaddingValues(top = immersiveTopContentPadding(), bottom = Immersive.BottomChrome),
-            modifier = Modifier.fillMaxSize().immersiveHazeSource().immersiveChromeScroll(),
+            modifier = Modifier.fillMaxSize().immersiveHazeSource(),
         ) {
             item(key = "library:header") { header() }
             if (loading) {
@@ -642,7 +694,7 @@ internal fun LibraryList(
                         modifier = Modifier
                             .fillMaxWidth()
                             .immersiveClickable(onClick = { navController.navigate(artistRoute(artist.name, artist.id)) }, pressedScale = 0.98f)
-                            .padding(horizontal = Immersive.Gutter, vertical = 4.dp),
+                            .padding(horizontal = Immersive.Gutter, vertical = 8.dp),
                     ) {
                         ImmersiveCover(artist.coverUri, Modifier.size(52.dp), CircleShape)
                         Column(Modifier.padding(start = 14.dp)) {
@@ -680,7 +732,7 @@ private fun LibraryEntryRow(entry: LibraryEntry, onMenu: () -> Unit, modifier: M
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = Immersive.Gutter, vertical = 4.dp),
+            .padding(horizontal = Immersive.Gutter, vertical = 8.dp),
     ) {
         val shape = Immersive.CoverSmall
         LibraryEntryCover(
@@ -791,7 +843,7 @@ private fun LibraryGrid(
     LazyVerticalGrid(
         state = gridState,
         columns = GridCells.Fixed(com.music.spotui.ui.components.windowSize().columns(3, 170.dp)),
-        modifier = Modifier.fillMaxSize().immersiveHazeSource().immersiveChromeScroll(),
+        modifier = Modifier.fillMaxSize().immersiveHazeSource(),
         contentPadding = PaddingValues(
             start = Immersive.Gutter, end = Immersive.Gutter,
             top = immersiveTopContentPadding(), bottom = Immersive.BottomChrome,

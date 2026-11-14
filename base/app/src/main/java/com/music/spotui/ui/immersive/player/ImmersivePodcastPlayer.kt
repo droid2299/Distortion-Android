@@ -40,7 +40,10 @@ import androidx.compose.material.icons.rounded.RotateRight
 import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material.icons.rounded.StarBorder
 import androidx.compose.material.icons.rounded.Timer
+import androidx.compose.material3.AssistChip
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FilledTonalIconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -59,8 +62,6 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -140,8 +141,7 @@ fun ImmersivePodcastPlayer(navController: NavController) {
     var showQuality by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
 
-    val palette = rememberArtworkColors(state.coverUrl.takeIf { it.isNotBlank() })
-    val tint by animateColorAsState(playerTintOf(palette), tween(com.music.spotui.ui.immersive.motion.ImmersiveMotion.TINT_MS), label = "podcastTint")
+    val tint = Immersive.Text
     val reduce = rememberReduceMotion()
     val pauseScale = rememberPauseScale(state.playing)
 
@@ -273,10 +273,9 @@ fun ImmersivePodcastPlayer(navController: NavController) {
         Spacer(Modifier.height(18.dp))
     }
 
-    BoxWithConstraints(Modifier.fillMaxSize().background(Color.Black)) {
+    BoxWithConstraints(Modifier.fillMaxSize().background(Immersive.scheme.surfaceContainerLow)) {
         // Wider than tall (a phone on its side, a tablet): the cover beside the controls.
         val landscape = maxWidth > maxHeight || com.music.spotui.ui.components.windowSize().twoPane
-        MeshGradientBackground(palette = palette, trackKey = state.coverUrl)
         CompositionLocalProvider(LocalPlayerTint provides tint) {
             if (landscape) Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
                 // The handle: always hands its drags to the sheet.
@@ -420,7 +419,6 @@ fun ImmersivePodcastPlayer(navController: NavController) {
     }
 }
 
-/** 15 s back, play/pause, 15 s forward: bare glyphs, no backgrounds, as the music player's transport. */
 @Composable
 private fun PodcastTransportRow(
     isPlaying: Boolean,
@@ -429,7 +427,7 @@ private fun PodcastTransportRow(
     onPlayPause: () -> Unit,
     onForward: () -> Unit,
 ) {
-    val playTouch = 92.dp
+    val playTouch = 76.dp
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceAround,
@@ -439,99 +437,54 @@ private fun PodcastTransportRow(
         if (isLoading) {
             // Same footprint as the play/pause target: a smaller box would shunt everything below it.
             Box(Modifier.size(playTouch), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(color = Color.White, strokeWidth = 3.dp, modifier = Modifier.size(38.dp))
+                CircularProgressIndicator(color = Immersive.Accent, strokeWidth = 3.dp, modifier = Modifier.size(38.dp))
             }
         } else {
-            TransportButton(
+            TransportGlyph(
                 icon = if (isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
                 contentDescription = stringResource(if (isPlaying) R.string.immersive_player_pause else R.string.immersive_player_play),
-                size = 88.dp,
+                size = 36.dp,
                 touchSize = playTouch,
                 onClick = onPlayPause,
+                prominent = true,
             )
         }
         SkipButton(back = false, onClick = onForward)
     }
 }
 
-/** The circular arrow with the number inside, as the official player draws a 15 s skip. */
 @Composable
 private fun SkipButton(back: Boolean, onClick: () -> Unit) {
-    Box(contentAlignment = Alignment.Center) {
-        TransportButton(
-            icon = if (back) Icons.Rounded.RotateLeft else Icons.Rounded.RotateRight,
-            contentDescription = stringResource(if (back) R.string.player_back_15 else R.string.player_forward_15),
-            size = 56.dp,
-            touchSize = 72.dp,
-            onClick = onClick,
-        )
-        Text(
-            text = "15",
-            style = Immersive.Caption.copy(fontSize = 12.sp, lineHeight = 12.sp, fontWeight = FontWeight.Bold),
-            color = Color.White,
-            textAlign = TextAlign.Center,
-        )
-    }
-}
-
-/** A transport glyph: the touch target takes the press, the icon is never clipped. */
-@Composable
-private fun TransportButton(icon: ImageVector, contentDescription: String, size: androidx.compose.ui.unit.Dp, touchSize: androidx.compose.ui.unit.Dp, onClick: () -> Unit) {
-    Box(
-        modifier = Modifier
-            .size(touchSize)
-            .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) {
-                Haptics.click()
-                onClick()
-            },
-        contentAlignment = Alignment.Center,
+    FilledTonalIconButton(
+        onClick = {
+            Haptics.click()
+            onClick()
+        },
+        modifier = Modifier.size(64.dp),
     ) {
-        // Play and pause swap as in the music player.
-        com.music.spotui.ui.components.GlyphSwap(icon) { Icon(it, contentDescription = contentDescription, tint = Color.White, modifier = Modifier.size(size)) }
+        Box(contentAlignment = Alignment.Center) {
+            Icon(
+                imageVector = if (back) Icons.Rounded.RotateLeft else Icons.Rounded.RotateRight,
+                contentDescription = stringResource(if (back) R.string.player_back_15 else R.string.player_forward_15),
+                modifier = Modifier.size(40.dp),
+            )
+            Text("15", style = MaterialTheme.typography.labelSmall)
+        }
     }
 }
 
-/** The speed, in a capsule: a tap opens the speeds. */
 @Composable
 private fun SpeedChip(label: String, onClick: () -> Unit) {
-    Box(
-        contentAlignment = Alignment.Center,
-        modifier = Modifier
-            .height(BOTTOM_GLYPH_SIZE)
-            .clip(CircleShape)
-            .background(LocalPlayerTint.current.copy(alpha = 0.12f))
-            .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) {
-                Haptics.click()
-                onClick()
-            }
-            .padding(horizontal = 16.dp),
-    ) {
-        Text(label, style = Immersive.Subhead.copy(fontWeight = FontWeight.Bold), color = LocalPlayerTint.current, maxLines = 1)
-    }
+    AssistChip(
+        onClick = {
+            Haptics.click()
+            onClick()
+        },
+        label = { Text(label, maxLines = 1) },
+    )
 }
 
-private val BOTTOM_GLYPH_SIZE = 44.dp
-
-/** One of the bottom row's round glyphs; lit while what it controls is on (a sleep timer, another device). */
 @Composable
 private fun BottomGlyph(icon: ImageVector, contentDescription: String, onClick: () -> Unit, highlighted: Boolean = false) {
-    Box(
-        modifier = Modifier
-            .size(BOTTOM_GLYPH_SIZE)
-            .clip(CircleShape)
-            .background(if (highlighted) LocalPlayerTint.current.copy(alpha = 0.20f) else Color.Transparent)
-            .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) {
-                Haptics.click()
-                onClick()
-            }
-            .semantics { this.contentDescription = contentDescription },
-        contentAlignment = Alignment.Center,
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = LocalPlayerTint.current.copy(alpha = if (highlighted) 1f else 0.75f),
-            modifier = Modifier.size(26.dp),
-        )
-    }
+    CircleGlyph(icon = icon, contentDescription = contentDescription, onClick = onClick, active = highlighted)
 }

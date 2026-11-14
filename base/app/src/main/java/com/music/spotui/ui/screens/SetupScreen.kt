@@ -92,7 +92,7 @@ object Setup {
     private const val EXTENSIONS_KEY = "SetupExtensionsSeen"
     /** The permissions step, the sound quality one, the look one or the extensions one (each new step is shown once after the update too). */
     fun needed(context: Context) = !permissionsDone(context) || !com.music.spotui.data.preferences.isQualityChosen(context) ||
-        !com.music.spotui.data.preferences.LookPref.isChosen(context) || !extensionsSeen(context)
+        !extensionsSeen(context)
     fun permissionsDone(context: Context) = prefs(context).getBoolean(KEY, false)
     fun done(context: Context) = prefs(context).edit().putBoolean(KEY, true).apply()
     fun extensionsSeen(context: Context) = prefs(context).getBoolean(EXTENSIONS_KEY, false)
@@ -114,11 +114,10 @@ fun SetupScreen(onDone: () -> Unit) {
     // done before an update. Every step after the look is drawn in the look chosen there.
     val needPerms = remember { !Setup.permissionsDone(context) }
     val needQuality = remember { !com.music.spotui.data.preferences.isQualityChosen(context) }
-    val needLook = remember { !com.music.spotui.data.preferences.LookPref.isChosen(context) }
     val needExtensions = remember { !Setup.extensionsSeen(context) }
     val order = remember {
         listOfNotNull(
-            STEP_INTRO.takeIf { needPerms }, STEP_LOOK.takeIf { needLook }, STEP_QUALITY.takeIf { needQuality },
+            STEP_INTRO.takeIf { needPerms }, STEP_QUALITY.takeIf { needQuality },
             STEP_PERMISSIONS.takeIf { needPerms }, STEP_EXTENSIONS.takeIf { needExtensions },
         ).ifEmpty { listOf(STEP_PERMISSIONS) }
     }
@@ -130,13 +129,6 @@ fun SetupScreen(onDone: () -> Unit) {
     androidx.activity.compose.BackHandler(enabled = index > 0) { index-- }
     val immersive = isImmersive()
     Box(Modifier.fillMaxSize().background(if (immersive) Immersive.Page else AppBackground)) {
-        // The page takes the look picked in the look step, live.
-        androidx.compose.animation.Crossfade(immersive, animationSpec = tween(350), label = "setupBackdrop") { imm ->
-            if (imm) Box(Modifier.fillMaxSize()) {
-                com.music.spotui.ui.look.MeshGradientBackground(com.music.spotui.ui.look.LookMeshPalettes.first(), animated = false)
-                Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.35f)))
-            } else Glow(Modifier.fillMaxSize(), alpha = 0.16f)
-        }
         Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
             // Several steps to go through: dots say where the user is.
             if (steps > 1) StepDots(count = steps, current = index, Modifier.padding(start = 20.dp, top = 16.dp))
@@ -157,10 +149,6 @@ fun SetupScreen(onDone: () -> Unit) {
                         com.music.spotui.data.preferences.setQualityChosen(context)
                         next()
                     })
-                    STEP_LOOK -> com.music.spotui.ui.look.LookStep(onNext = {
-                        com.music.spotui.data.preferences.LookPref.setChosen(context)
-                        next()
-                    })
                     STEP_EXTENSIONS -> ExtensionsStep(
                         onBrowse = {
                             Setup.setExtensionsSeen(context)
@@ -177,7 +165,6 @@ fun SetupScreen(onDone: () -> Unit) {
 }
 
 private const val STEP_INTRO = 0
-private const val STEP_LOOK = 1
 private const val STEP_QUALITY = 2
 private const val STEP_EXTENSIONS = 3
 private const val STEP_PERMISSIONS = 4
@@ -189,7 +176,7 @@ private fun StepDots(count: Int, current: Int, modifier: Modifier = Modifier) {
         for (i in 0 until count) {
             val reduce = com.music.spotui.ui.look.rememberReduceMotion()
             val w by animateDpAsState(if (i == current) 22.dp else 8.dp, if (reduce) snap() else tween(350), label = "dot")
-            val on = if (isImmersive()) Color.White else AppAccent
+            val on = if (isImmersive()) Immersive.Accent else AppAccent
             val c by animateColorAsState(if (i == current) on else AppText.copy(alpha = 0.25f), if (reduce) snap() else tween(350), label = "dotColor")
             Box(Modifier.height(6.dp).width(w).clip(RoundedCornerShape(50)).background(c))
         }
@@ -318,7 +305,7 @@ private fun SetupTitle(text: String, modifier: Modifier = Modifier) {
 
 @Composable
 private fun SetupSubtitle(text: String, modifier: Modifier = Modifier, size: androidx.compose.ui.unit.TextUnit = 14.sp) {
-    if (isImmersive()) Text(text, style = Immersive.Subhead.copy(fontSize = size, color = Color.White.copy(alpha = 0.72f)), modifier = modifier)
+    if (isImmersive()) Text(text, style = Immersive.Subhead.copy(fontSize = size, color = Immersive.TextSecondary), modifier = modifier)
     else Text(text, color = AppMuted, fontSize = size, modifier = modifier)
 }
 
@@ -329,7 +316,7 @@ private fun SetupButton(text: String, onClick: () -> Unit, modifier: Modifier = 
     Button(
         onClick = onClick,
         shape = if (immersive) Immersive.Button else ButtonDefaults.shape,
-        colors = ButtonDefaults.buttonColors(containerColor = if (immersive) Color.White else AppAccent, contentColor = Color.Black),
+        colors = ButtonDefaults.buttonColors(containerColor = Immersive.Accent, contentColor = Immersive.scheme.onPrimary),
         modifier = modifier,
     ) {
         Text(text, fontFamily = if (immersive) com.music.spotui.ui.look.ImmersiveSans else null, fontSize = 16.sp,
@@ -340,7 +327,7 @@ private fun SetupButton(text: String, onClick: () -> Unit, modifier: Modifier = 
 @Composable
 private fun SetupLinkButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
     TextButton(onClick = onClick, modifier = modifier) {
-        Text(text, color = if (isImmersive()) Color.White else AppText, fontSize = 15.sp, fontWeight = FontWeight.SemiBold,
+        Text(text, color = if (isImmersive()) Immersive.Text else AppText, fontSize = 15.sp, fontWeight = FontWeight.SemiBold,
             fontFamily = if (isImmersive()) com.music.spotui.ui.look.ImmersiveSans else null)
     }
 }

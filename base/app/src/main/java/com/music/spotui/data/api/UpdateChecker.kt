@@ -135,12 +135,12 @@ object UpdateChecker {
     internal fun apkAsset(release: JSONObject, beta: Boolean = isBeta, abis: List<String> = deviceAbis): String {
         val assets = release.optJSONArray("assets") ?: return ""
         val version = release.optString("tag_name").removePrefix("v")
-        val named = "${if (beta) "Myspoti-Beta" else "Myspoti"}-$version"
-        val channel = "myspoti-${if (beta) "beta" else "stable"}-$version"
+        val named = "${if (beta) "Distortion-Beta" else "Distortion"}-$version"
+        val channel = "distortion-${if (beta) "beta" else "stable"}-$version"
         val byName = (0 until assets.length()).map { assets.getJSONObject(it) }.associateBy { it.optString("name") }
         val ours = abis.filter { it in RELEASE_ABIS }
         val want = ours.map { "$named-${RELEASE_ABIS.getValue(it)}.apk" } + ours.map { "$channel-$it.apk" } +
-            listOf("$channel.apk", "myspoti-$version.apk")
+            listOf("$channel.apk", "distortion-$version.apk")
         return want.firstNotNullOfOrNull { byName[it] }?.optString("browser_download_url").orEmpty()
     }
 

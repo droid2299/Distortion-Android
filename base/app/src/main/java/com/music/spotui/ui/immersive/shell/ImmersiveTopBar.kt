@@ -82,25 +82,7 @@ private val TitleGap = 8.dp
 /** The back and action targets: a 44 dp circle, as the floating controls of the official bars. */
 private val BarControlSize = 44.dp
 
-/** The same controls while the chrome is minimized ([LocalImmersiveChrome]): small glass pills. */
-private val BarControlSizeMinimized = 38.dp
-
-/**
- * The size of a top bar control right now: 44 dp, shrinking to small pills on a spring while the
- * chrome is minimized. Read by [ImmersiveBarAction]; a custom action in the bar can read it too.
- */
 val LocalBarControlSize = compositionLocalOf { BarControlSize }
-
-@Composable
-private fun rememberBarControlSize(): Dp {
-    val minimized = LocalImmersiveChrome.current?.minimized == true
-    val size by animateDpAsState(
-        targetValue = if (minimized) BarControlSizeMinimized else BarControlSize,
-        animationSpec = ImmersiveMotion.chromeSpring(rememberReduceMotion()),
-        label = "immersiveBarControlSize",
-    )
-    return size
-}
 
 /**
  * How far down the window the bar actually ends: the status bar inset it is pinned under, plus
@@ -156,7 +138,7 @@ fun ImmersiveTopBar(
     actions: (@Composable RowScope.() -> Unit)? = null,
 ) {
     val page = LocalImmersiveBackdrop.current
-    val controlSize = rememberBarControlSize()
+    val controlSize = BarControlSize
     val titleShown by remember(collapse) { derivedStateOf { collapse() >= 0.99f } }
     Box(modifier = modifier.fillMaxWidth().holdsTouches()) {
         // The glass panel hanging from the top (rounded bottom corners), fading in with the collapse.
@@ -407,7 +389,7 @@ internal fun ImmersiveTopGlass(visible: () -> Float, modifier: Modifier, hazeSta
         page != null && hazeState != null && hazeState === LocalImmersiveHaze.current ->
             Modifier.immersiveLiquidGlass(shape, page)
         hazeState != null -> Modifier.clip(shape).immersiveFrost(hazeState, tint = Immersive.Page.copy(alpha = 0.55f))
-        else -> Modifier.background(Immersive.Page.copy(alpha = 0.94f), shape)
+        else -> Modifier.background(Immersive.scheme.surfaceContainer, shape)
     }
     Box(
         modifier
@@ -455,7 +437,7 @@ fun ImmersiveFloatingHeader(
     collapse: () -> Float = { 1f },
     trailing: (@Composable RowScope.() -> Unit)? = null,
 ) {
-    val controlSize = rememberBarControlSize()
+    val controlSize = BarControlSize
     Box(modifier.fillMaxWidth().holdsTouches()) {
         ImmersiveTopGlass(collapse, Modifier.matchParentSize(), hazeState)
         Row(

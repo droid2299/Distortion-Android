@@ -37,7 +37,8 @@ data class ExtensionStatus(val live: Boolean, val detail: String? = null, val an
          * [unknown] (a busy phone or a slow start says nothing about the source).
          */
         fun probe(rt: ExtensionRuntime, timeoutMs: Long): ExtensionStatus = try {
-            parse(rt.call(Hook.STATUS, "{}", timeoutMs))
+            val response = rt.call(Hook.STATUS, "{}", timeoutMs)
+            if (response == null) unknown(null) else parse(response)
         } catch (e: ExtensionException) {
             unknown(e.message)
         }

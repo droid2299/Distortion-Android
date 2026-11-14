@@ -602,7 +602,6 @@ fun LibraryItemSheet(entry: LibraryEntry, onDismiss: () -> Unit, onChanged: () -
         LibraryEdits.run(context, edit, write = { block(); LibraryFolders.changed() })
         onDismiss()
     }
-    val api = app.myspoti.host.android.MyspotiRuntime.api
     com.music.spotui.ui.components.LookSheet(onDismissRequest = onDismiss, containerColor = SheetColor) {
         Column(Modifier.navigationBarsPadding().padding(bottom = 12.dp)) {
             Text(entry.name, color = AppText, fontSize = 18.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
@@ -618,7 +617,7 @@ fun LibraryItemSheet(entry: LibraryEntry, onDismiss: () -> Unit, onChanged: () -
                     }
                 }
                 SheetRow(Icons.Outlined.PushPin, stringResource(if (entry.pinned) R.string.library_unpin else R.string.library_pin)) {
-                    act(LibraryEdits.Pin(entry.uri, !entry.pinned)) { if (entry.pinned) api.library.unpin(entry.uri) else api.library.pin(entry.uri) }
+                    act(LibraryEdits.Pin(entry.uri, !entry.pinned)) { if (entry.pinned) Graph.library.unpin(entry.uri) else Graph.library.pin(entry.uri) }
                 }
                 if (entry.isPlaylist || entry.isFolder) SheetRow(Icons.Outlined.DriveFileMove, stringResource(R.string.library_move_to_folder)) { moving = true }
                 // A saved playlist or album: all its songs into another playlist of yours.
@@ -627,12 +626,12 @@ fun LibraryItemSheet(entry: LibraryEntry, onDismiss: () -> Unit, onChanged: () -
                 if (entry.isFolder) SheetRow(Icons.Outlined.Delete, stringResource(R.string.folder_delete)) { deleting = true }
             } else {
                 val folders by androidx.compose.runtime.produceState<List<app.myspoti.api.LibraryItem>?>(null) {
-                    value = runCatching { api.library.items(folderUri = null, limit = 200).items.filter { it.kind == app.myspoti.api.MediaKind.FOLDER && it.uri != entry.uri } }
+                    value = runCatching { Graph.library.items(folderUri = null, limit = 200).items.filter { it.kind == app.myspoti.api.MediaKind.FOLDER && it.uri != entry.uri } }
                         .getOrDefault(emptyList())
                 }
-                SheetRow(Icons.Outlined.Home, stringResource(R.string.library_top_level)) { act(LibraryEdits.Move(entry, null)) { api.library.moveToFolder(entry.uri, null) } }
+                SheetRow(Icons.Outlined.Home, stringResource(R.string.library_top_level)) { act(LibraryEdits.Move(entry, null)) { Graph.library.moveToFolder(entry.uri, null) } }
                 folders?.forEach { f ->
-                    SheetRow(Icons.Outlined.Folder, f.name) { act(LibraryEdits.Move(entry, f.uri)) { api.library.moveToFolder(entry.uri, f.uri) } }
+                    SheetRow(Icons.Outlined.Folder, f.name) { act(LibraryEdits.Move(entry, f.uri)) { Graph.library.moveToFolder(entry.uri, f.uri) } }
                 }
             }
         }
@@ -643,7 +642,7 @@ fun LibraryItemSheet(entry: LibraryEntry, onDismiss: () -> Unit, onChanged: () -
         containerColor = SheetColor,
         text = { Text(stringResource(R.string.folder_delete_confirm, entry.name), color = AppText) },
         confirmButton = {
-            androidx.compose.material3.TextButton(onClick = { deleting = false; act(LibraryEdits.Remove(entry.uri)) { api.library.deleteFolder(entry.uri) } }) {
+            androidx.compose.material3.TextButton(onClick = { deleting = false; act(LibraryEdits.Remove(entry.uri)) { Graph.library.deleteFolder(entry.uri) } }) {
                 Text(stringResource(R.string.actions_picker_delete), color = AppDestructive)
             }
         },

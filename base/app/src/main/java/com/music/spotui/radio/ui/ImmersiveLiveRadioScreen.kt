@@ -2,6 +2,11 @@ package com.music.spotui.radio.ui
 
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
@@ -21,6 +26,7 @@ import com.music.spotui.radio.RadioPlayer
 import com.music.spotui.radio.RadioStation
 import com.music.spotui.ui.immersive.Immersive
 import com.music.spotui.ui.immersive.components.ImmersiveListRow
+import com.music.spotui.ui.immersive.components.ImmersiveShelfCard
 import com.music.spotui.ui.immersive.components.ImmersiveMessageState
 import com.music.spotui.ui.immersive.components.ImmersiveSearchField
 import com.music.spotui.ui.immersive.components.SectionHeader
@@ -40,9 +46,9 @@ fun ImmersiveLiveRadioScreen(navController: NavController) {
     val state = rememberLiveRadioState()
     val favorites = RadioFavoritesStore.list()
     ImmersivePage(
-        title = stringResource(R.string.live_radio_title),
-        subtitle = stringResource(R.string.live_radio_subtitle),
+        title = stringResource(R.string.bottom_tab_radio),
         onBack = { navController.popBackStack() },
+        rootTab = true,
     ) {
         item(key = "radio:search") {
             ImmersiveSearchField(
@@ -60,6 +66,7 @@ fun ImmersiveLiveRadioScreen(navController: NavController) {
             item(key = "radio:favorites") { SectionHeader(stringResource(R.string.live_radio_favorites)) }
             items(favorites, key = { "fav:" + it.stationUuid }) { StationRow(it) }
         }
+        val results = state.results
         item(key = "radio:section") {
             SectionHeader(
                 when {
@@ -69,9 +76,26 @@ fun ImmersiveLiveRadioScreen(navController: NavController) {
                 },
             )
         }
+        val featured = if (state.browsing) results.orEmpty().filter { it.favicon.startsWith("https://") }.take(8) else emptyList()
+        if (featured.isNotEmpty()) item(key = "radio:featured") {
+            LazyRow(
+                contentPadding = PaddingValues(horizontal = Immersive.Gutter),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier.padding(bottom = 16.dp),
+            ) {
+                itemsIndexed(featured, key = { index, station -> "featured:${station.stationUuid}:$index" }) { _, station ->
+                    ImmersiveShelfCard(
+                        title = station.name,
+                        subtitle = stationSubtitle(station),
+                        imageUrl = station.favicon,
+                        onClick = { RadioPlayer.play(station) },
+                        modifier = Modifier.width(132.dp),
+                    )
+                }
+            }
+        }
         // Said even over the curated picks: what follows them is missing.
         if (state.error) item(key = "radio:error") { ImmersiveMessageState(stringResource(R.string.live_radio_error)) }
-        val results = state.results
         when {
             state.loading && results == null -> immersiveSongListSkeleton(keyPrefix = "radio:skeleton")
             results?.isEmpty() == true && !state.error -> item(key = "radio:empty") {

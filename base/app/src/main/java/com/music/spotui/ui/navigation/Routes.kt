@@ -10,9 +10,9 @@ sealed class Routes(
     /** Official label (per system language) for the bottom navigation, 0 = none. */
     @androidx.annotation.StringRes val labelRes: Int = 0,
 ) {
-    object Home : Routes(icon = R.drawable.ic_home_filled, label = "Accueil", route = "home", labelRes = R.string.navigationbar_musicappitems_home_title)
-    object Search : Routes(icon = R.drawable.ic_search_big, label = "Rechercher", route = "search", labelRes = R.string.navigationbar_musicappitems_search_title)
-    object Library : Routes(icon = R.drawable.ic_library_big, label = "Bibliothèque", route = "library", labelRes = R.string.navigationbar_musicappitems_yourlibrary_title)
+    object Home : Routes(icon = R.drawable.ic_tab_home, label = "Accueil", route = "home", labelRes = R.string.navigationbar_musicappitems_home_title)
+    object Search : Routes(icon = R.drawable.ic_tab_search, label = "Rechercher", route = "search", labelRes = R.string.navigationbar_musicappitems_search_title)
+    object Library : Routes(icon = R.drawable.ic_tab_library, label = "Bibliothèque", route = "library", labelRes = R.string.immersive_library_title)
     object Album : Routes(0, "Album", "album")
     object Player : Routes(0, "Player", "player")
     object Artist : Routes(0, "Artist", "artist")
@@ -24,14 +24,14 @@ sealed class Routes(
     object Liked : Routes(0, "Liked", "liked")
     object LocalFiles : Routes(0, "LocalFiles", "localfiles")
     /** Live Radio (radio/ module): search radio-browser.info, favorites, playback. */
-    object LiveRadio : Routes(0, "LiveRadio", "liveradio")
+    object LiveRadio : Routes(R.drawable.ic_tab_radio, "Radio", "liveradio", R.string.bottom_tab_radio)
     object Downloads : Routes(0, "Downloads", "downloads")
     object HiddenSongs : Routes(0, "HiddenSongs", "hiddensongs")
     object Equalizer : Routes(0, "Equalizer", "equalizer")
     object Folder : Routes(0, "Folder", "folder")
     object LocalPlaylist : Routes(0, "LocalPlaylist", "localplaylist")
     object Category : Routes(0, "Category", "category")
-    object NewReleases : Routes(0, "NewReleases", "newreleases")
+    object NewReleases : Routes(R.drawable.ic_tab_new, "New", "newreleases", R.string.bottom_tab_new)
     object Episodes : Routes(0, "Episodes", "episodes")
     object NewEpisodes : Routes(0, "NewEpisodes", "newepisodes")
     object Recap : Routes(0, "Recap", "recap")

@@ -6,7 +6,6 @@
 package com.music.spotui.ui.immersive.screens
 
 import com.music.spotui.ui.immersive.shell.immersiveHazeSource
-import com.music.spotui.ui.immersive.shell.immersiveChromeScroll
 import android.content.Context
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -182,7 +181,7 @@ fun ImmersiveSearchScreen(navController: NavController) {
         LazyColumn(
             state = listState,
             contentPadding = PaddingValues(top = immersiveTopContentPadding(), bottom = Immersive.BottomChrome),
-            modifier = Modifier.fillMaxSize().immersiveHazeSource().immersiveChromeScroll(),
+            modifier = Modifier.fillMaxSize().immersiveHazeSource(),
         ) {
             immersiveLargeTitle(title)
             stickyHeader(key = "search:field") {

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="widget_surface">@android:color/system_accent2_800</color>
+    <color name="widget_title">@android:color/system_accent2_50</color>
+    <color name="widget_artist">@android:color/system_accent2_200</color>
+    <color name="widget_controls">@android:color/system_accent1_100</color>
+</resources>

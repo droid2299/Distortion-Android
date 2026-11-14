@@ -67,13 +67,6 @@ internal fun ImmersiveSwitch(checked: Boolean, onChecked: (Boolean) -> Unit) {
     Switch(
         checked = checked,
         onCheckedChange = onChecked,
-        colors = SwitchDefaults.colors(
-            checkedThumbColor = Color.White,
-            checkedTrackColor = Immersive.Accent,
-            uncheckedThumbColor = Color.White,
-            uncheckedTrackColor = Color(0xFF3A3A3F),
-            uncheckedBorderColor = Color.Transparent,
-        ),
     )
 }
 
@@ -139,7 +132,7 @@ internal fun ImmersiveStateButton(
         return
     }
     val (label, fill, content) = when (action) {
-        StoreAction.INSTALL -> Triple(R.string.extensions_install, Immersive.Accent, Color.White)
+        StoreAction.INSTALL -> Triple(R.string.extensions_install, Immersive.Accent, Immersive.scheme.onPrimary)
         StoreAction.UPDATE -> Triple(R.string.extensions_update, Immersive.Accent.copy(alpha = 0.22f), Immersive.Accent)
         StoreAction.INSTALLED -> Triple(R.string.extensions_up_to_date, Immersive.Raised, Immersive.TextSecondary)
         StoreAction.INCOMPATIBLE -> Triple(R.string.extensions_install, Immersive.Raised, Immersive.TextTertiary)

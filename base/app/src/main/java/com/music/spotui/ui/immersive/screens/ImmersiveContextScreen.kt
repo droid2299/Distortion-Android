@@ -10,6 +10,8 @@ import android.widget.Toast
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -126,7 +128,6 @@ import com.music.spotui.ui.immersive.components.immersiveDetailSkeleton
 import com.music.spotui.ui.immersive.shell.ImmersiveBarAction
 import com.music.spotui.ui.immersive.shell.ImmersiveTopBar
 import com.music.spotui.ui.immersive.shell.immersiveHazeSource
-import com.music.spotui.ui.immersive.shell.immersiveChromeScroll
 import com.music.spotui.ui.immersive.shell.immersiveTopContentPadding
 import com.music.spotui.ui.navigation.albumRoute
 import com.music.spotui.ui.navigation.artistRoute
@@ -238,11 +239,7 @@ private fun ImmersiveContextContent(navController: NavController, vm: ContextVie
     val tapper = rememberTrackTapper()
 
     // The wash behind the header: the cover's second colour, the Classic page's own extraction.
-    var tintTarget by remember { mutableStateOf(Palette.cachedSecond(p.coverUri) ?: Color(0xFF3A3A3A)) }
-    LaunchedEffect(p.coverUri) {
-        if (p.coverUri.isNotBlank()) Palette().extractSecondColorFromCoverUrl(context, p.coverUri) { tintTarget = it }
-    }
-    val tint by animateColorAsState(if (isLiked) LikedTint else tintTarget, tween(350), label = "context tint")
+
 
     var menuSong by remember { mutableStateOf<SongsModel?>(null) }
     // "Find in Liked Songs / in playlist", opened from the top bar.
@@ -382,7 +379,8 @@ private fun ImmersiveContextContent(navController: NavController, vm: ContextVie
     // "Move" is on, as on the Classic page.
     var moving by remember(p.uri) { mutableStateOf(false) }
     val canMove = remember(p, vm.editableContext.value, sort, find) {
-        PlaylistReorder.allowed(p.type, vm.editableContext.value, p.isBlend, sort.isCustom, p.complete, find, p.tracks.map { it.rowUid })
+        p.type == "playlist" && vm.editableContext.value && !p.isBlend && sort.isCustom && p.complete && find.isBlank() &&
+            PlaylistReorder.allowed(p.type, true, false, true, true, find, p.tracks.map { it.rowUid })
     }
     val reordering = moving && canMove
     // The rows and their keys in one derived state: the list re-reads its rows outside composition
@@ -391,7 +389,7 @@ private fun ImmersiveContextContent(navController: NavController, vm: ContextVie
     // their own id, which goes with them wherever they are put.
     val shown by remember(p, find, sort, reordering) {
         derivedStateOf {
-            val found = if (findable) all.filter { matchesFind(find, it.title, it.singer, it.album) } else all
+            val found = if (findable && find.isNotBlank()) all.filter { matchesFind(find, it.title, it.singer, it.album) } else all
             withRowKeys(if (findable) sort.apply(found) else found) { if (reordering) PlaylistReorder.key(it) else it.id.toString() }
         }
     }
@@ -449,7 +447,7 @@ private fun ImmersiveContextContent(navController: NavController, vm: ContextVie
     }
 
     val refreshing by vm.refreshing
-    Box(Modifier.fillMaxSize()) {
+    Box(Modifier.fillMaxSize().background(Immersive.Page)) {
       // Pull down to read the page again, as in the Classic look.
       androidx.compose.material3.pulltorefresh.PullToRefreshBox(
         isRefreshing = refreshing,
@@ -459,13 +457,12 @@ private fun ImmersiveContextContent(navController: NavController, vm: ContextVie
         LazyColumn(
             state = listState,
             contentPadding = PaddingValues(bottom = Immersive.BottomChrome),
-            modifier = Modifier.fillMaxSize().immersiveHazeSource().immersiveChromeScroll(),
+            modifier = Modifier.fillMaxSize().immersiveHazeSource(),
         ) {
             item(key = "header") {
                 ContextHeader(
                     navController = navController,
                     p = p,
-                    tint = tint,
                     sleeve = sleeve,
                     isLiked = isLiked,
                     isThisContext = isThisContext,
@@ -526,7 +523,7 @@ private fun ImmersiveContextContent(navController: NavController, vm: ContextVie
             val (listed, keys) = drag.order?.takeIf { reordering }?.let { o -> o to o.map(PlaylistReorder::key) } ?: shown
             itemsIndexed(listed, key = { i, _ -> keys[i] }) { index, song ->
                 Column(if (reordering) movableRow(drag, song, Immersive.Raised) else Modifier) {
-                    ImmersiveSwipeToQueue(song) {
+                    ImmersiveSwipeToQueue(song, background = Immersive.Page) {
                         ImmersiveSongRow(
                             song = song,
                             playing = song.id == currentSongId && playing,
@@ -537,7 +534,7 @@ private fun ImmersiveContextContent(navController: NavController, vm: ContextVie
                             },
                             onMore = { menuSong = song },
                             trackNumber = if (numbered) index + 1 else null,
-                            showDuration = numbered,
+                            showDuration = false,
                             showAlbum = !numbered,
                             // As in the Classic list: the heart and the download of the song, from the same state
                             // (what Spotify last reported, the list's one batch check, the downloads kept on the phone).
@@ -655,7 +652,6 @@ private fun ImmersiveContextContent(navController: NavController, vm: ContextVie
 }
 
 /** The wash behind Liked Songs' header, as the Classic page's purple-to-blue sleeve. */
-private val LikedTint = Color(0xFF4A3FA8)
 
 /**
  * Everything above the track list: the sleeve, the title, the owner, the meta line, the Play and
@@ -665,7 +661,6 @@ private val LikedTint = Color(0xFF4A3FA8)
 private fun ContextHeader(
     navController: NavController,
     p: ContextPageModel,
-    tint: Color,
     sleeve: Dp,
     isLiked: Boolean,
     isThisContext: Boolean,
@@ -688,18 +683,20 @@ private fun ContextHeader(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(Brush.verticalGradient(listOf(lerp(tint, Color.Black, 0.3f), Immersive.Page)))
+            .background(Immersive.scheme.surfaceContainerLow)
             .padding(top = immersiveTopContentPadding(), bottom = 18.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Box(Modifier.size(sleeve).shadow(SleeveShadow, SleeveShape)) {
-            if (isLiked) LikedSleeve(Modifier.matchParentSize())
-            else ImmersiveCover(
-                url = p.coverUri,
-                modifier = Modifier.matchParentSize(),
-                shape = SleeveShape,
-                placeholderIcon = if (p.type == "album") Icons.Rounded.Album else Icons.Rounded.QueueMusic,
-            )
+        run {
+            Box(Modifier.size(sleeve).shadow(SleeveShadow, SleeveShape)) {
+                if (isLiked) LikedSleeve(Modifier.matchParentSize())
+                else ImmersiveCover(
+                    url = p.coverUri,
+                    modifier = Modifier.matchParentSize(),
+                    shape = SleeveShape,
+                    placeholderIcon = Icons.Rounded.QueueMusic,
+                )
+            }
         }
         Spacer(Modifier.height(20.dp))
         Text(
@@ -764,7 +761,7 @@ private fun ContextHeader(
                 }
                 Text(
                     text = p.ownerName,
-                    style = Immersive.Headline.copy(fontSize = 19.sp, lineHeight = 24.sp, fontWeight = FontWeight.Normal, color = Immersive.Accent),
+                    style = Immersive.Headline.copy(fontSize = 19.sp, lineHeight = 24.sp, fontWeight = FontWeight.Normal, color = if (p.type == "album" || p.type == "playlist") Immersive.TextSecondary else Immersive.Accent),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -790,6 +787,7 @@ private fun ContextHeader(
         if (p.tracks.isNotEmpty()) {
             val thisPlaying = isThisContext && playing
             Spacer(Modifier.height(18.dp))
+            if (p.type != "album" && p.type != "playlist") {
             Row(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = Immersive.Gutter),
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -809,8 +807,27 @@ private fun ContextHeader(
                     modifier = Modifier.weight(1f),
                 )
             }
-            Spacer(Modifier.height(14.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(14.dp), verticalAlignment = Alignment.CenterVertically) {
+            }
+            if (p.type != "album" && p.type != "playlist") Spacer(Modifier.height(14.dp))
+            Row(modifier = Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(14.dp), verticalAlignment = Alignment.CenterVertically) {
+                if (p.type == "album" || p.type == "playlist") {
+                    ImmersiveCircleButton(
+                        icon = if (shuffled && smart) Icons.Rounded.AutoAwesome else Icons.Rounded.Shuffle,
+                        contentDescription = stringResource(R.string.immersive_shell_shuffle),
+                        onClick = onShuffle,
+                        tint = Immersive.Text,
+                    )
+                    Row(
+                        modifier = Modifier.clip(CircleShape).background(Immersive.Accent)
+                            .immersiveClickable(onClick = onPlay).height(44.dp).padding(horizontal = 20.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Icon(if (thisPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow, contentDescription = null, tint = Immersive.scheme.onPrimary)
+                        Spacer(Modifier.width(6.dp))
+                        Text(stringResource(if (thisPlaying) R.string.immersive_detail_pause else R.string.immersive_shell_play),
+                            color = Immersive.scheme.onPrimary, fontWeight = FontWeight.SemiBold)
+                    }
+                }
                 if (p.type != "liked") ImmersiveCircleButton(
                     icon = if (saved) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,
                     contentDescription = stringResource(if (saved) R.string.immersive_detail_unsave else R.string.immersive_detail_save),
@@ -1037,7 +1054,7 @@ private fun InviteJoinBar(vm: ContextViewModel, p: ContextPageModel, modifier: M
         Text(stringResource(R.string.playlist_invite_banner), style = Immersive.Body, modifier = Modifier.weight(1f).padding(end = 12.dp))
         androidx.compose.material3.Button(
             enabled = !joining,
-            colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = Immersive.Accent, contentColor = Color.White),
+            colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = Immersive.Accent, contentColor = Immersive.scheme.onPrimary),
             onClick = {
                 joining = true
                 com.music.spotui.data.api.InviteLinks.join(context, offered, p) { ok ->

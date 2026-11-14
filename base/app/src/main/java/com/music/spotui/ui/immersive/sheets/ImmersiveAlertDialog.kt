@@ -29,13 +29,11 @@ fun ImmersiveAlertDialog(
     AlertDialog(
         onDismissRequest = onDismissRequest,
         confirmButton = confirmButton,
-        modifier = Modifier.immersiveGlassSurface(ImmersiveDialogShape),
         dismissButton = dismissButton,
         icon = icon,
         title = title,
         text = text,
         shape = ImmersiveDialogShape,
-        containerColor = Color.Transparent,
         titleContentColor = Immersive.Text,
         textContentColor = Immersive.TextSecondary,
         tonalElevation = 0.dp,

@@ -66,72 +66,30 @@ fun ImmersiveSearchField(
         onSubmit()
         focusManager.clearFocus()
     }
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            // Fixed height prevents the row from growing when text is entered.
-            .height(46.dp)
-            .background(Immersive.Raised, Immersive.Button)
-            // Asymmetric: the magnifier is a button and wants a real touch target, so it is given
-            // the room by pulling the field's own start padding in.
-            .padding(start = 8.dp, end = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Icon(
-            Icons.Rounded.Search,
-            contentDescription = stringResource(R.string.immersive_shell_search_hint),
-            tint = Immersive.TextSecondary,
-            modifier = Modifier
-                .size(32.dp)
-                .clip(CircleShape)
-                .clickable(enabled = query.isNotBlank(), role = Role.Button, onClick = submit)
-                .padding(6.dp),
-        )
-        Spacer(Modifier.width(4.dp))
-        Box(Modifier.weight(1f)) {
-            if (query.isEmpty()) {
-                Text(
-                    text = placeholder,
-                    style = Immersive.Body.copy(color = Immersive.TextSecondary),
-                    // A narrow field must cut the hint short, not wrap it out of the capsule.
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
+    androidx.compose.material3.OutlinedTextField(
+        value = query,
+        onValueChange = onQueryChange,
+        modifier = modifier.fillMaxWidth().focusRequester(focusRequester),
+        shape = CircleShape,
+        singleLine = true,
+        placeholder = { Text(placeholder, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+        leadingIcon = {
+            androidx.compose.material3.IconButton(onClick = submit, enabled = query.isNotBlank()) {
+                Icon(Icons.Rounded.Search, contentDescription = stringResource(R.string.immersive_shell_search_hint))
             }
-            BasicTextField(
-                value = query,
-                onValueChange = onQueryChange,
-                singleLine = true,
-                textStyle = Immersive.Body,
-                cursorBrush = SolidColor(Immersive.Accent),
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                keyboardActions = KeyboardActions(onSearch = { submit() }),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .focusRequester(focusRequester),
-            )
-        }
-        // Emptying the field is also how the recent searches are got back to: one tap.
-        if (query.isNotEmpty()) {
-            Box(
-                modifier = Modifier
-                    .size(28.dp)
-                    .clip(CircleShape)
-                    .clickable(role = Role.Button) {
-                        onQueryChange("")
-                        // Clearing is an edit, not a dismissal: leave the user ready to type.
-                        focusRequester.requestFocus()
-                        keyboardController?.show()
-                    },
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    Icons.Rounded.Close,
-                    contentDescription = stringResource(R.string.immersive_shell_search_clear),
-                    tint = Immersive.TextSecondary,
-                    modifier = Modifier.size(18.dp),
-                )
+        },
+        trailingIcon = if (query.isNotEmpty()) {
+            {
+                androidx.compose.material3.IconButton(onClick = {
+                    onQueryChange("")
+                    focusRequester.requestFocus()
+                    keyboardController?.show()
+                }) {
+                    Icon(Icons.Rounded.Close, contentDescription = stringResource(R.string.immersive_shell_search_clear))
+                }
             }
-        }
-    }
+        } else null,
+        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+        keyboardActions = KeyboardActions(onSearch = { submit() }),
+    )
 }

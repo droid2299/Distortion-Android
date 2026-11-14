@@ -14,12 +14,12 @@ import com.music.spotui.data.preferences.Look
 import com.music.spotui.data.preferences.LookPref
 
 /** The look the screens below are drawn in; see [Look]. */
-val LocalLook = compositionLocalOf { Look.CLASSIC }
+val LocalLook = compositionLocalOf { Look.IMMERSIVE }
 
 /** Hands the chosen look ([LookPref.look]) to everything inside. */
 @Composable
 fun ProvideLook(content: @Composable () -> Unit) {
-    CompositionLocalProvider(LocalLook provides LookPref.look, content = content)
+    CompositionLocalProvider(LocalLook provides Look.IMMERSIVE, content = content)
 }
 
 /**

@@ -111,7 +111,7 @@ internal fun ImmersiveSegmentedControl(
                 label = "segment pill",
             )
             val labelColor by animateColorAsState(
-                targetValue = if (chosen) Color.White else Immersive.TextSecondary,
+                targetValue = if (chosen) Immersive.scheme.onSecondaryContainer else Immersive.TextSecondary,
                 animationSpec = if (reduceMotion) snap() else tween(ImmersiveMotion.FADE_MS),
                 label = "segment label",
             )
@@ -165,7 +165,7 @@ internal fun ImmersiveSwipeToRemove(key: Any, onRemove: () -> Unit, content: @Co
                 Icon(
                     Icons.Rounded.DeleteOutline,
                     contentDescription = stringResource(R.string.context_menu_undownload),
-                    tint = Color.White,
+                    tint = Immersive.scheme.onPrimary,
                     modifier = Modifier.padding(horizontal = 24.dp).size(26.dp),
                 )
             }
@@ -220,7 +220,7 @@ internal fun ImmersiveNameDialog(
             Box(
                 Modifier
                     .fillMaxWidth()
-                    .background(Color.White.copy(alpha = 0.08f), Immersive.Button)
+                    .background(Immersive.scheme.surfaceContainerHigh, Immersive.Button)
                     .padding(horizontal = 14.dp, vertical = 12.dp),
             ) {
                 if (text.isEmpty()) {
@@ -296,7 +296,5 @@ internal fun ImmersiveSheetRow(
  */
 @Composable
 internal fun ImmersivePageFrame(content: @Composable BoxScope.() -> Unit) {
-    CompositionLocalProvider(LocalOverscrollFactory provides rememberImmersiveOverscrollFactory()) {
-        Box(Modifier.fillMaxSize().background(Immersive.Page), content = content)
-    }
+    Box(Modifier.fillMaxSize().background(Immersive.Page), content = content)
 }

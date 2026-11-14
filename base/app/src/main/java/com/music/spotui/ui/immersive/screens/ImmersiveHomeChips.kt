@@ -63,28 +63,12 @@ internal fun ImmersiveChip(
     shape: androidx.compose.ui.graphics.Shape = ChipShape,
     onClick: () -> Unit,
 ) {
-    val haptics = LocalHapticFeedback.current
-    Box(
-        modifier = Modifier
-            .clip(shape)
-            .background(if (selected) Immersive.Text else Immersive.Raised)
-            // Only a pill that is not already selected has anything to report: re-tapping the
-            // current one changes nothing, so buzzing for it would be feedback for a no-op.
-            .clickable(role = Role.Button) {
-                if (!selected) haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                onClick()
-            }
-            .padding(horizontal = 12.dp, vertical = 6.dp),
-    ) {
-        Text(
-            text = label,
-            style = Immersive.Subhead.copy(
-                color = if (selected) Immersive.Page else Immersive.Text,
-                fontWeight = androidx.compose.ui.text.font.FontWeight.Medium,
-            ),
-            maxLines = 1,
-        )
-    }
+    androidx.compose.material3.FilterChip(
+        selected = selected,
+        onClick = onClick,
+        label = { Text(label, maxLines = 1) },
+        shape = shape,
+    )
 }
 
 /** The left half of two chips joined (a picked chip and the one it opened), and the right one. */
