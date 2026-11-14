@@ -58,6 +58,10 @@ data class WindowSize(val widthDp: Int, val heightDp: Int) {
     /** Large and wider than tall, or a large portrait tablet: the players lay out in two panes. */
     val twoPane: Boolean get() = large && (widthDp > heightDp || width == WidthClass.EXPANDED)
 
+    /** Keeps a compact portrait window in one column during transient remeasures. */
+    fun playerSideBySide(contentWidth: Dp, contentHeight: Dp): Boolean =
+        twoPane || ((width != WidthClass.COMPACT || widthDp > heightDp) && contentWidth > contentHeight)
+
     /** Grid columns for a phone layout that had [phone] columns, spread to cells of about [cell]. */
     fun columns(phone: Int, cell: Dp = 180.dp): Int =
         if (!large) phone else (widthDp / cell.value).toInt().coerceIn(phone, phone * 4)

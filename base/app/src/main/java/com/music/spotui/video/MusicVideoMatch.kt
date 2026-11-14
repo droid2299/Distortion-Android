@@ -39,7 +39,7 @@ internal object MusicVideoMatch {
     )
 
     /** Words of a track title that are not part of its name. */
-    private val titleNoise = Regex("""\(.*?\)|\[.*?]|\{.*?}|\b(?:feat|ft|featuring)\b\.?\s.*""")
+    private val titleNoise = Regex("""\(.*?\)|\[.*?\]|\{.*?\}|\b(?:feat|ft|featuring)\b\.?\s.*""")
 
     /** Accents, case, "$" read as "s" ("A$AP" is "ASAP") and the elided apostrophe ("J'SAVAIS" is "jsavais"). */
     private fun fold(s: String): String = Normalizer.normalize(s.replace('$', 's').replace('’', '\''), Normalizer.Form.NFD)

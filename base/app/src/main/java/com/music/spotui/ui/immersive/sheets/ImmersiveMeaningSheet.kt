@@ -78,7 +78,7 @@ fun ImmersiveMeaningSheet(
     onDismiss: () -> Unit,
 ) {
     val load by produceState<MeaningLoad>(MeaningLoad.Loading, trackId, title, artist) {
-        val ready = GeniusMeaning.current.value?.takeIf { it.first == trackId }?.second
+        val ready = GeniusMeaning.currentFor(trackId)
             ?: GeniusMeaning.cached(title, artist)
         value = if (ready != null) MeaningLoad.Ready(ready) else try {
             // find() runs on IO and keeps its own small cache; it throws when Genius can't be reached.

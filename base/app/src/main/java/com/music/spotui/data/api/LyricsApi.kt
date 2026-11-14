@@ -104,19 +104,31 @@ object LyricsApi {
         early.value = track.key to lyrics
     }
 
+    private val geniusOn get() = com.music.spotui.data.preferences.GeniusPref.on
+
+    private fun Lyrics.allowed(): Boolean = geniusOn || !provider.equals("Genius", ignoreCase = true)
+
+    fun geniusChanged() {
+        synchronized(cache) {
+            cache.values.removeAll { entry -> entry !is Lyrics || !entry.allowed() }
+        }
+        health.forgetAll()
+        sourcesTick.value++
+    }
+
     fun cached(track: Track): Lyrics? = when (val c = cache[track.key]) {
         is Lyrics -> c
         is Partial -> c.lyrics
         else -> null
-    }
+    }?.takeIf { it.allowed() }
 
     /** Whether [track]'s lyrics were found with every source's answer: nothing better is to come. */
-    fun settled(track: Track): Boolean = cache[track.key] is Lyrics
+    fun settled(track: Track): Boolean = (cache[track.key] as? Lyrics)?.allowed() == true
 
     private fun wanted(track: Track): Boolean {
         if (track.title.isBlank() && track.trackId.isBlank()) return false
         return when (val c = cache[track.key]) {
-            is Lyrics -> false
+            is Lyrics -> !c.allowed()
             is Miss -> System.currentTimeMillis() - c.at >= MISS_RETRY_MS
             is Partial -> System.currentTimeMillis() - c.at >= MISS_RETRY_MS
             else -> true
@@ -171,8 +183,8 @@ object LyricsApi {
 
     suspend fun fetch(track: Track): Lyrics? {
         when (val c = cache[track.key]) {
-            is Lyrics -> return c
-            is Partial -> if (System.currentTimeMillis() - c.at < MISS_RETRY_MS) return c.lyrics
+            is Lyrics -> if (c.allowed()) return c
+            is Partial -> if (c.lyrics.allowed() && System.currentTimeMillis() - c.at < MISS_RETRY_MS) return c.lyrics
             is Miss -> if (System.currentTimeMillis() - c.at < MISS_RETRY_MS) return null
         }
         // One request per track even when the card and the full screen ask together.
@@ -180,7 +192,7 @@ object LyricsApi {
             inFlight[track.key] ?: scope.async(start = kotlinx.coroutines.CoroutineStart.LAZY) {
                 // Read on an earlier run: from storage, not asked for again. A downloaded song's own
                 // (see [keepForOffline]) when there is no connection, or when nothing else had any.
-                (LyricsDisk.read(track.key)?.also { cache[track.key] = it }
+                (LyricsDisk.read(track.key)?.takeIf { it.allowed() }?.also { cache[track.key] = it }
                     ?: (if (online()) null else kept(track))
                     ?: resolve(track)
                     ?: kept(track))?.also { romanizeLater(track, it) }
@@ -194,7 +206,7 @@ object LyricsApi {
             }
         }
         // A cancelled card only stops waiting; the shared request owns cleanup.
-        return job.await()
+        return job.await()?.takeIf { it.allowed() }
     }
 
     /**
@@ -216,7 +228,7 @@ object LyricsApi {
         add(Source("kugou", "Kugou", true, allSetAside("kugou")))
         add(Source("lrclib", "LRCLIB", false, allSetAside("lrclib")))
         add(Source("netease", "NetEase", false, allSetAside("netease")))
-        add(Source("genius", "Genius", false, allSetAside("genius")))
+        if (geniusOn) add(Source("genius", "Genius", false, allSetAside("genius")))
         runCatching { com.music.spotui.extensions.Extensions.lyricsSources() }.getOrDefault(emptyList())
             .forEach { (id, name) -> add(Source("ext:$id", name)) }
     }
@@ -263,11 +275,11 @@ object LyricsApi {
                         ?: lrclibSearch("$LRCLIB/search?track_name=${enc(title)}", title, artist, durationSec)
                 }
                 sourceId == "netease" -> byHand { fromNetEase(title, artist, durationSec) }
-                sourceId == "genius" -> byHand { fromGenius(title, artist) }
+                sourceId == "genius" -> if (geniusOn) byHand { fromGenius(title, artist) } else null
                 else -> null
             }
         } catch (e: kotlinx.coroutines.CancellationException) { throw e } catch (e: Exception) { Log.d("LyricsApi", "$sourceId by hand: ${e.javaClass.simpleName}"); null }
-        val lyrics = found?.takeIf { !it.isEmpty } ?: return@withContext null
+        val lyrics = found?.takeIf { !it.isEmpty && it.allowed() } ?: return@withContext null
         // Words from another recording follow Spotify's own timing when that can be checked, and keep its colours.
         val chosen = if (lyrics.wordSynced && spotify != null) (alignTo(lyrics, spotify) ?: lyrics).copy(colors = spotify.colors) else lyrics
         cache[track.key] = chosen
@@ -324,8 +336,9 @@ object LyricsApi {
         }
         var result = com.music.spotui.extensions.LyricsMerge.choose(own, answer?.getOrNull())
         // Nothing anywhere: Genius's plain text, unless the user turned the extra sources off.
-        if (result == null && !extraSources && !extraSourcesOff)
+        if (result == null && !extraSources && !extraSourcesOff && geniusOn)
             result = asking("genius", track) { fromGenius(cleanTitle(track.title), track.artist.substringBefore(",").trim()) }
+        result = result?.takeIf { it.allowed() }
         val pending = answer?.isFailure == true
         cache[track.key] = when {
             result == null -> Miss()
@@ -592,7 +605,7 @@ object LyricsApi {
             val artist = track.artist.substringBefore(",").trim()
             val durationSec = (track.durationMs / 1000).toInt()
             val netease = if (extraSources) async { asking("netease", track) { fromNetEase(title, artist, durationSec) } } else null
-            val genius = if (extraSources) async { asking("genius", track) { fromGenius(title, artist) } } else null
+            val genius = if (extraSources && geniusOn) async { asking("genius", track) { fromGenius(title, artist) } } else null
             val lrclib = asking("lrclib", track) {
                 val exact = async { lrclibGet(title, artist, track.album, durationSec) }
                 val fuzzy = async { lrclibSearch("$LRCLIB/search?track_name=${enc(title)}&artist_name=${enc(artist)}", title, artist, durationSec) }
@@ -654,6 +667,7 @@ object LyricsApi {
 
     // ── 5. Genius (plain text from the song page) ──
     private fun fromGenius(title: String, artist: String): Lyrics? {
+        if (!geniusOn) return null
         // Translation and romanization pages take some of the first hits.
         val search = httpGet("https://genius.com/api/search/song?per_page=10&q=${enc("$title $artist")}", timeoutMs = 6000, provider = "genius")
             ?.let { runCatching { JSONObject(it) }.getOrNull() } ?: return null
@@ -1083,6 +1097,7 @@ object LyricsApi {
      * set aside is not asked at all, unless asked for by hand ([fetchFrom]).
      */
     private fun httpGet(spec: String, timeoutMs: Int = 5000, provider: String? = null): String? {
+        if (provider == "genius" && !geniusOn) return null
         if (provider != null && bypass.get() != true) health.reason(provider)?.let {
             Log.d("LyricsApi", "$provider set aside ($it)")
             health.skipped()

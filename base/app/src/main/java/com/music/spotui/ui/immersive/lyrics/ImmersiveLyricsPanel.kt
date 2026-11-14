@@ -525,7 +525,7 @@ private fun LyricsList(
     val genTitle = Graph.currentSongState.title.value
     val genArtist = Graph.currentSongState.singer.value
     val genLang = com.music.spotui.ui.components.readerLanguage()
-    val meaning = com.music.spotui.data.api.GeniusMeaning.current.value?.takeIf { it.first == trackId }?.second
+    val meaning = com.music.spotui.data.api.GeniusMeaning.currentFor(trackId)
     LaunchedEffect(trackId, genTitle, genArtist) {
         if (meaning == null) com.music.spotui.data.api.GeniusMeaning.prefetch(trackId, genTitle, genArtist, genLang)
     }

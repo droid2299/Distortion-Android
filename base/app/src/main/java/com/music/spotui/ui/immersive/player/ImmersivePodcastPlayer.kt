@@ -275,7 +275,7 @@ fun ImmersivePodcastPlayer(navController: NavController) {
 
     BoxWithConstraints(Modifier.fillMaxSize().background(Immersive.scheme.surfaceContainerLow)) {
         // Wider than tall (a phone on its side, a tablet): the cover beside the controls.
-        val landscape = maxWidth > maxHeight || com.music.spotui.ui.components.windowSize().twoPane
+        val landscape = com.music.spotui.ui.components.windowSize().playerSideBySide(maxWidth, maxHeight)
         CompositionLocalProvider(LocalPlayerTint provides tint) {
             if (landscape) Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
                 // The handle: always hands its drags to the sheet.

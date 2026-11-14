@@ -200,7 +200,7 @@ fun PlayerScreen(navController: NavController) {
     val outgoing = blend?.takeIf { it.outgoingWords }?.song
     // An AutoMix mix planned or playing: its stretch on the seek bar, the cover beating with it.
     val mixCue = com.music.spotui.ui.components.rememberMixCue()
-    val mixPulse = com.music.spotui.ui.components.rememberMixPulse(mixCue)
+    val mixPulse = com.music.spotui.ui.components.rememberMixPulse()
     // The backdrop's colour when the fade began, before this song's took over.
     val outgoingBackdrop = remember(blend) { backdropColor }
 

@@ -205,6 +205,10 @@ fun ImmersiveQueuePanel(modifier: Modifier = Modifier, contentPadding: PaddingVa
         val f = from.key as? String ?: return@rememberReorderableLazyListState
         val t = to.key as? String ?: return@rememberReorderableLazyListState
         val row = dragRows[f] ?: return@rememberReorderableLazyListState
+        if (t == HEADING_QUEUED) {
+            dragOrder = QueueDragMath.moveToFront(o, f, HEADING_NEXT)
+            return@rememberReorderableLazyListState
+        }
         QueueDragMath.swap(o, f, t, HEADING_NEXT, canLeaveQueue = row.item.provider == SongPlayer.LOCAL, block = blockOf(dragRows))?.let { dragOrder = it }
     }
     val onDragStarted: (String) -> Unit = { k ->
@@ -296,22 +300,23 @@ fun ImmersiveQueuePanel(modifier: Modifier = Modifier, contentPadding: PaddingVa
                 )
             }
         }
-        // Not a place a row can go: the queued rows are under it.
         if (queuedKeys.isNotEmpty()) {
-            item(key = "heading-queued") {
-                QueueHeading(
-                    title = stringResource(R.string.next_in_queue),
-                    modifier = Modifier.padding(top = 16.dp, bottom = 6.dp).then(queueMotion()),
-                ) {
-                    Text(
-                        text = stringResource(R.string.clear_queue),
-                        style = Immersive.Subhead,
-                        color = Immersive.Text.copy(alpha = 0.60f),
-                        modifier = Modifier
-                            .clip(CircleShape)
-                            .clickable { SongPlayer.clearQueue() }
-                            .padding(horizontal = 8.dp, vertical = 4.dp),
-                    )
+            item(key = HEADING_QUEUED) {
+                ReorderableItem(reorder, key = HEADING_QUEUED, animateItemModifier = queueMotion()) {
+                    QueueHeading(
+                        title = stringResource(R.string.next_in_queue),
+                        modifier = Modifier.padding(top = 16.dp, bottom = 6.dp),
+                    ) {
+                        Text(
+                            text = stringResource(R.string.clear_queue),
+                            style = Immersive.Subhead,
+                            color = Immersive.Text.copy(alpha = 0.60f),
+                            modifier = Modifier
+                                .clip(CircleShape)
+                                .clickable { SongPlayer.clearQueue() }
+                                .padding(horizontal = 8.dp, vertical = 4.dp),
+                        )
+                    }
                 }
             }
         }
@@ -385,6 +390,7 @@ private class EdgeScrollGate {
     }
 }
 private const val HEADING_NEXT = "heading-next"
+private const val HEADING_QUEUED = "heading-queued"
 
 /** Autoplay's songs (Spotify adds them after the context's) and the context's: blocks no Spotify song leaves. */
 private fun blockOf(rows: Map<String, QRow>): (String) -> Int = { k -> if (rows[k]?.item?.provider == AUTOPLAY) 1 else 0 }

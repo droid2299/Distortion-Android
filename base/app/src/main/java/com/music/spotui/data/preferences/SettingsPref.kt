@@ -25,6 +25,22 @@ fun setLyricsWordSync(c: Context, v: Boolean) = prefs(c).edit().putBoolean("lyri
 
 private fun prefs(c: Context) = c.getSharedPreferences(PREF, Context.MODE_PRIVATE)
 
+object GeniusPref {
+    private const val KEY = "genius"
+    var on by androidx.compose.runtime.mutableStateOf(
+        runCatching { prefs(com.music.spotui.di.Graph.app).getBoolean(KEY, true) }.getOrDefault(true),
+    )
+        private set
+
+    fun set(context: Context, enabled: Boolean) {
+        if (on == enabled) return
+        prefs(context).edit().putBoolean(KEY, enabled).apply()
+        on = enabled
+        if (!enabled) com.music.spotui.data.api.GeniusMeaning.forget()
+        com.music.spotui.data.api.LyricsApi.geniusChanged()
+    }
+}
+
 /**
  * "Show romanization" under the lyrics' lines (the song in Latin letters), offered when the lyrics
  * carry one. Off by default; read as state by both looks, so the menu and the lines agree.

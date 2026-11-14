@@ -3090,14 +3090,19 @@ object SongPlayer {
         }
         queueMove {
             val a = liveItem(item) ?: return@queueMove
-            val first = apiQueue?.queued?.firstOrNull()
+            val previousCopies = apiQueue?.queued.orEmpty().filter { it.uri == a.uri }.map { it.uid }.toSet()
             Graph.playback.removeFromQueue(listOf(a))
             awaitQueue { q -> q.nextUp.none { it.uid == a.uid } }
+            if (target == null) {
+                Graph.playback.playNext(listOf(a.uri))
+                awaitQueue { q -> q.queued.firstOrNull()?.let { it.uri == a.uri && it.uid !in previousCopies } == true }
+                return@queueMove
+            }
             Graph.playback.addToQueue(listOf(a.uri))
-            val added = awaitQueue { q -> q.queued.any { it.uri == a.uri } }?.queued?.lastOrNull { it.uri == a.uri } ?: return@queueMove
-            // Queued at the end: moved to the place it was dropped (the front when no target).
-            val t = target?.let(::apiItem) ?: first?.takeIf { it.uid != added.uid } ?: return@queueMove
-            val placeAfter = if (target == null) false else after
+            val added = awaitQueue { q -> q.queued.any { it.uri == a.uri && it.uid !in previousCopies } }
+                ?.queued?.lastOrNull { it.uri == a.uri && it.uid !in previousCopies } ?: return@queueMove
+            val t = liveItem(target) ?: return@queueMove
+            val placeAfter = after
             // Already there (dropped last in the queue): nothing to move.
             if (Graph.playback.queue.value?.let { placed(it, added.uri, t.uri, placeAfter) } == true) return@queueMove
             Graph.playback.moveInQueue(added, t, placeAfter)

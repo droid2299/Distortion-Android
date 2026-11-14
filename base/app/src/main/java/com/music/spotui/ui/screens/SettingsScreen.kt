@@ -311,6 +311,12 @@ fun SettingsScreen(navController: NavController) {
                 },
             )
             OptionRow(
+                label = stringResource(R.string.settings_genius_title),
+                detail = stringResource(R.string.settings_genius_detail),
+                checked = com.music.spotui.data.preferences.GeniusPref.on,
+                onChecked = { com.music.spotui.data.preferences.GeniusPref.set(ctx, it) },
+            )
+            OptionRow(
                 label = stringResource(R.string.settings_lyrics_keep_awake_title),
                 detail = stringResource(R.string.settings_lyrics_keep_awake_detail),
                 checked = com.music.spotui.data.preferences.LyricsKeepAwakePref.on,

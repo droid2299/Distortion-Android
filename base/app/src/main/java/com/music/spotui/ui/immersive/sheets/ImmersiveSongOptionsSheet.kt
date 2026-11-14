@@ -214,7 +214,9 @@ fun ImmersiveSongOptionsSheet(
         }
         ImmersiveSheetRow(Icons.Rounded.Info, stringResource(R.string.track_credits), enabled = hasId) { showCredits = true }
         if (nowPlaying && hasId && !song.url.startsWith("episode:")) {
-            ImmersiveSheetRow(Icons.Rounded.Lightbulb, stringResource(R.string.lyrics_meaning_title)) { showMeaning = true }
+            if (com.music.spotui.data.preferences.GeniusPref.on) {
+                ImmersiveSheetRow(Icons.Rounded.Lightbulb, stringResource(R.string.lyrics_meaning_title)) { showMeaning = true }
+            }
         }
         if (nowPlaying && lyricsOpen) {
             // The lyrics panel's translation, the Classic look's: same model, shown under each line.

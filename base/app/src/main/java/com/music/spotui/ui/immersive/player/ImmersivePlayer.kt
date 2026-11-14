@@ -416,7 +416,7 @@ fun ImmersivePlayer(
         // beside the controls. Very wide windows (DeX, large tablets): the lyrics and the queue
         // open in a third pane instead of over the cover.
         val window = com.music.spotui.ui.components.windowSize()
-        val landscape = maxWidth > maxHeight || window.twoPane
+        val landscape = window.playerSideBySide(maxWidth, maxHeight)
         val sidePane = window.large && maxWidth >= SIDE_PANE_MIN_WIDTH
         // An AutoMix mix: the content draws in with it and springs back after it, the backdrop stays.
         Box(Modifier.fillMaxSize().mixSqueeze(mixMotion)) {
@@ -765,7 +765,8 @@ private fun PlayerControlsBlock(
     val extTrack = remember(state.title, state.artist) { com.music.spotui.extensions.Extensions.currentTrack() }
     com.music.spotui.extensions.MirrorIndicator()
     com.music.spotui.extensions.ExtensionPlayerButtons(extTrack)
-    Spacer(Modifier.height(12.dp))
+    val bottomSpace = if (showVolume) 12.dp else 12.dp + VOLUME_ROW_HEIGHT + 6.dp - 22.dp
+    Spacer(Modifier.height(bottomSpace))
 }
 
 /**

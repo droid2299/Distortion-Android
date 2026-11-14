@@ -1,5 +1,15 @@
 # Distortion changelog
 
+## 1.0.1
+
+- Added a Genius switch in Lyrics settings to control song meanings, annotations, and fallback lyrics.
+- Improved AutoMix's settling animation and stopped its visual updates when Distortion goes into the background.
+- Kept the full player's controls in place in portrait, including when the volume slider is hidden.
+- Dropping a track above the queue moves it to the front.
+- Canvas releases its video decoder in the background and prefers a lower resolution in Battery Saver.
+- Fixed an Android title-matching error that could prevent music video lookup.
+- Reduced background Spotify sign-in checks. On an unmetered connection, Distortion can refresh an outdated Spotify query hash and retry the read once.
+
 ## 1.0.0
 
 - Material You colors follow the Android system palette in the app and home-screen widget.

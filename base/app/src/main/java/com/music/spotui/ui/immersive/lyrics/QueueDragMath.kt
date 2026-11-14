@@ -10,6 +10,9 @@ internal object QueueDragMath {
     fun queuedPart(order: List<String>, heading: String): List<String> = order.takeWhile { it != heading }
     fun nextPart(order: List<String>, heading: String): List<String> = order.dropWhile { it != heading }.drop(1)
 
+    fun moveToFront(order: List<String>, dragged: String, heading: String): List<String> =
+        if (dragged == heading || dragged !in order) order else listOf(dragged) + (order - dragged)
+
     /**
      * [order] with [from] moved to [to]'s place, or null when that move is not allowed: a song of
      * Spotify's queue ([canLeaveQueue] false) cannot go back into "next from" (Spotify has no such
@@ -57,7 +60,7 @@ internal object QueueDragMath {
         if (j < 0) return Move.None
         val prev = part.getOrNull(j - 1); val next = part.getOrNull(j + 1)
         return when {
-            nowQueued && !wasQueued -> if (prev != null) Move.IntoQueue(prev, true) else Move.IntoQueue(next, false)
+            nowQueued && !wasQueued -> Move.IntoQueue(prev, after = prev != null)
             // First of autoplay's songs: named by the one it precedes, not by the context's last.
             !nowQueued && prev != null && next != null && block(prev) != block(dragged) && block(next) == block(dragged) -> Move.Beside(next, false)
             prev != null -> Move.Beside(prev, true)

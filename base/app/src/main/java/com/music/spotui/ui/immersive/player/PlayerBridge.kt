@@ -156,7 +156,7 @@ fun rememberImmersivePlayer(navController: NavController): ImmersivePlayerBridge
     val blend = com.music.spotui.ui.components.rememberSongBlend()
     val outgoing = blend?.takeIf { it.outgoingWords }
     val mixCue = com.music.spotui.ui.components.rememberMixCue()
-    val mixPulse = com.music.spotui.ui.components.rememberMixPulse(mixCue)
+    val mixPulse = com.music.spotui.ui.components.rememberMixPulse()
     val previewQueue = SongPlayer.engineQueue.value
     val upcomingCover = (previewQueue.queued.firstOrNull() ?: previewQueue.nextUp.firstOrNull())?.song?.coverUri
     val nextCover = if (com.music.spotui.di.LocalPlayer.active.value) upcomingCover else np.next?.coverUri ?: upcomingCover

@@ -507,7 +507,7 @@ fun LyricsScreen(
     // Looked up when the song started (App.kt): here at once, and still here on coming back.
     val lang = com.music.spotui.ui.components.readerLanguage()
     val trackId = SongPlayer.nowPlaying.value.uri.substringAfterLast(':')
-    val meaning = com.music.spotui.data.api.GeniusMeaning.current.value?.takeIf { it.first == trackId }?.second
+    val meaning = com.music.spotui.data.api.GeniusMeaning.currentFor(trackId)
     var meaningOpen by remember { mutableStateOf(false) }
     var noteOpen by remember { mutableStateOf<Int?>(null) }
     val haptics = androidx.compose.ui.platform.LocalHapticFeedback.current

@@ -805,8 +805,12 @@ private fun QueueList(
             if (!fromQueued) nextUp = nextUp - item
             queued = newQueued
             SongPlayer.showQueueOrder(queued, nextUp)
-            val (target, after) = if (slot < others.size) others[slot] to false else others[slot - 1] to true
-            if (fromQueued) SongPlayer.reorder(item, target, after) else SongPlayer.moveIntoQueue(item, target, after)
+            if (!fromQueued && slot == 0) {
+                SongPlayer.moveToQueueFront(item)
+            } else {
+                val (target, after) = if (slot < others.size) others[slot] to false else others[slot - 1] to true
+                if (fromQueued) SongPlayer.reorder(item, target, after) else SongPlayer.moveIntoQueue(item, target, after)
+            }
         } else {
             val others = nextUp - item
             if (others.isEmpty()) return

@@ -474,6 +474,14 @@ private fun LyricsPage(open: (SettingsPage) -> Unit, back: () -> Unit) {
             }
             row {
                 ImmersiveSwitchRow(
+                    stringResource(R.string.settings_genius_title),
+                    checked = com.music.spotui.data.preferences.GeniusPref.on,
+                    onChecked = { com.music.spotui.data.preferences.GeniusPref.set(ctx, it) },
+                    detail = stringResource(R.string.settings_genius_detail),
+                )
+            }
+            row {
+                ImmersiveSwitchRow(
                     stringResource(R.string.settings_lyrics_keep_awake_title),
                     checked = com.music.spotui.data.preferences.LyricsKeepAwakePref.on,
                     onChecked = { com.music.spotui.data.preferences.LyricsKeepAwakePref.set(ctx, it) },

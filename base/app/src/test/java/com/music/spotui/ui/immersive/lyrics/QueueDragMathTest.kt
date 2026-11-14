@@ -7,6 +7,16 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class QueueDragMathTest {
+    @Test fun droppingOverTheQueueHeadingMovesTheTrackToTheFront() {
+        val heading = "next"
+        val before = listOf("q1", "q2", heading, "n1", "n2")
+        val after = QueueDragMath.moveToFront(before, "n2", heading)
+        assertEquals(listOf("n2", "q1", "q2", heading, "n1"), after)
+        assertEquals(QueueDragMath.Move.IntoQueue(null, false), QueueDragMath.moveFor(before, after, "n2", heading))
+        val reordered = QueueDragMath.moveToFront(before, "q2", heading)
+        assertEquals(QueueDragMath.Move.Beside("q1", false), QueueDragMath.moveFor(before, reordered, "q2", heading))
+    }
+
     private val H = "heading"
 
     /** cur, then [nq] queued songs q0.., then [nn] list songs n0.. */

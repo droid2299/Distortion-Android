@@ -10,7 +10,9 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
@@ -26,6 +28,19 @@ import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.util.UUID
+
+/** Runs the call on the IO pool; the coroutine cancelled, the call is cancelled too (it then fails at once). */
+internal suspend fun okhttp3.Call.executeCancellable(): Pair<Int, String> = coroutineScope {
+    val call = this@executeCancellable
+    val done = java.util.concurrent.atomic.AtomicBoolean(false)
+    val watch = launch(start = CoroutineStart.UNDISPATCHED) { try { awaitCancellation() } finally { if (!done.get()) call.cancel() } }
+    try {
+        withContext(Dispatchers.IO) { call.execute().use { it.code to it.body.string() } }
+    } finally {
+        done.set(true)
+        watch.cancel()
+    }
+}
 
 class GqlException(val operation: String, message: String) : Exception("$operation: $message")
 
@@ -181,19 +196,6 @@ class SpotifyHttp(
         val result = if (method == "GET") call.executeCancellable() else withContext(Dispatchers.IO) { call.execute().use { it.code to it.body.string() } }
         if (result.first == 401) lock.withLock { web = null }
         return result
-    }
-
-    /** Runs the call on the IO pool; the coroutine cancelled, the call is cancelled too (it then fails at once). */
-    private suspend fun okhttp3.Call.executeCancellable(): Pair<Int, String> = coroutineScope {
-        val call = this@executeCancellable
-        val done = java.util.concurrent.atomic.AtomicBoolean(false)
-        val watch = launch(start = CoroutineStart.UNDISPATCHED) { try { awaitCancellation() } finally { if (!done.get()) call.cancel() } }
-        try {
-            withContext(Dispatchers.IO) { call.execute().use { it.code to it.body.string() } }
-        } finally {
-            done.set(true)
-            watch.cancel()
-        }
     }
 
     /** What [sendRaw] got back: the status, lower-case header names (values joined by ", "), the body text. */
@@ -379,18 +381,26 @@ fun checkErrors(name: String, response: JsonElement) {
 /** GraphQL straight to api-partner: fastest, parallel, independent of the page. Falls back to [fallback]. */
 class HttpGql(private val http: SpotifyHttp, private val source: OpsSource, private val fallback: Gql) : Gql {
     private val ops get() = source.ops
+
+    @Volatile var refreshOperations: suspend (name: String, rejectedHash: String) -> Unit = { _, _ -> }
+
     /** Calls answered directly, and calls that had to go through [fallback]. */
     val direct = java.util.concurrent.atomic.AtomicInteger()
     val fellBack = java.util.concurrent.atomic.AtomicInteger()
 
-    override suspend fun query(name: String, variables: JsonObject): JsonElement {
+    override suspend fun query(name: String, variables: JsonObject): JsonElement =
+        query(name, variables, ops.hash(name), canRefresh = !isMutation(name))
+
+    private suspend fun query(
+        name: String, variables: JsonObject, hash: String, canRefresh: Boolean,
+    ): JsonElement {
         val body = buildJsonObject {
             put("variables", variables)
             put("operationName", name)
             putJsonObject("extensions") {
                 putJsonObject("persistedQuery") {
                     put("version", 1)
-                    put("sha256Hash", ops.hash(name))
+                    put("sha256Hash", hash)
                 }
             }
         }
@@ -406,14 +416,41 @@ class HttpGql(private val http: SpotifyHttp, private val source: OpsSource, priv
         } catch (e: Exception) {
             fellBack.incrementAndGet(); return fallback.query(name, variables)
         }
+        val response = when (code) {
+            200 -> Bridge.json.parseToJsonElement(text)
+            400 -> runCatching { Bridge.json.parseToJsonElement(text) }.getOrNull()
+            else -> null
+        }
+        if (response != null && persistedQueryRejected(response)) {
+            if (canRefresh) {
+                refreshOperations(name, hash)
+                val updated = ops.hash(name)
+                if (updated != hash) return query(name, variables, updated, canRefresh = false)
+            }
+            checkErrors(name, response)
+        }
+        if (code == 429) throw GqlException(name, "HTTP 429")
         if (code != 200) {
             // A server error may come after the write was done; a refusal (4xx) was not applied.
             if (mutation && code >= 500) throw GqlException(name, "HTTP $code")
             fellBack.incrementAndGet(); return fallback.query(name, variables)
         }
         direct.incrementAndGet()
-        val response = Bridge.json.parseToJsonElement(text)
-        checkErrors(name, response)
-        return response
+        val result = checkNotNull(response)
+        checkErrors(name, result)
+        return result
+    }
+
+    private fun persistedQueryRejected(response: JsonElement): Boolean {
+        val result = response as? JsonObject ?: return false
+        val data = result["data"]
+        if (data != null && data != JsonNull) return false
+        val errors = result["errors"] as? JsonArray ?: return false
+        return errors.isNotEmpty() && errors.all { error ->
+            val entry = error as? JsonObject ?: return@all false
+            val code = (entry["extensions"] as? JsonObject)?.get("code") as? JsonPrimitive
+            val message = entry["message"] as? JsonPrimitive
+            code?.content == "PERSISTED_QUERY_NOT_FOUND" || message?.content == "PersistedQueryNotFound"
+        }
     }
 }

@@ -1,6 +1,7 @@
 package app.myspoti.spotify.gql
 
 import app.myspoti.spotify.bridge.Bridge
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -49,13 +50,18 @@ class GqlOpsUpdater(private val http: OkHttpClient, private val cache: File) {
      * the next look on Wi-Fi, the table in use meanwhile (an unknown operation falls back to the
      * page, see BridgeGql).
      */
-    suspend fun refresh(current: GqlOps, bundlesAllowed: Boolean = true, now: Long = System.currentTimeMillis()): GqlOps? = withContext(Dispatchers.IO) {
+    suspend fun refresh(
+        current: GqlOps,
+        bundlesAllowed: Boolean = true,
+        now: Long = System.currentTimeMillis(),
+        forceBundleScan: Boolean = false,
+    ): GqlOps? = withContext(Dispatchers.IO) {
         val html = get("https://open.spotify.com/")
         val build = script(html, "appServerConfig")?.let { (it["buildVersion"] as? JsonPrimitive)?.content }
         val urls = LinkedHashSet<String>()
         BUNDLE.findAll(html).forEach { urls += it.value }
         script(html, "__CDN_FILE_URLS__")?.values?.forEach { v ->
-            (v as? JsonPrimitive)?.content?.takeIf { it.endsWith(".js") && it.contains("/web-player/") }?.let(urls::add)
+            (v as? JsonPrimitive)?.content?.takeIf { BUNDLE.matches(it) }?.let(urls::add)
         }
         if (urls.isEmpty()) return@withContext null
         // Without a parseable build id, the bundle set is the cache key: otherwise
@@ -65,7 +71,8 @@ class GqlOpsUpdater(private val http: OkHttpClient, private val cache: File) {
             .joinToString("") { "%02x".format(it) }
         val cached = runCatching { Bridge.json.parseToJsonElement(cache.readText()).jsonObject }.getOrNull()
         val cachedBuild = cached?.get("buildVersion")?.jsonPrimitive?.content
-        if ((build != null && build == cachedBuild) || (build == null && bundleKey == cached?.get("bundleKey")?.jsonPrimitive?.content)) {
+        val sameBundles = bundleKey == cached?.get("bundleKey")?.jsonPrimitive?.content
+        if (!forceBundleScan && sameBundles && (build == null || build == cachedBuild)) {
             markChecked(now)
             return@withContext null
         }
@@ -74,10 +81,17 @@ class GqlOpsUpdater(private val http: OkHttpClient, private val cache: File) {
         val found = HashMap<String, String>()
         val gate = Semaphore(6)
         coroutineScope {
-            urls.map { url -> async { gate.withPermit { runCatching { get(url) }.getOrNull() } } }.awaitAll()
+            urls.map { url ->
+                async {
+                    gate.withPermit {
+                        try { get(url) } catch (e: CancellationException) { throw e } catch (_: Exception) { null }
+                    }
+                }
+            }.awaitAll()
         }.filterNotNull().forEach { body -> OP.findAll(body).forEach { m -> found[m.groupValues[1]] = m.groupValues[3] } }
         // A partial download must not drop operations: keep the known ones it did not see.
-        if (found.size < current.names.size / 2) return@withContext null
+        if (found.isEmpty() || found.keys.count(current.names::contains) < (current.names.size + 1) / 2)
+            return@withContext null
         val merged = current.names.associateWith { current.hash(it) } + found
         val json = buildJsonObject {
             build?.let { put("buildVersion", it) }
@@ -99,11 +113,12 @@ class GqlOpsUpdater(private val http: OkHttpClient, private val cache: File) {
         })
     }
 
-    private fun get(url: String): String =
-        http.newCall(Request.Builder().url(url).header("user-agent", SpotifyHttp.USER_AGENT).build()).execute().use {
-            check(it.isSuccessful) { "HTTP ${it.code} for $url" }
-            it.body.string()
-        }
+    private suspend fun get(url: String): String {
+        val request = Request.Builder().url(url).header("user-agent", SpotifyHttp.USER_AGENT).build()
+        val (status, body) = http.newCall(request).executeCancellable()
+        check(status in 200..299) { "HTTP $status for $url" }
+        return body
+    }
 
     /** `<script id="...">base64 JSON</script>` blocks of the page. */
     private fun script(html: String, id: String): JsonObject? {
@@ -118,6 +133,6 @@ class GqlOpsUpdater(private val http: OkHttpClient, private val cache: File) {
         const val CHECK_GAP_MS = 6 * 3_600_000L
 
         private val BUNDLE = Regex("https://open\\.spotifycdn\\.com/cdn/build/web-player/[^\"']+?\\.js")
-        private val OP = Regex("new [\\w$]+(?:\\.[\\w$]+)?\\(\"(\\w+)\",\"(query|mutation|subscription)\",\"([0-9a-f]{64})\"")
+        private val OP = Regex("""new\s+[\w$]+(?:\.[\w$]+)*\s*\(\s*['"](\w+)['"]\s*,\s*['"](query|mutation|subscription)['"]\s*,\s*['"]([0-9a-f]{64})['"]""")
     }
 }

@@ -74,8 +74,9 @@ fun App() {
     // Genius's explanations of the song playing, read while it starts: ready when the lyrics open.
     val geniusLang = com.music.spotui.ui.components.readerLanguage()
     val playingUri = com.music.spotui.di.SongPlayer.nowPlaying.value.uri
-    LaunchedEffect(playingUri) {
-        if (!playingUri.startsWith("spotify:track:")) return@LaunchedEffect
+    val geniusOn = com.music.spotui.data.preferences.GeniusPref.on
+    LaunchedEffect(playingUri, geniusOn) {
+        if (!geniusOn || !playingUri.startsWith("spotify:track:")) return@LaunchedEffect
         kotlinx.coroutines.delay(2_000) // the song's own loads first
         val st = com.music.spotui.di.Graph.currentSongState
         com.music.spotui.data.api.GeniusMeaning.prefetch(playingUri.substringAfterLast(':'), st.title.value, st.singer.value, geniusLang)

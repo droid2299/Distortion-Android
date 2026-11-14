@@ -4,12 +4,16 @@ import android.content.Context
 import app.myspoti.api.MyspotiApi
 import app.myspoti.spotify.AccountPlan
 import app.myspoti.spotify.SpotifyApi
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withTimeoutOrNull
 import java.util.Locale
 
 /**
@@ -27,6 +31,7 @@ object MyspotiRuntime {
 
     /** A plan not known yet is asked again after this (a failed or unclear answer). */
     private const val PLAN_ASK_GAP_MS = 60_000L
+    private const val HASH_REPAIR_GAP_MS = 30 * 60_000L
 
     val isStarted: Boolean get() = ::host.isInitialized
     val loginRequired: StateFlow<Boolean> get() = host.loginRequired
@@ -60,6 +65,33 @@ object MyspotiRuntime {
         AudioModeWatch.install(context.applicationContext)
         spotify = SpotifyApi(host, scope, http = apiHttp, language = Locale.getDefault().language, ops = updater.load(), deviceId = clientDeviceId(context, host.accounts.list.value.active), userAgent = host.userAgent,
             tokenStore = clientTokens(context))
+        val operationRefresh = Mutex()
+        var lastHashRepair: Long? = null
+        fun unmetered() = runCatching {
+            !(context.getSystemService(Context.CONNECTIVITY_SERVICE) as android.net.ConnectivityManager).isActiveNetworkMetered
+        }.getOrDefault(false)
+        suspend fun refreshOperations(force: Boolean) {
+            try {
+                updater.refresh(spotify.opsInUse, bundlesAllowed = unmetered(), forceBundleScan = force)
+                    ?.let(spotify::updateOps)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Logbook.log("Spotify operation refresh failed: ${e.javaClass.simpleName}")
+            }
+        }
+        spotify.httpGql.refreshOperations = { name, rejectedHash ->
+            withTimeoutOrNull(12_000L) {
+                operationRefresh.withLock {
+                    val now = android.os.SystemClock.elapsedRealtime()
+                    val outsideCooldown = lastHashRepair?.let { now - it >= HASH_REPAIR_GAP_MS } ?: true
+                    if (outsideCooldown && host.online.value && unmetered() && spotify.opsInUse.hash(name) == rejectedHash) {
+                        lastHashRepair = now
+                        refreshOperations(force = true)
+                    }
+                }
+            }
+        }
         spotify.bridge.logger = { line -> Logbook.log(line) }
         host.onPageLoaded = { scope.launch { spotify.onPageLoaded() } }
         host.onPageStarting = { spotify.onPageStarting() }
@@ -104,11 +136,14 @@ object MyspotiRuntime {
                 // The account's plan (AccountPlan: Premium turns the ad machinery off), asked while it is not
                 // known, once the page is signed in; forgotten at a sign-out (below). Its log line is the first
                 // thing a refused play (402) needs. No name, no id, only what decides what the account may play.
-                if (spotify.ready.value && runCatching { isSignedIn() }.getOrDefault(false)) {
-                    host.noteSignedIn(fresh = sawSignedOut)
-                    val now = android.os.SystemClock.elapsedRealtime()
-                    if (AccountPlan.premium.value == null && (planAskedAt == 0L || now - planAskedAt >= PLAN_ASK_GAP_MS)) {
-                        planAskedAt = now
+                val wantsPlan = AccountPlan.premium.value == null &&
+                    (planAskedAt == 0L || clock - planAskedAt >= PLAN_ASK_GAP_MS)
+                if (spotify.ready.value && !host.loginRequired.value) {
+                    val signedIn = spotify.signedInHint() == true ||
+                        (wantsPlan && runCatching { isSignedIn() }.getOrDefault(false))
+                    if (signedIn) host.noteSignedIn(fresh = sawSignedOut)
+                    if (wantsPlan) planAskedAt = clock
+                    if (signedIn && wantsPlan) {
                         // The account asked about: a switch while the answer comes leaves the next one's plan unknown.
                         val profile = host.profile
                         runCatching {
@@ -153,10 +188,9 @@ object MyspotiRuntime {
         // (~6 MB) only off mobile data.
         if (updater.due()) scope.launch {
             kotlinx.coroutines.withTimeoutOrNull(30_000) { spotify.ready.first { it } }
-            val metered = runCatching {
-                (context.getSystemService(Context.CONNECTIVITY_SERVICE) as android.net.ConnectivityManager).isActiveNetworkMetered
-            }.getOrDefault(true)
-            runCatching { updater.refresh(spotify.opsInUse, bundlesAllowed = !metered) }.getOrNull()?.let(spotify::updateOps)
+            operationRefresh.withLock {
+                if (updater.due()) refreshOperations(force = false)
+            }
         }
     }
 

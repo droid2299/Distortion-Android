@@ -1,7 +1,11 @@
 # Third-party notices
 
 Distortion is free software under the GNU General Public License v3.0 (see [LICENSE.md](LICENSE.md)).
-Distortion is derived from [Myspoti](https://github.com/kota-zo/myspoti). It builds on the projects below; their licences are compatible with the GPL-3.0.
+Distortion is derived from [Myspoti](https://github.com/kota-zo/myspoti). Distortion also adapts
+the Genius controls, Canvas lifecycle, video title matching, and AutoMix motion from
+[Orpheon v1.0.0-beta.1](https://github.com/kota-zo/Orpheon/releases/tag/v1.0.0-beta.1).
+
+It builds on the projects below; their licences are compatible with the GPL-3.0.
 
 ## Beat This! — MIT
 https://github.com/CPJKU/beat_this

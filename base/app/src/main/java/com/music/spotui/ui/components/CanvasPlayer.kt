@@ -11,6 +11,8 @@ object CanvasPlayer {
     private var exo: androidx.media3.exoplayer.ExoPlayer? = null
     private var url: String? = null
     private var framed: String? = null
+    private var foreground = false
+    private const val MAX_HEIGHT = 720
     private val firstFrame = mutableListOf<() -> Unit>()
 
     /**
@@ -23,7 +25,23 @@ object CanvasPlayer {
      * Loads the clip of the song now playing before the player screen opens (called while
      * the mini player is on screen, so only when the app is in use). Main thread.
      */
-    fun preload(context: android.content.Context, url: String) { get(context, url) }
+    fun preload(context: android.content.Context, url: String) {
+        if (foreground) get(context, url)
+    }
+
+    fun onForeground() {
+        foreground = true
+        exo?.takeIf { url != null && it.playbackState == androidx.media3.common.Player.STATE_IDLE }?.prepare()
+    }
+
+    fun onBackground() {
+        foreground = false
+        exo?.let {
+            it.playWhenReady = false
+            it.stop()
+        }
+        framed = null
+    }
 
     /**
      * Downloads the clip [url] to the media cache on storage, without a player and without
@@ -48,6 +66,9 @@ object CanvasPlayer {
             androidx.media3.exoplayer.ExoPlayer.Builder(context.applicationContext)
                 .setMediaSourceFactory(androidx.media3.exoplayer.source.DefaultMediaSourceFactory(cached))
                 .build().apply {
+                    trackSelectionParameters = trackSelectionParameters.buildUpon()
+                        .setTrackTypeDisabled(androidx.media3.common.C.TRACK_TYPE_AUDIO, true)
+                        .build()
                     repeatMode = androidx.media3.common.Player.REPEAT_MODE_ALL
                     volume = 0f
                     playWhenReady = false
@@ -59,10 +80,18 @@ object CanvasPlayer {
                     })
                 }.also { exo = it }
         }
+        val maxHeight = minOf(MAX_HEIGHT, app.myspoti.power.EnergySettings.state.value.policy.videoMaxHeight)
+        if (player.trackSelectionParameters.maxVideoHeight != maxHeight) {
+            player.trackSelectionParameters = player.trackSelectionParameters.buildUpon()
+                .setMaxVideoSize(Int.MAX_VALUE, maxHeight)
+                .build()
+        }
         if (url != this.url) {
             this.url = url
             framed = null
             player.setMediaItem(androidx.media3.common.MediaItem.fromUri(url))
+            if (foreground) player.prepare()
+        } else if (foreground && player.playbackState == androidx.media3.common.Player.STATE_IDLE) {
             player.prepare()
         }
         return player

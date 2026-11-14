@@ -20,15 +20,16 @@ import java.io.File
 class GqlOpsUpdaterTest {
     @TempDir lateinit var dir: File
 
-    private val hash = "a".repeat(64)
+    private var hash = "a".repeat(64)
+    private var bundleUrl = "https://open.spotifycdn.com/cdn/build/web-player/web-player.x1.js"
     private var build = "b1"
     private val asked = mutableListOf<String>()
     private val http = OkHttpClient.Builder().addInterceptor(Interceptor { chain ->
         val r = chain.request(); asked += r.url.toString()
         val body = if (r.url.host == "open.spotify.com")
             """<script id="appServerConfig" type="text/plain">{"buildVersion":"$build"}</script>
-               <script src="https://open.spotifycdn.com/cdn/build/web-player/web-player.x1.js"></script>"""
-        else """x=new A("fetchLibraryTracks","query","$hash")"""
+               <script src="$bundleUrl"></script>"""
+        else """x=new A .ignored; x=new A.B('fetchLibraryTracks', "query", '$hash')"""
         Response.Builder().request(r).protocol(Protocol.HTTP_1_1).code(200).message("OK").body(body.toResponseBody()).build()
     }).build()
 
@@ -50,5 +51,21 @@ class GqlOpsUpdaterTest {
         assertNull(u.refresh(fresh, bundlesAllowed = false, now = 30_000_000))
         assertEquals(0, asked.count { "spotifycdn" in it })
         assertFalse(u.due(now = 30_000_001))
+    }
+    @Test fun changedBundleAndExplicitRejectionCanRefreshTheSameBuild() = runBlocking {
+        val updater = GqlOpsUpdater(http, File(dir, "gql-ops.json"))
+        val initial = GqlOps(mapOf("fetchLibraryTracks" to "0".repeat(64)))
+        val first = checkNotNull(updater.refresh(initial))
+
+        bundleUrl = bundleUrl.replace("x1.js", "x2.js")
+        hash = "b".repeat(64)
+        val second = checkNotNull(updater.refresh(first))
+        assertEquals(hash, second.hash("fetchLibraryTracks"))
+
+        hash = "c".repeat(64)
+        assertNull(updater.refresh(second))
+        assertNull(updater.refresh(second, bundlesAllowed = false, forceBundleScan = true))
+        val recovered = checkNotNull(updater.refresh(second, forceBundleScan = true))
+        assertEquals(hash, recovered.hash("fetchLibraryTracks"))
     }
 }

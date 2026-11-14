@@ -38,10 +38,22 @@ object GeniusMeaning {
         override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, Meaning?>?) = size > KEEP
     })
 
-    fun cached(title: String, artist: String): Meaning? = recent[key(title, artist)]
+    fun cached(title: String, artist: String): Meaning? =
+        if (com.music.spotui.data.preferences.GeniusPref.on) recent[key(title, artist)] else null
+
+    fun currentFor(trackId: String): Meaning? =
+        if (com.music.spotui.data.preferences.GeniusPref.on) current.value?.takeIf { it.first == trackId }?.second else null
+
+    fun forget() {
+        prefetchJob?.cancel()
+        prefetchFor = ""
+        current.value = null
+        recent.clear()
+    }
 
     /** null: no song on Genius matches, or it says nothing about it. Throws when Genius can't be reached. */
     suspend fun find(title: String, artist: String): Meaning? = withContext(Dispatchers.IO) {
+        if (!com.music.spotui.data.preferences.GeniusPref.on) return@withContext null
         val k = key(title, artist)
         if (recent.containsKey(k)) return@withContext recent[k]
         val cleanTitle = clean(title)
@@ -82,6 +94,7 @@ object GeniusMeaning {
                 notes = notes.await(),
             )
         }.takeUnless { it.isEmpty }
+        if (!com.music.spotui.data.preferences.GeniusPref.on) return@withContext null
         recent[k] = meaning
         meaning
     }
@@ -99,7 +112,7 @@ object GeniusMeaning {
      * the light bulb and the underlined lines are there the moment the lyrics open.
      */
     fun prefetch(trackId: String, title: String, artist: String, lang: String) {
-        if (trackId.isBlank() || title.isBlank() || current.value?.first == trackId) return
+        if (!com.music.spotui.data.preferences.GeniusPref.on || trackId.isBlank() || title.isBlank() || current.value?.first == trackId) return
         if (prefetchFor == trackId && prefetchJob?.isActive == true) return
         prefetchFor = trackId
         prefetchJob?.cancel()
@@ -159,6 +172,7 @@ object GeniusMeaning {
     }
 
     private fun get(url: String): JsonObject? {
+        if (!com.music.spotui.data.preferences.GeniusPref.on) return null
         val req = Request.Builder().url(url)
             .header("User-Agent", "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Mobile Safari/537.36")
             .header("Accept", "application/json").build()

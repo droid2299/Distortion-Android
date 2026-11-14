@@ -371,11 +371,13 @@ internal fun TransportGlyph(
     }
 }
 
+internal val VOLUME_ROW_HEIGHT = 32.dp
+
 /** The volume bar between its two speaker glyphs. */
 @Composable
 internal fun VolumeRow(volume: PlayerVolume) {
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().height(VOLUME_ROW_HEIGHT),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(

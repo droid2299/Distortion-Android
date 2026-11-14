@@ -318,6 +318,7 @@ class MainActivity : AppCompatActivity() {
         // Beta and dev builds only, like the log button: a stable release has no freeze reports to read.
         if (com.music.spotui.data.api.UpdateChecker.isBeta || app.myspoti.engine.BuildConfig.DEBUG) app.myspoti.host.android.MainThreadWatch.start()
         super.onStart()
+        com.music.spotui.ui.components.CanvasPlayer.onForeground()
         com.music.spotui.video.MusicVideoController.onForeground()
         // The song shown may have been liked or unliked in another app meanwhile.
         com.music.spotui.di.SongPlayer.refreshLikedIfStale()
@@ -332,7 +333,10 @@ class MainActivity : AppCompatActivity() {
         // The sign-in is only in memory until the WebView saves it: leaving the app (and being swiped away) must not lose it.
         MyspotiRuntime.host.flushCookies()
         app.myspoti.host.android.MainThreadWatch.stop()
-        if (!isChangingConfigurations) com.music.spotui.video.MusicVideoController.onBackground()
+        if (!isChangingConfigurations) {
+            com.music.spotui.ui.components.CanvasPlayer.onBackground()
+            com.music.spotui.video.MusicVideoController.onBackground()
+        }
     }
 
     override fun onDestroy() {
