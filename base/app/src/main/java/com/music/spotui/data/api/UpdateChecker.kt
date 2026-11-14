@@ -42,7 +42,7 @@ object UpdateChecker {
 
     /** When the last successful check ran (epoch ms), 0 if never. */
     fun lastChecked(context: Context): Long =
-        context.getSharedPreferences("updates", Context.MODE_PRIVATE).getLong("checked_at", 0L)
+        context.getSharedPreferences("distortion_updates", Context.MODE_PRIVATE).getLong("checked_at", 0L)
 
     /**
      * Automatic check (launch, resume, periodic). [manual]: a release dismissed with "Later" is
@@ -53,7 +53,7 @@ object UpdateChecker {
     suspend fun check(context: Context, manual: Boolean = false): Release? = withContext(Dispatchers.IO) {
         val repo = BuildConfig.UPDATE_REPO
         if (repo.isBlank()) return@withContext null
-        val prefs = context.getSharedPreferences("updates", Context.MODE_PRIVATE)
+        val prefs = context.getSharedPreferences("distortion_updates", Context.MODE_PRIVATE)
         val now = System.currentTimeMillis()
         if (now - prefs.getLong("checked_at", 0L) < INTERVAL_MS || now - prefs.getLong("tried_at", 0L) < RETRY_MS) return@withContext pending(prefs, manual)
         store(prefs, fetch(repo, force = false), now)
@@ -67,7 +67,7 @@ object UpdateChecker {
     suspend fun refresh(context: Context): Outcome = withContext(Dispatchers.IO) {
         val repo = BuildConfig.UPDATE_REPO
         if (repo.isBlank()) return@withContext Outcome.UpToDate
-        val prefs = context.getSharedPreferences("updates", Context.MODE_PRIVATE)
+        val prefs = context.getSharedPreferences("distortion_updates", Context.MODE_PRIVATE)
         val result = fetch(repo, force = true)
         store(prefs, result, System.currentTimeMillis())
         when (result) {
@@ -109,7 +109,7 @@ object UpdateChecker {
 
     /** The newer release last seen, dismissed or not (no request): what Settings > About shows. */
     fun known(context: Context): Release? =
-        pending(context.getSharedPreferences("updates", Context.MODE_PRIVATE), true)
+        pending(context.getSharedPreferences("distortion_updates", Context.MODE_PRIVATE), true)
 
     /** The latest release known, if newer than this build and (unless [manual]) not dismissed. */
     private fun pending(prefs: android.content.SharedPreferences, manual: Boolean = false): Release? {
@@ -148,7 +148,7 @@ object UpdateChecker {
     private val deviceAbis: List<String> get() = android.os.Build.SUPPORTED_ABIS.toList()
 
     fun dismiss(context: Context, release: Release) {
-        context.getSharedPreferences("updates", Context.MODE_PRIVATE).edit()
+        context.getSharedPreferences("distortion_updates", Context.MODE_PRIVATE).edit()
             .putString("dismissed", release.version).apply()
     }
 

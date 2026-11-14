@@ -35,7 +35,7 @@ android {
     // signed with the first key, as "Distortion Beta"; releases are "app.myspoti.stable",
     // signed with their own key, as "Myspoti".
     // Local builds (no version given) are on the beta side, like the phone test builds.
-    val version = (findProperty("appVersionName") as String?) ?: "2.4.0"
+    val version = (findProperty("appVersionName") as String?) ?: "1.0.0"
     // "-beta" as in UpdateChecker.isBeta, one predicate for the app id, the label and the log stripping.
     val beta = findProperty("appVersionName") == null || version.contains("-beta")
     defaultConfig {
@@ -48,6 +48,8 @@ android {
         // CI release builds pass the tag's version (-PappVersionName / -PappVersionCode).
         versionCode = (findProperty("appVersionCode") as String?)?.toIntOrNull() ?: 200
         versionName = version
+        // Existing extensions declare their minimum against the upstream host version.
+        buildConfigField("String", "EXTENSION_HOST_VERSION", "\"2.4.1\"")
         // GitHub "owner/repo" whose releases the app checks for updates; empty = off
         // (local builds). CI sets it to the repository it builds.
         buildConfigField("String", "UPDATE_REPO", "\"${(findProperty("updateRepo") as String?) ?: System.getenv("DISTORTION_UPDATE_REPO") ?: ""}\"")
@@ -221,7 +223,7 @@ dependencies {
  */
 tasks.register("collectApks") {
     mustRunAfter("assembleRelease")
-    val version = (findProperty("appVersionName") as String?) ?: "2.4.0"
+    val version = (findProperty("appVersionName") as String?) ?: "1.0.0"
     val beta = findProperty("appVersionName") == null || version.contains("-beta")
     val app = when { findProperty("overDev") != null -> "Distortion-dev"; beta -> "Distortion-Beta"; else -> "Distortion" }
     // Copies: the configuration cache cannot keep a reference to the script's own values.

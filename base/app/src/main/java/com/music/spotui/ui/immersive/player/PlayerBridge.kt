@@ -53,6 +53,9 @@ data class ImmersivePlayerState(
     val trackId: String = "",
     val album: String = "",
     val coverUrl: String = "",
+    val mediaUri: String = "",
+    val nextCoverUrl: String = "",
+    val previousCoverUrl: String = "",
     val playing: Boolean = false,
     val buffering: Boolean = false,
     /** The playhead in milliseconds, read per frame (SongPlayer.getCurrentPosition()). */
@@ -154,12 +157,18 @@ fun rememberImmersivePlayer(navController: NavController): ImmersivePlayerBridge
     val outgoing = blend?.takeIf { it.outgoingWords }
     val mixCue = com.music.spotui.ui.components.rememberMixCue()
     val mixPulse = com.music.spotui.ui.components.rememberMixPulse(mixCue)
+    val previewQueue = SongPlayer.engineQueue.value
+    val upcomingCover = (previewQueue.queued.firstOrNull() ?: previewQueue.nextUp.firstOrNull())?.song?.coverUri
+    val nextCover = if (com.music.spotui.di.LocalPlayer.active.value) upcomingCover else np.next?.coverUri ?: upcomingCover
     val state = ImmersivePlayerState(
         title = outgoing?.song?.title ?: title,
         artist = outgoing?.song?.artist ?: singer,
         trackId = com.music.spotui.ui.viewmodel.confirmedTrackIdForDisplay(np.uri, songId),
         album = album,
         coverUrl = app.myspoti.host.android.Covers.large(cover),
+        mediaUri = np.uri,
+        nextCoverUrl = app.myspoti.host.android.Covers.large(nextCover.orEmpty()),
+        previousCoverUrl = app.myspoti.host.android.Covers.large(np.prev?.coverUri.orEmpty()),
         playing = playing,
         buffering = buffering,
         positionMs = remember(outgoing) { outgoing?.let { o -> { o.positionMs() } } ?: { SongPlayer.getCurrentPosition() } },

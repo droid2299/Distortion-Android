@@ -12,11 +12,17 @@ package com.music.spotui.ui.immersive.player
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.spring
 import androidx.compose.foundation.clickable
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.foundation.shape.GenericShape
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.RoundRect
+import androidx.compose.ui.graphics.lerp as lerpColor
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -28,8 +34,17 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.lerp
+import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.LayoutCoordinates
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInWindow
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
@@ -46,11 +61,18 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 /** A release faster than this (px/s) decides the sheet on its own, either way. */
-private const val FLING_VELOCITY = 1_000f
+internal const val PlayerFlingVelocity = 1_000f
 
 private val PlayerCardShape = androidx.compose.foundation.shape.RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
 
 private fun slideSpec(reduce: Boolean) = com.music.spotui.ui.immersive.motion.ImmersiveMotion.slideSpring(reduce)
+
+internal class ArtworkDock(
+    val record: (LayoutCoordinates) -> Unit,
+    val inFlight: () -> Boolean,
+)
+
+internal val LocalArtworkDock = staticCompositionLocalOf<ArtworkDock?> { null }
 
 /**
  * The Immersive look's player over the pages, a drop-in for [com.music.spotui.ui.navigation.PlayerOverlay]:
@@ -65,6 +87,7 @@ fun ImmersivePlayerOverlay(navController: NavController) {
         navController.currentBackStackEntryFlow.drop(1).collect { PlayerSheet.close() }
     }
     val open = PlayerSheet.open.value
+    val pulling = PlayerSheet.miniPullActive.value
     val scope = rememberCoroutineScope()
     val dismissDistance = with(androidx.compose.ui.platform.LocalDensity.current) { 96.dp.toPx() }
     val currentDismissDistance = androidx.compose.runtime.rememberUpdatedState(dismissDistance)
@@ -80,8 +103,9 @@ fun ImmersivePlayerOverlay(navController: NavController) {
     var closeVelocity by remember { mutableFloatStateOf(0f) }
     val settled = remember { mutableStateOf(false) }
 
-    LaunchedEffect(open) {
-        if (open) {
+    LaunchedEffect(open, pulling, reduce) {
+        if (pulling && reduce) return@LaunchedEffect
+        if (open || pulling || shown) {
             val wasShown = shown
             shown = true
             if (!wasShown) {
@@ -90,15 +114,24 @@ fun ImmersivePlayerOverlay(navController: NavController) {
                 offset.snapTo(heightPx.toFloat())
                 primed = true
             }
-            offset.animateTo(0f, slideSpec(reduce))
-            settled.value = true
-        } else if (shown) {
-            settled.value = false
-            val velocity = closeVelocity.coerceAtLeast(0f)
-            closeVelocity = 0f
-            offset.animateTo(heightPx.toFloat(), slideSpec(reduce), initialVelocity = velocity)
-            shown = false
-            primed = false
+            if (pulling) return@LaunchedEffect
+            if (PlayerSheet.miniPullDistance > 0f) {
+                offset.snapTo((heightPx - PlayerSheet.miniPullDistance).coerceAtLeast(0f))
+                PlayerSheet.miniPullDistance = 0f
+            }
+            if (open) {
+                offset.animateTo(0f, slideSpec(reduce))
+                settled.value = true
+            } else {
+                settled.value = false
+                val velocity = closeVelocity.coerceAtLeast(0f)
+                closeVelocity = 0f
+                offset.animateTo(heightPx.toFloat(), slideSpec(reduce), initialVelocity = velocity)
+                shown = false
+                primed = false
+            }
+        } else {
+            PlayerSheet.miniPullDistance = 0f
         }
     }
     if (!shown) return
@@ -124,8 +157,8 @@ fun ImmersivePlayerOverlay(navController: NavController) {
                 if (held.isNaN()) return
                 val from = held
                 val close = when {
-                    velocity >= FLING_VELOCITY -> true
-                    velocity <= -FLING_VELOCITY -> false
+                    velocity >= PlayerFlingVelocity -> true
+                    velocity <= -PlayerFlingVelocity -> false
                     else -> from >= minOf(currentDismissDistance.value, heightPx * 0.22f)
                 }
                 scope.launch {
@@ -143,46 +176,132 @@ fun ImmersivePlayerOverlay(navController: NavController) {
         }
     }
 
-    Box(
-        Modifier
-            .fillMaxSize()
-            .onSizeChanged { heightPx = it.height }
-            .graphicsLayer {
-                val y = if (held.isNaN()) offset.value else held
-                translationY = y
-                // The player rises as a card with rounded top corners, square once it is home.
-                if (y > 0.5f) {
-                    clip = true
-                    shape = PlayerCardShape
-                }
-                alpha = if (primed) 1f else 0f
+    val music = !SongPlayer.isEpisode
+    val bridge = if (music) rememberImmersivePlayer(navController) else null
+    val destination = PlayerSheet.miniArtworkBounds?.takeIf { it.width > 0f && it.height > 0f }
+    var origin by remember { mutableStateOf(Offset.Zero) }
+    var artworkBounds by remember { mutableStateOf<Rect?>(null) }
+    val miniBounds = PlayerSheet.miniBounds?.takeIf { it.width > 0f && it.height > 0f }
+    val canMorph = !reduce && miniBounds != null
+    val canDock = music && canMorph && destination != null
+    val scheme = MaterialTheme.colorScheme
+    val travel = {
+        when {
+            PlayerSheet.miniPullDistance > 0f -> (heightPx - PlayerSheet.miniPullDistance).coerceAtLeast(0f)
+            held.isNaN() -> offset.value
+            else -> held
+        }
+    }
+    var sheetCoordinates by remember { mutableStateOf<LayoutCoordinates?>(null) }
+    val dock = if (canDock) ArtworkDock(
+        record = { cover ->
+            val sheet = sheetCoordinates
+            if (sheet != null && sheet.isAttached && cover.isAttached) {
+                val localTop = sheet.localPositionOf(cover, Offset.Zero)
+                val localBottom = sheet.localPositionOf(cover, Offset(cover.size.width.toFloat(), cover.size.height.toFloat()))
+                val bounds = Rect(origin + localTop, origin + localBottom)
+                if (bounds.width > 0f && bounds.height > 0f) artworkBounds = bounds
             }
-            // Nothing under the player may take a touch the player leaves alone.
-            .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) {},
-    ) {
-        // The glass sheets opened from the player (sound quality, devices…) sample the player, not
-        // the page under it: the player records itself and stands in for the page recording.
-        // Nothing recorded while neither Liquid Glass nor the recorded frost reads it.
-        val outerGlass = LocalImmersiveBackdrop.current
-        val outerFrost = LocalImmersiveFrostPage.current
-        val playerPage = if (outerGlass != null || outerFrost != null) rememberLayerBackdrop() else null
-        CompositionLocalProvider(
-            LocalPageSettled provides settled,
-            LocalPlayerSheetDrag provides sheetDrag,
-            LocalImmersiveBackdrop provides outerGlass?.let { playerPage },
-            LocalImmersiveFrostPage provides outerFrost?.let { playerPage },
-            // Hidden until primed, like the player itself: no frame of it at rest in the glass.
-            LocalBackdropSourceAlpha provides { if (primed) 1f else 0f },
+        },
+        inFlight = { artworkBounds != null && travel() > 1f },
+    ) else null
+
+    val expandedFraction = { (1f - travel() / heightPx.coerceAtLeast(1)).coerceIn(0f, 1f) }
+    // Reveal the mounted mini player while the sheet is still moving into its bounds.
+    val handoffAlpha = { (expandedFraction() / 0.30f).coerceIn(0f, 1f) }
+    Box(Modifier.fillMaxSize().onGloballyPositioned { origin = it.positionInWindow() }) {
+        Box(
+            Modifier.fillMaxSize()
+                .onSizeChanged { heightPx = it.height }
+                .graphicsLayer {
+                    val fraction = expandedFraction()
+                    alpha = when {
+                        !primed -> 0f
+                        canMorph -> handoffAlpha()
+                        else -> 1f
+                    }
+                    if (miniBounds != null && canMorph && fraction < 1f) {
+                        val anchor = miniBounds.translate(-origin)
+                        val rect = lerp(anchor, Rect(Offset.Zero, size), fraction)
+                        val corner = MiniPlayerCorner.toPx() * (1f - fraction)
+                        shape = GenericShape { _, _ ->
+                            addRoundRect(RoundRect(rect, CornerRadius(corner)))
+                        }
+                        clip = true
+                    } else if (!canMorph && travel() > 0.5f) {
+                        translationY = travel()
+                        shape = PlayerCardShape
+                        clip = true
+                    }
+                }
+                .drawBehind {
+                    if (canMorph) {
+                        drawRect(lerpColor(scheme.secondaryContainer, scheme.primaryContainer, expandedFraction()))
+                    }
+                }
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null,
+                    enabled = open,
+                ) {},
         ) {
-            Box(Modifier.fillMaxSize().then(if (playerPage != null) Modifier.layerBackdrop(playerPage) else Modifier)) {
-                // A podcast episode gets the podcast player (15 s skips, speed); everything else the music one.
-                if (SongPlayer.isEpisode) {
-                    ImmersivePodcastPlayer(navController)
-                } else {
-                    val bridge = rememberImmersivePlayer(navController)
-                    ImmersivePlayer(bridge.state, bridge.actions, navController = navController)
+            // The glass sheets opened from the player (sound quality, devices…) sample the player, not
+            // the page under it: the player records itself and stands in for the page recording.
+            // Nothing recorded while neither Liquid Glass nor the recorded frost reads it.
+            val outerGlass = LocalImmersiveBackdrop.current
+            val outerFrost = LocalImmersiveFrostPage.current
+            val playerPage = if (outerGlass != null || outerFrost != null) rememberLayerBackdrop() else null
+            CompositionLocalProvider(
+                LocalPageSettled provides settled,
+                LocalPlayerSheetDrag provides sheetDrag,
+                LocalArtworkDock provides dock,
+                LocalImmersiveBackdrop provides outerGlass?.let { playerPage },
+                LocalImmersiveFrostPage provides outerFrost?.let { playerPage },
+                // Hidden until primed, like the player itself: no frame of it at rest in the glass.
+                LocalBackdropSourceAlpha provides { if (primed) 1f else 0f },
+            ) {
+                Box(
+                    Modifier.fillMaxSize()
+                        .onGloballyPositioned { sheetCoordinates = it }
+                        .graphicsLayer {
+                            if (canMorph) {
+                                val fraction = expandedFraction()
+                                alpha = ((fraction - 0.22f) / 0.68f).coerceIn(0f, 1f)
+                            }
+                        }
+                        .then(if (playerPage != null) Modifier.layerBackdrop(playerPage) else Modifier),
+                ) {
+                    // A podcast episode gets the podcast player (15 s skips, speed); everything else the music one.
+                    if (bridge == null) {
+                        ImmersivePodcastPlayer(navController)
+                    } else {
+                        ImmersivePlayer(bridge.state, bridge.actions, navController = navController)
+                    }
                 }
             }
+        }
+        val start = artworkBounds
+        if (dock != null && start != null && destination != null && bridge != null) {
+            val density = LocalDensity.current
+            ArtworkImage(
+                bridge.state.coverUrl,
+                Modifier.size(
+                    with(density) { start.width.toDp() },
+                    with(density) { start.height.toDp() },
+                ).graphicsLayer {
+                    val progress = (travel() / heightPx.coerceAtLeast(1)).coerceIn(0f, 1f)
+                    val rect = lerp(start, destination, progress)
+                    transformOrigin = TransformOrigin(0f, 0f)
+                    translationX = rect.left - origin.x
+                    translationY = rect.top - origin.y
+                    scaleX = rect.width / start.width
+                    scaleY = rect.height / start.height
+                    val corner = androidx.compose.ui.unit.lerp(28.dp, MiniArtworkCorner / scaleX, progress)
+                    shape = androidx.compose.foundation.shape.RoundedCornerShape(corner)
+                    clip = true
+                    alpha = if (primed && dock.inFlight()) handoffAlpha() else 0f
+                },
+            )
         }
     }
 }

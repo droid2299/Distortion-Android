@@ -32,10 +32,28 @@ object PlayerSheet {
     val open = mutableStateOf(false)
 
     fun show() { open.value = true }
-    fun close() { open.value = false }
+    fun close() {
+        miniPullActive.value = false
+        open.value = false
+    }
+
+    internal val miniPullActive = mutableStateOf(false)
+    internal var miniPullDistance by mutableFloatStateOf(0f)
+
+    internal fun pullFromMini(distance: Float) {
+        miniPullDistance = distance.coerceAtLeast(0f)
+        miniPullActive.value = true
+    }
+
+    internal fun releaseMiniPull(expand: Boolean) {
+        if (expand) show()
+        miniPullActive.value = false
+    }
 
     /** The mini player's top edge in the window (px), where the player rises from and goes back to. */
     var miniTop by mutableFloatStateOf(0f)
+    internal var miniBounds by mutableStateOf<androidx.compose.ui.geometry.Rect?>(null)
+    var miniArtworkBounds by mutableStateOf<androidx.compose.ui.geometry.Rect?>(null)
 }
 
 /**

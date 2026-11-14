@@ -37,6 +37,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -45,6 +46,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.util.VelocityTracker
+import androidx.compose.ui.input.pointer.util.addPointerInputChange
 import androidx.compose.ui.input.pointer.positionChange
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.boundsInWindow
@@ -69,7 +72,8 @@ import kotlin.math.abs
 
 private val GLYPH_SLOT = 48.dp
 private val GLYPH_SIZE = 28.dp
-private val ART_CORNER = 6.dp
+internal val MiniArtworkCorner = 6.dp
+internal val MiniPlayerCorner = 20.dp
 private val MINI_HEIGHT = 60.dp
 
 /** How far the capsule is swiped along to change track. */
@@ -95,7 +99,7 @@ fun ImmersiveMiniPlayer(modifier: Modifier = Modifier) {
     val playing = vm.currentSongPlayingState.value
     val adPlaying = SongPlayer.adPlaying
     val buffering = SongPlayer.isBuffering
-    val shape = RoundedCornerShape(20.dp)
+    val shape = RoundedCornerShape(MiniPlayerCorner)
     val capsuleSource = remember { MutableInteractionSource() }
 
     Row(
@@ -103,7 +107,11 @@ fun ImmersiveMiniPlayer(modifier: Modifier = Modifier) {
             .fillMaxWidth()
             .heightIn(min = MINI_HEIGHT)
             // Where the Classic sheet rises from; kept up to date for the pages that read it.
-            .onGloballyPositioned { PlayerSheet.miniTop = it.boundsInWindow().top }
+            .onGloballyPositioned {
+                val bounds = it.boundsInWindow()
+                PlayerSheet.miniTop = bounds.top
+                PlayerSheet.miniBounds = bounds
+            }
             .miniPlayerGestures()
             .background(Immersive.scheme.secondaryContainer, shape)
             .clip(shape)
@@ -111,7 +119,15 @@ fun ImmersiveMiniPlayer(modifier: Modifier = Modifier) {
             .padding(horizontal = 12.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Box(Modifier.size(44.dp).clip(RoundedCornerShape(ART_CORNER)).background(Color.Black.copy(alpha = 0.18f))) {
+        DisposableEffect(Unit) {
+            onDispose {
+                PlayerSheet.miniBounds = null
+                PlayerSheet.miniArtworkBounds = null
+            }
+        }
+        Box(Modifier.size(44.dp).onGloballyPositioned {
+            PlayerSheet.miniArtworkBounds = it.boundsInWindow()
+        }.clip(RoundedCornerShape(MiniArtworkCorner)).background(Color.Black.copy(alpha = 0.18f))) {
             GlideImage(
                 model = cover.takeIf { it.isNotBlank() },
                 contentDescription = null,
@@ -192,13 +208,32 @@ fun ImmersiveMiniPlayer(modifier: Modifier = Modifier) {
  */
 private fun Modifier.miniPlayerGestures(): Modifier = pointerInput(Unit) {
     val threshold = TRACK_SWIPE_THRESHOLD.toPx()
+    val expandDistance = 72.dp.toPx()
     awaitEachGesture {
         val down = awaitFirstDown(requireUnconsumed = false)
         val slopped = awaitTouchSlopOrCancellation(down.id) { change, _ -> change.consume() } ?: return@awaitEachGesture
         val moved = slopped.position - down.position
         if (abs(moved.y) > abs(moved.x)) {
-            if (moved.y < 0f) PlayerSheet.show()
-            drag(slopped.id) { it.consume() }
+            if (moved.y >= 0f || PlayerSheet.open.value) return@awaitEachGesture
+            val velocity = VelocityTracker()
+            velocity.addPointerInputChange(down)
+            velocity.addPointerInputChange(slopped)
+            var distance = -moved.y
+            var expand = false
+            PlayerSheet.pullFromMini(distance)
+            try {
+                val finished = drag(slopped.id) { change ->
+                    velocity.addPointerInputChange(change)
+                    distance -= change.positionChange().y
+                    PlayerSheet.pullFromMini(distance)
+                    change.consume()
+                }
+                val speed = velocity.calculateVelocity().y
+                expand = finished && speed < PlayerFlingVelocity &&
+                    (distance >= expandDistance || speed <= -PlayerFlingVelocity)
+            } finally {
+                PlayerSheet.releaseMiniPull(expand)
+            }
             return@awaitEachGesture
         }
         var dragged = moved.x

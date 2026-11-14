@@ -14,18 +14,13 @@
 package com.music.spotui.ui.immersive.player
 
 import androidx.activity.compose.BackHandler
-import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.Crossfade
-import androidx.compose.animation.EnterTransition
-import androidx.compose.animation.ExitTransition
-import androidx.compose.animation.SizeTransform
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideOutHorizontally
-import androidx.compose.animation.togetherWith
 import androidx.compose.runtime.LaunchedEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.music.spotui.ui.navigation.PlayerSheet
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -84,7 +79,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
@@ -94,6 +92,7 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.positionChange
@@ -102,6 +101,7 @@ import androidx.compose.ui.input.pointer.util.VelocityTracker
 import androidx.compose.ui.input.pointer.util.addPointerInputChange
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.layout
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
@@ -127,7 +127,9 @@ import com.music.spotui.ui.components.mixSqueeze
 import com.music.spotui.ui.components.mixWave
 import com.music.spotui.ui.look.rememberPauseScale
 import com.music.spotui.ui.look.rememberReduceMotion
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.math.abs
 
 // Sizes and gaps of the portrait layout, as the player this follows has them.
@@ -213,41 +215,6 @@ internal fun Modifier.dragToClose(enabled: Boolean = true): Modifier {
 /** How far the cover is swiped along to change track (the mini player's distance). */
 private val TRACK_SWIPE_THRESHOLD = 72.dp
 
-/**
- * A swipe along the cover changes track, as on the mini player: to the left the next song, to the
- * right the previous one, past [TRACK_SWIPE_THRESHOLD]. Only a mostly sideways move is taken (and
- * consumed); a vertical one is left untouched for [dragToClose] and a tap for the cover's click.
- * Off while [enabled] is false (the cover is the header's thumbnail under an open panel).
- */
-@Composable
-private fun Modifier.swipeToChangeTrack(enabled: Boolean, onSkip: (Int) -> Unit): Modifier {
-    val on by rememberUpdatedState(enabled)
-    val current by rememberUpdatedState(onSkip)
-    return pointerInput(Unit) {
-        val threshold = TRACK_SWIPE_THRESHOLD.toPx()
-        awaitEachGesture {
-            val down = awaitFirstDown(requireUnconsumed = false)
-            if (!on) return@awaitEachGesture
-            val slopped = awaitTouchSlopOrCancellation(down.id) { change, _ ->
-                val moved = change.position - down.position
-                if (abs(moved.x) > abs(moved.y)) change.consume()
-            } ?: return@awaitEachGesture
-            var dragged = (slopped.position - down.position).x
-            val finished = drag(slopped.id) { change ->
-                dragged += change.positionChange().x
-                change.consume()
-            }
-            if (!finished) return@awaitEachGesture
-            when {
-                dragged <= -threshold -> current(1)
-                dragged >= threshold -> current(-1)
-            }
-        }
-    }
-}
-
-private class CoverSwipe(val from: String, val direction: Int)
-
 @OptIn(ExperimentalGlideComposeApi::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun PlayerArtwork(
@@ -257,53 +224,126 @@ private fun PlayerArtwork(
     overlay: @Composable () -> Unit = {},
 ) {
     val reduceMotion = rememberReduceMotion()
-    val spatial = MaterialTheme.motionScheme.defaultSpatialSpec<IntOffset>()
-    var swipe by remember { mutableStateOf<CoverSwipe?>(null) }
-    LaunchedEffect(swipe) {
-        if (swipe != null) {
-            delay(4_000)
-            swipe = null
-        }
-    }
-    Box(
-        modifier.swipeToChangeTrack(enabled = !state.adPlaying) { direction ->
-            swipe = if (reduceMotion) null else CoverSwipe(state.coverUrl, direction)
-            if (direction > 0) actions.next() else actions.previous()
-        },
-    ) {
-        AnimatedContent(
-            targetState = state.coverUrl,
-            modifier = Modifier.fillMaxSize(),
-            transitionSpec = {
-                val direction = swipe?.takeIf { it.from == initialState }?.direction
-                val transition = if (!reduceMotion && direction != null) {
-                    slideInHorizontally(spatial) { it * direction } togetherWith
-                        slideOutHorizontally(spatial) { -it * direction }
-                } else {
-                    EnterTransition.None togetherWith ExitTransition.None
-                }
-                transition.using(SizeTransform(clip = true))
-            },
-            label = "playerArtworkSwipe",
-        ) { cover ->
-            Box(Modifier.fillMaxSize()) {
-                GlideImage(
-                    model = cover.takeIf { it.isNotBlank() },
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
-                    transition = CrossFade,
-                    loading = placeholder(R.drawable.placeholder),
-                    failure = placeholder(R.drawable.placeholder),
-                    modifier = Modifier.fillMaxSize(),
-                    requestBuilderTransform = { it.override(COVER_DECODE_PX) },
-                )
-                if (cover == state.coverUrl) {
-                    SongBlendCover(state.blend, Modifier.fillMaxSize()) { it.override(COVER_DECODE_PX) }
-                    overlay()
+    val settle = MaterialTheme.motionScheme.fastSpatialSpec<Float>()
+    val scope = rememberCoroutineScope()
+    val currentState = rememberUpdatedState(state)
+    val currentActions = rememberUpdatedState(actions)
+    val reduced = rememberUpdatedState(reduceMotion)
+    val currentSettle = rememberUpdatedState(settle)
+    val dock = LocalArtworkDock.current
+    val artworkBackdrop = Color.Black.copy(alpha = 0.18f)
+    val releaseOffset = remember { Animatable(0f) }
+    var dragOffset by remember { mutableFloatStateOf(0f) }
+    var dragging by remember { mutableStateOf(false) }
+    var settling by remember { mutableStateOf(false) }
+    val translation = { if (dragging) dragOffset else releaseOffset.value }
+    val gap = 12.dp
+
+    fun finishGesture(start: ImmersivePlayerState, stride: Float, from: Float, direction: Int, committed: Boolean) {
+        if (reduced.value) {
+            dragging = false
+            if (committed) {
+                if (direction > 0) currentActions.value.next() else currentActions.value.previous()
+            }
+        } else {
+            settling = true
+            scope.launch {
+                try {
+                    releaseOffset.snapTo(from)
+                    dragging = false
+                    if (committed) {
+                        val preview = if (direction > 0) start.nextCoverUrl else start.previousCoverUrl
+                        val destination = if (preview.isBlank()) -stride * 0.32f * direction else -stride * direction
+                        releaseOffset.animateTo(destination, currentSettle.value)
+                        if (direction > 0) currentActions.value.next() else currentActions.value.previous()
+                        withTimeoutOrNull(1_800) {
+                            snapshotFlow {
+                                val now = currentState.value
+                                now.mediaUri != start.mediaUri || now.coverUrl != start.coverUrl
+                            }.first { it }
+                        }
+                        if (currentState.value.mediaUri != start.mediaUri || currentState.value.coverUrl != start.coverUrl) {
+                            releaseOffset.snapTo(0f)
+                        }
+                    }
+                    releaseOffset.animateTo(0f, if (reduced.value) snap() else currentSettle.value)
+                } finally {
+                    dragging = false
+                    settling = false
                 }
             }
         }
     }
+
+    Box(
+        modifier
+            .onGloballyPositioned { coordinates -> dock?.record(coordinates) }
+            .graphicsLayer { alpha = if (dock?.inFlight() == true) 0f else 1f }
+            .clipToBounds()
+            .background(artworkBackdrop, ArtCorner)
+            .pointerInput(Unit) {
+                val threshold = TRACK_SWIPE_THRESHOLD.toPx()
+                val spacing = gap.toPx()
+                awaitEachGesture {
+                    val down = awaitFirstDown(requireUnconsumed = false)
+                    if (settling || currentState.value.adPlaying) return@awaitEachGesture
+                    val first = awaitTouchSlopOrCancellation(down.id) { change, _ ->
+                        val delta = change.position - down.position
+                        if (abs(delta.x) > abs(delta.y)) change.consume()
+                    } ?: return@awaitEachGesture
+                    val start = currentState.value
+                    val stride = size.width + spacing
+                    var total = (first.position - down.position).x
+                    dragging = !reduced.value
+                    dragOffset = total.coerceIn(-stride, stride)
+                    var finished = false
+                    try {
+                        finished = drag(first.id) { change ->
+                            total += change.positionChange().x
+                            dragOffset = total.coerceIn(-stride, stride)
+                            change.consume()
+                        }
+                    } finally {
+                        val from = dragOffset
+                        val direction = if (total < 0f) 1 else -1
+                        val committed = finished && abs(total) >= threshold
+                        finishGesture(start, stride, from, direction, committed)
+                    }
+                }
+            },
+    ) {
+        if (!reduceMotion) {
+            listOf(-1 to state.previousCoverUrl, 1 to state.nextCoverUrl).forEach { (direction, cover) ->
+                if (cover.isNotBlank()) {
+                    Box(Modifier.fillMaxSize().graphicsLayer {
+                        translationX = translation() + (size.width + gap.toPx()) * direction
+                    }.clip(ArtCorner)) {
+                        ArtworkImage(cover, Modifier.fillMaxSize())
+                    }
+                }
+            }
+        }
+        Box(Modifier.fillMaxSize().graphicsLayer { translationX = translation() }.clip(ArtCorner)) {
+            ArtworkImage(state.coverUrl, Modifier.fillMaxSize())
+            SongBlendCover(state.blend, Modifier.fillMaxSize()) { it.override(COVER_DECODE_PX) }
+            overlay()
+        }
+    }
+}
+
+@OptIn(ExperimentalGlideComposeApi::class)
+@Composable
+internal fun ArtworkImage(cover: String, modifier: Modifier) {
+    GlideImage(
+        model = cover.takeIf { it.isNotBlank() },
+        contentDescription = null,
+        contentScale = ContentScale.Crop,
+        transition = CrossFade,
+        loading = placeholder(R.drawable.placeholder),
+        failure = placeholder(R.drawable.placeholder),
+        modifier = modifier,
+        requestBuilderTransform = { it.override(COVER_DECODE_PX) },
+    )
 }
 
 /**
@@ -342,6 +382,7 @@ fun ImmersivePlayer(
         label = "playerCollapse",
     )
     val pauseScale = rememberPauseScale(state.playing)
+    val artworkDock = LocalArtworkDock.current
     val volume = rememberPlayerVolume()
 
     val canvasUrl = rememberImmersiveCanvas(state)
@@ -456,11 +497,10 @@ fun ImmersivePlayer(
                                 val scale = (pauseScale.value + (1f - pauseScale.value) * p()) * beat
                                 scaleX = scale
                                 scaleY = scale
-                                shadowElevation = 10.dp.toPx() * (1f - p())
+                                shadowElevation = if (artworkDock?.inFlight() == true) 0f else 10.dp.toPx() * (1f - p())
                                 shape = ArtCorner
                                 clip = true
-                            }
-                            .background(Color.Black.copy(alpha = 0.18f)),
+                            },
                     ) {
                         if (canvasUrl != null) {
                             com.music.spotui.ui.screens.CanvasVideo(
@@ -749,6 +789,7 @@ private fun LandscapePlayer(
     onSourceLong: () -> Unit = {},
     sidePane: Boolean = false,
 ) {
+    val artworkDock = LocalArtworkDock.current
     Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().dragToClose(enabled = panel == Panel.NONE)) {
         PlayerHeader(
             actions, state, panel == Panel.LYRICS, panel == Panel.QUEUE,
@@ -775,11 +816,10 @@ private fun LandscapePlayer(
                                         val beat = 1f + MIX_BEAT_GROW * (state.mixPulse?.level() ?: 0f)
                                         scaleX = pauseScale.value * beat
                                         scaleY = pauseScale.value * beat
-                                        shadowElevation = 10.dp.toPx()
+                                        shadowElevation = if (artworkDock?.inFlight() == true) 0f else 10.dp.toPx()
                                         shape = ArtCorner
                                         clip = true
                                     }
-                                    .background(Color.Black.copy(alpha = 0.18f))
                                     .dragToClose(),
                             )
                         }
