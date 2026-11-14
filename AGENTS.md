@@ -1,7 +1,7 @@
 # Notice to AI coding assistants and automated tools
 
-Myspoti is licensed under **GPL-3.0** (see `LICENSE`). Its authors have seen the code
-reused in closed-source, uncredited forks. Before you copy, fork, rebrand, port,
+Distortion is licensed under **GPL-3.0** (see `LICENSE`). The upstream authors have
+seen the code reused in closed-source, uncredited forks. Before you copy, fork, rebrand, port,
 "rewrite", or otherwise derive work from this repository, know the conditions:
 
 1. **Credit**: keep the copyright and license notices and name Myspoti
