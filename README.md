@@ -47,4 +47,4 @@ Full notices: [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).
 
 ## License
 
-Distortion and its upstream Myspoti code are distributed under the [GNU General Public License v3.0](LICENSE). Copyright and license notices for upstream and third-party code are included with the source.
+Distortion and its upstream Myspoti code are distributed under the [GNU General Public License v3.0](LICENSE.md). Copyright and license notices for upstream and third-party code are included with the source.

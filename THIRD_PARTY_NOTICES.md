@@ -1,6 +1,6 @@
 # Third-party notices
 
-Distortion is free software under the GNU General Public License v3.0 (see `LICENSE`).
+Distortion is free software under the GNU General Public License v3.0 (see [LICENSE.md](LICENSE.md)).
 Distortion is derived from [Myspoti](https://github.com/kota-zo/myspoti). It builds on the projects below; their licences are compatible with the GPL-3.0.
 
 ## Beat This! — MIT
