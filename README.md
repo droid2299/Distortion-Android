@@ -1,12 +1,17 @@
 # Distortion
 
-Distortion is an open-source Android music player for your Spotify account. It combines a Material You interface with synchronized lyrics, a queue, and optional extensions for additional playback and lyrics sources.
+**An open-source Material You music player for Android that works with your Spotify account.** Browse your mixes, swipe the mini player open, and follow along with synchronized lyrics.
 
-[Download the latest release](https://github.com/droid2299/Distortion-Android/releases/latest) · [User guide](docs/USER-GUIDE.md) · [Changelog](CHANGELOG.md) · [Report an issue](https://github.com/droid2299/Distortion-Android/issues/new)
+[![Download for Android](https://img.shields.io/badge/Download_for_Android-ARMv8-3DDC84?style=for-the-badge&logo=android&logoColor=white)](https://github.com/droid2299/Distortion-Android/releases/download/v1.0.2/Distortion-1.0.2-ARMv8.apk)
+[![Add to Obtainium](https://img.shields.io/badge/Add_to_Obtainium-Updates-6650A4?style=for-the-badge)](https://apps.obtainium.imranr.dev/redirect?r=obtainium://app/%7B%22id%22%3A%22app.distortion.music%22%2C%22url%22%3A%22https%3A%2F%2Fgithub.com%2Fdroid2299%2FDistortion-Android%22%2C%22author%22%3A%22droid2299%22%2C%22name%22%3A%22Distortion%22%2C%22additionalSettings%22%3A%22%7B%5C%22apkFilterRegEx%5C%22%3A%5C%22%5EDistortion-%5B0-9%5D%2B%5C%5C%5C%5C.%5B0-9%5D%2B%5C%5C%5C%5C.%5B0-9%5D%2B-universal%5C%5C%5C%5C.apk%24%5C%22%2C%5C%22autoApkFilterByArch%5C%22%3Afalse%2C%5C%22includePrereleases%5C%22%3Afalse%7D%22%7D)
+
+[All downloads](https://github.com/droid2299/Distortion-Android/releases/latest) · [User guide](docs/USER-GUIDE.md) · [Changelog](CHANGELOG.md) · [Report an issue](https://github.com/droid2299/Distortion-Android/issues/new)
+
+<img src="docs/screenshots/distortion-demo.gif" width="300" alt="Distortion on Android showing Your Mix, a swipe up from the mini player, and synchronized lyrics">
 
 ## Install
 
-Distortion requires Android 10 or later. Open the latest GitHub release and choose the APK from **Assets**.
+Distortion requires Android 10 or later and a Spotify account. Use **Download for Android** for most recent phones, or choose another APK under **Assets** in the latest release. **Add to Obtainium** tracks stable releases and selects the universal APK, which supports both ARM architectures.
 
 | Device | APK suffix |
 | --- | --- |
