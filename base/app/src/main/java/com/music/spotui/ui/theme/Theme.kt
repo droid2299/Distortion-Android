@@ -1,6 +1,11 @@
 package com.music.spotui.ui.theme
 
 import android.app.Activity
+import app.myspoti.power.LocalLightweightUi
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Shapes
+import androidx.compose.ui.unit.dp
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.lightColorScheme
@@ -28,6 +33,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
+
+private val DistortionShapes = Shapes(
+    extraSmall = RoundedCornerShape(8.dp),
+    small = RoundedCornerShape(12.dp),
+    medium = RoundedCornerShape(20.dp),
+    large = RoundedCornerShape(24.dp),
+    extraLarge = RoundedCornerShape(32.dp),
+)
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -85,5 +98,7 @@ fun SpotuiTheme(
     }
 
     val motion = remember { MotionScheme.expressive() }
-    MaterialTheme(colorScheme = visualScheme, motionScheme = motion, content = content)
+    CompositionLocalProvider(LocalLightweightUi provides policy.lightweightUi) {
+        MaterialTheme(colorScheme = visualScheme, shapes = DistortionShapes, motionScheme = motion, content = content)
+    }
 }

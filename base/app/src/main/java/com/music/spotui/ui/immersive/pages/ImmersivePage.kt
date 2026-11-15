@@ -130,12 +130,12 @@ internal fun LazyListScope.immersiveGroup(
         Column(Modifier.fillMaxWidth().padding(horizontal = Immersive.Gutter).padding(top = 14.dp)) {
             if (header != null) {
                 Text(
-                    header.uppercase(),
-                    style = Immersive.Caption,
+                    header,
+                    style = Immersive.Headline.copy(color = Immersive.scheme.primary),
                     modifier = Modifier.padding(start = GroupSeparatorInset, bottom = 6.dp),
                 )
             }
-            Column(Modifier.fillMaxWidth().clip(Immersive.Card).background(Immersive.Raised)) {
+            Column(Modifier.fillMaxWidth().clip(Immersive.Card).background(Immersive.scheme.surfaceContainer)) {
                 scope.rows.forEachIndexed { i, row ->
                     row()
                     if (i < scope.rows.lastIndex) {
@@ -195,7 +195,12 @@ internal fun ImmersiveGroupRow(
             .padding(horizontal = GroupSeparatorInset, vertical = 10.dp),
     ) {
         if (icon != null) {
-            Icon(icon, null, tint = Immersive.Accent, modifier = Modifier.size(22.dp))
+            Box(
+                Modifier.size(40.dp).background(Immersive.scheme.secondaryContainer, Immersive.CoverMedium),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(icon, null, tint = Immersive.scheme.onSecondaryContainer, modifier = Modifier.size(22.dp))
+            }
             Spacer(Modifier.width(12.dp))
         }
         Column(Modifier.weight(1f)) {

@@ -81,7 +81,7 @@ fun ImmersiveCover(
                 model = model,
                 contentDescription = contentDescription,
                 contentScale = ContentScale.Crop,
-                transition = CrossFade,
+                transition = if (app.myspoti.power.LocalLightweightUi.current) null else CrossFade,
                 modifier = Modifier.fillMaxSize(),
             )
         }

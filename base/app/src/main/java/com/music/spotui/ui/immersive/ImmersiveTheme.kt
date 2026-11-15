@@ -32,15 +32,15 @@ object Immersive {
     val Destructive: Color get() = scheme.error
 
     // Shapes.
-    val CoverSmall: Shape = RoundedCornerShape(6.dp)
-    val CoverMedium: Shape = RoundedCornerShape(10.dp)
-    val CoverLarge: Shape = RoundedCornerShape(14.dp)
-    val Card: Shape = RoundedCornerShape(16.dp)
+    val CoverSmall: Shape = RoundedCornerShape(10.dp)
+    val CoverMedium: Shape = RoundedCornerShape(16.dp)
+    val CoverLarge: Shape = RoundedCornerShape(24.dp)
+    val Card: Shape = RoundedCornerShape(24.dp)
     val Button: Shape = RoundedCornerShape(20.dp)
 
     private val type = androidx.compose.material3.Typography()
-    val LargeTitle: TextStyle get() = type.headlineLarge.copy(color = Text)
-    val Title: TextStyle get() = type.titleLarge.copy(color = Text)
+    val LargeTitle: TextStyle get() = type.headlineLarge.copy(color = Text, fontWeight = FontWeight.Bold)
+    val Title: TextStyle get() = type.titleLarge.copy(color = Text, fontWeight = FontWeight.SemiBold)
     val Headline: TextStyle get() = type.titleMedium.copy(color = Text)
     val Body: TextStyle get() = type.bodyLarge.copy(color = Text)
     val BodyStrong: TextStyle get() = Body.copy(fontWeight = FontWeight.Medium)

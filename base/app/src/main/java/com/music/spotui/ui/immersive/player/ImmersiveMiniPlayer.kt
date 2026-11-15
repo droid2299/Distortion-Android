@@ -73,7 +73,7 @@ import kotlin.math.abs
 private val GLYPH_SLOT = 48.dp
 private val GLYPH_SIZE = 28.dp
 internal val MiniArtworkCorner = 6.dp
-internal val MiniPlayerCorner = 20.dp
+internal val MiniPlayerCorner = 24.dp
 private val MINI_HEIGHT = 60.dp
 
 /** How far the capsule is swiped along to change track. */
@@ -132,7 +132,7 @@ fun ImmersiveMiniPlayer(modifier: Modifier = Modifier) {
                 model = cover.takeIf { it.isNotBlank() },
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
-                transition = CrossFade,
+                transition = if (app.myspoti.power.LocalLightweightUi.current) null else CrossFade,
                 loading = placeholder(R.drawable.placeholder),
                 failure = placeholder(R.drawable.placeholder),
                 modifier = Modifier.size(44.dp),

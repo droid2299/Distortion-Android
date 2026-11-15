@@ -25,6 +25,16 @@ class EnergyPolicyTest {
         assertFalse(EnergyState().policy.saverEnabled)
         assertTrue(EnergyState().policy.allowCanvas)
     }
+    @Test fun lowMemoryDevicesGetLightweightUiWithoutChangingPreferences() {
+        val state = EnergyState(lowMemoryDevice = true)
+        assertFalse(state.manualSaver)
+        assertTrue(state.canvasEnabled)
+        assertTrue(state.policy.lightweightUi)
+        assertFalse(state.policy.allowCanvas)
+        assertFalse(state.policy.allowBackgroundLookups)
+        assertEquals(480, state.policy.videoMaxHeight)
+        assertFalse(state.policy.oledBlack)
+    }
     @Test fun saverRestrictsVisualWork() {
         val p = EnergyPolicy.resolve(true, false)
         assertTrue(p.saverEnabled); assertFalse(p.allowCanvas); assertFalse(p.oledBlack)

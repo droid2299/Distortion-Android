@@ -170,7 +170,7 @@ fun ImmersivePodcastPlayer(navController: NavController) {
                 model = state.coverUrl.takeIf { it.isNotBlank() },
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
-                transition = CrossFade,
+                transition = if (app.myspoti.power.LocalLightweightUi.current) null else CrossFade,
                 loading = placeholder(R.drawable.placeholder),
                 failure = placeholder(R.drawable.placeholder),
                 modifier = Modifier.fillMaxSize(),

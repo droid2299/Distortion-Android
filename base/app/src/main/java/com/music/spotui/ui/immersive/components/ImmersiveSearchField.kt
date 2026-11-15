@@ -71,6 +71,11 @@ fun ImmersiveSearchField(
         onValueChange = onQueryChange,
         modifier = modifier.fillMaxWidth().focusRequester(focusRequester),
         shape = CircleShape,
+        colors = androidx.compose.material3.OutlinedTextFieldDefaults.colors(
+            focusedContainerColor = Immersive.scheme.surfaceContainerHigh,
+            unfocusedContainerColor = Immersive.scheme.surfaceContainer,
+            unfocusedBorderColor = Immersive.scheme.outlineVariant,
+        ),
         singleLine = true,
         placeholder = { Text(placeholder, maxLines = 1, overflow = TextOverflow.Ellipsis) },
         leadingIcon = {

@@ -806,7 +806,7 @@ private fun DataPage(back: () -> Unit) {
         exempt = app.myspoti.power.BatteryExemption.isExempt(ctx)
     }
     ImmersivePage(title = stringResource(R.string.settings_section_data), onBack = back) {
-        immersiveGroup("data") {
+        immersiveGroup("data", footerRes = if (energy.lowMemoryDevice) R.string.lightweight_ui_auto else null) {
             row {
                 ImmersiveSwitchRow(stringResource(R.string.energy_saver_title), checked = energy.manualSaver,
                     onChecked = app.myspoti.power.EnergySettings::setSaver, detail = stringResource(R.string.energy_saver_summary))

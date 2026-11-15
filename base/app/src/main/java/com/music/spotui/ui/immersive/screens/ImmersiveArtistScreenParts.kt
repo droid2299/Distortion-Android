@@ -111,7 +111,7 @@ internal fun ArtistBackdrop(
 ) {
     val model = spotifyImageUrl(imageUrl)
     val artHeightPx = with(androidx.compose.ui.platform.LocalDensity.current) { artHeight.toPx() }
-    val softenFoot = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
+    val softenFoot = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !app.myspoti.power.LocalLightweightUi.current
     Box(modifier.clipToBounds()) {
         Box(
             Modifier
@@ -125,7 +125,7 @@ internal fun ArtistBackdrop(
                     model = model,
                     contentDescription = null,
                     contentScale = ContentScale.Crop,
-                    transition = CrossFade,
+                    transition = if (app.myspoti.power.LocalLightweightUi.current) null else CrossFade,
                     modifier = Modifier.matchParentSize(),
                 )
                 if (softenFoot) {

@@ -80,6 +80,7 @@ class MyspotiApplication : Application() {
         if (!app.myspoti.host.android.MyspotiRuntime.isStarted) return
         kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.SupervisorJob() + kotlinx.coroutines.Dispatchers.IO).launch {
             app.myspoti.host.android.MyspotiRuntime.api.ready.first { it }
+            if (app.myspoti.power.EnergySettings.state.value.policy.lightweightUi) return@launch
             if (!getSharedPreferences("myspoti_prefs", MODE_PRIVATE).getBoolean("LoggedIn", false)) return@launch
             val api = com.music.spotui.data.api.Api()
             launch { runCatching { api.getLibraryRoot().collect {} } }

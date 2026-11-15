@@ -1,5 +1,15 @@
 # Distortion changelog
 
+## 1.0.2
+
+- Redesigned Home with a Quick Access grid, stacked Recently Played cards, and a mix of large artwork cards and compact recommendations.
+- Brought the same Material You colors and shapes to New, Radio, Search, Library, settings, detail pages, and player surfaces.
+- Low-memory devices now reduce startup preloading, motion, and artwork effects automatically. This mode also disables Canvas and limits music video resolution.
+- Fixed Home retry handling so repeated Spotify errors no longer stop automatic recovery early.
+- Kept search results separate across account sessions and cleared results immediately when the search field is emptied.
+- Prevented a late radio response from replacing a queue that had already changed.
+- Reduced background requests, duplicate disk writes, and layout work on Home.
+
 ## 1.0.1
 
 - Added a Genius switch in Lyrics settings to control song meanings, annotations, and fallback lyrics.

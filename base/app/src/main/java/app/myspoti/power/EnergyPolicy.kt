@@ -5,6 +5,7 @@ data class EnergyPolicy(
     val saverEnabled: Boolean = false,
     val oledBlack: Boolean = false,
     val allowCanvas: Boolean = true,
+    val lightweightUi: Boolean = false,
     val videoMaxHeight: Int = 1080,
     val allowBackgroundLookups: Boolean = true,
     val progressFps: Int = 30,
@@ -13,13 +14,18 @@ data class EnergyPolicy(
 ) {
     companion object {
         /**
-         * Only the app's own switch turns the saver on: Android's battery saver is not
-         * followed (it already lowers the screen's refresh rate by itself).
+         * Limit optional work on low-memory devices and when the app's energy saver is enabled.
          */
-        fun resolve(manualSaver: Boolean, blackPreference: Boolean, canvasEnabled: Boolean = true): EnergyPolicy {
-            val saver = manualSaver
+        fun resolve(
+            manualSaver: Boolean,
+            blackPreference: Boolean,
+            canvasEnabled: Boolean = true,
+            lowMemoryDevice: Boolean = false,
+        ): EnergyPolicy {
+            val saver = manualSaver || lowMemoryDevice
             return EnergyPolicy(
                 saverEnabled = saver,
+                lightweightUi = saver,
                 oledBlack = blackPreference,
                 allowCanvas = !saver && canvasEnabled,
                 videoMaxHeight = if (saver) 480 else 1080,
@@ -37,6 +43,7 @@ data class EnergyState(
     val blackPreference: Boolean = false,
     /** The user's Canvas switch (Settings), independent of the saver. */
     val canvasEnabled: Boolean = true,
+    val lowMemoryDevice: Boolean = false,
 ) {
-    val policy: EnergyPolicy get() = EnergyPolicy.resolve(manualSaver, blackPreference, canvasEnabled)
+    val policy: EnergyPolicy = EnergyPolicy.resolve(manualSaver, blackPreference, canvasEnabled, lowMemoryDevice)
 }

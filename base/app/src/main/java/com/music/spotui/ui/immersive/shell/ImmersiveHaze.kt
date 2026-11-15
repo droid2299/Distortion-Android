@@ -71,6 +71,7 @@ fun Modifier.immersiveHazeSource(
     backdrop: LayerBackdrop? = LocalImmersiveBackdrop.current,
     frost: LayerBackdrop? = LocalImmersiveFrostPage.current,
 ): Modifier {
+    if (app.myspoti.power.LocalLightweightUi.current) return this
     if (backdrop == null && frost != null) return this.layerBackdrop(frost)
     val hazed = if (state == null) this else this.hazeSource(state)
     return if (backdrop == null) hazed else hazed.layerBackdrop(backdrop)
@@ -87,6 +88,7 @@ internal fun Modifier.immersiveFrost(
     tint: Color = Immersive.GlassFill.copy(alpha = 0.55f),
     blur: Float = 24f,
 ): Modifier {
+    if (app.myspoti.power.LocalLightweightUi.current) return this.background(Immersive.GlassFill)
     val page = LocalImmersiveFrostPage.current
     if (page != null && state === LocalImmersiveHaze.current) return this.immersivePageFrost(page, tint, blur)
     return hazeFrost(state, tint, blur)
@@ -133,6 +135,9 @@ internal fun Modifier.immersiveGlassSurface(
     liquid: Boolean = true,
     interactionSource: androidx.compose.foundation.interaction.InteractionSource? = null,
 ): Modifier {
+    if (app.myspoti.power.LocalLightweightUi.current) {
+        return this.clip(shape).background(Immersive.GlassFill).border(1.dp, Immersive.GlassEdge, shape)
+    }
     val page = LocalImmersiveBackdrop.current
     val press = rememberGlassPress(interactionSource)
     if (liquid && page != null && state != null && state === LocalImmersiveHaze.current) {

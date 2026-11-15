@@ -9,6 +9,7 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import com.music.spotui.ui.components.leavingPlaceholder
@@ -67,8 +68,11 @@ private val SubtitleWidths = listOf(0.34f, 0.44f, 0.27f, 0.38f, 0.31f)
 fun ImmersiveShimmerBox(modifier: Modifier = Modifier, shape: Shape = BlockShape) {
     val base = Immersive.Raised
     val highlight = Immersive.Text.copy(alpha = 0.10f).compositeOver(base)
-    // Under "reduce motion" the band stays off the block: a flat placeholder, nothing endless running.
-    val sweep = if (rememberReduceMotion()) null else rememberInfiniteTransition(label = "immersive skeleton").animateFloat(
+    if (rememberReduceMotion()) {
+        Box(modifier.background(base, shape))
+        return
+    }
+    val sweep = rememberInfiniteTransition(label = "immersive skeleton").animateFloat(
         initialValue = 0f,
         targetValue = 1f,
         animationSpec = infiniteRepeatable(tween(SHIMMER_PERIOD_MS, easing = LinearEasing)),
@@ -81,7 +85,7 @@ fun ImmersiveShimmerBox(modifier: Modifier = Modifier, shape: Shape = BlockShape
                 // The band travels from fully off one edge to fully off the other, which leaves a
                 // beat of flat grey between passes rather than a highlight parked on the block.
                 val band = size.width * 0.5f
-                val startX = -band + (sweep?.value ?: 0f) * (size.width + band * 2)
+                val startX = -band + sweep.value * (size.width + band * 2)
                 val brush = Brush.horizontalGradient(
                     colors = listOf(base, highlight, base),
                     startX = startX,

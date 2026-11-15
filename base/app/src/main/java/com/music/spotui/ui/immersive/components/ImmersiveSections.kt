@@ -13,6 +13,7 @@ import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -28,11 +29,14 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
@@ -95,7 +99,7 @@ fun SectionHeader(
         Column(Modifier.weight(1f)) {
             Text(
                 text = title,
-                style = Immersive.Title,
+                style = MaterialTheme.typography.titleLarge.copy(color = Immersive.Text, fontWeight = FontWeight.SemiBold),
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -258,7 +262,7 @@ fun ImmersiveLargeAlbumCard(
                 model = model,
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
-                transition = CrossFade,
+                transition = if (app.myspoti.power.LocalLightweightUi.current) null else CrossFade,
                 modifier = Modifier.fillMaxSize(),
             )
         }
@@ -282,6 +286,69 @@ fun ImmersiveLargeAlbumCard(
                     style = Immersive.Subhead.copy(color = Color.White.copy(alpha = 0.72f)),
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+internal fun immersiveTonalColors(tone: Int): Pair<Color, Color> {
+    val colors = MaterialTheme.colorScheme
+    return when (Math.floorMod(tone, 3)) {
+        0 -> colors.primaryContainer to colors.onPrimaryContainer
+        1 -> colors.secondaryContainer to colors.onSecondaryContainer
+        else -> colors.tertiaryContainer to colors.onTertiaryContainer
+    }
+}
+
+@Composable
+internal fun ImmersiveSpotlightCard(
+    title: String,
+    subtitle: String?,
+    imageUrl: String?,
+    tone: Int,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    roundArtwork: Boolean = false,
+    playing: Boolean = false,
+    badge: (@Composable BoxScope.() -> Unit)? = null,
+) {
+    val (container, content) = immersiveTonalColors(tone)
+    val shape = MaterialTheme.shapes.extraLarge
+    val lightweight = app.myspoti.power.LocalLightweightUi.current
+    val coverShape = when {
+        roundArtwork -> CircleShape
+        tone % 2 == 0 -> RoundedCornerShape(30, 12, 30, 12)
+        else -> RoundedCornerShape(12, 30, 12, 30)
+    }
+    Column(modifier.immersiveClickable(onClick = onClick).clip(shape).background(container)) {
+        Box(Modifier.fillMaxWidth().aspectRatio(1.45f).clip(shape)) {
+            if (!lightweight) {
+                Box(
+                    Modifier.align(Alignment.CenterEnd).offset(x = 16.dp).fillMaxWidth(0.72f)
+                        .aspectRatio(1f).background(content.copy(alpha = 0.09f), CircleShape),
+                )
+            }
+            Box(Modifier.align(Alignment.Center).fillMaxWidth(0.58f).aspectRatio(1f)) {
+                val angle = if (tone % 2 == 0) -8f else 8f
+                ImmersiveCover(
+                    imageUrl, Modifier.fillMaxSize().then(if (lightweight) Modifier else Modifier.rotate(angle)),
+                    shape = coverShape, border = false,
+                )
+                if (playing) ImmersivePlayingBars(Modifier.align(Alignment.Center))
+                badge?.invoke(this)
+            }
+        }
+        Column(Modifier.fillMaxWidth().padding(start = 14.dp, end = 14.dp, bottom = 14.dp)) {
+            Text(
+                title, style = MaterialTheme.typography.titleMedium, color = content,
+                maxLines = 1, overflow = TextOverflow.Ellipsis,
+            )
+            if (subtitle != null) {
+                Text(
+                    subtitle.ifBlank { " " }, style = MaterialTheme.typography.bodySmall, color = content,
+                    maxLines = 1, overflow = TextOverflow.Ellipsis,
                 )
             }
         }

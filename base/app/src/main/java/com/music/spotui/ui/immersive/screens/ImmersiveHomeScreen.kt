@@ -69,7 +69,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -97,6 +96,8 @@ import com.music.spotui.ui.immersive.components.ImmersiveCover
 import com.music.spotui.ui.immersive.components.ImmersiveMessageState
 import com.music.spotui.ui.immersive.components.ImmersiveShelf
 import com.music.spotui.ui.immersive.components.ImmersivePlayingBars
+import com.music.spotui.ui.immersive.components.ImmersiveSpotlightCard
+import com.music.spotui.ui.immersive.components.immersiveTonalColors
 import com.music.spotui.ui.immersive.components.immersiveClickable
 import com.music.spotui.ui.immersive.components.immersiveFeedSkeleton
 import com.music.spotui.ui.navigation.Routes
@@ -591,16 +592,6 @@ private fun HomeRecommendationSection(
 }
 
 @Composable
-private fun homeCardColors(tone: Int): Pair<Color, Color> {
-    val colors = MaterialTheme.colorScheme
-    return when (tone % 3) {
-        0 -> colors.primaryContainer to colors.onPrimaryContainer
-        1 -> colors.secondaryContainer to colors.onSecondaryContainer
-        else -> colors.tertiaryContainer to colors.onTertiaryContainer
-    }
-}
-
-@Composable
 private fun HomeSpotlightCard(
     navController: NavController,
     item: HomeItem,
@@ -608,44 +599,17 @@ private fun HomeSpotlightCard(
     tone: Int,
     modifier: Modifier,
 ) {
-    val (container, content) = homeCardColors(tone)
-    val shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp, bottomStart = 20.dp, bottomEnd = 20.dp)
-    val coverShape = when {
-        item is HomeItem.Artist -> CircleShape
-        tone % 2 == 0 -> RoundedCornerShape(30, 12, 30, 12)
-        else -> RoundedCornerShape(12, 30, 12, 30)
-    }
-    val playing = item.isPlayingIn(playingContext)
-    Column(
-        modifier.pressHint { prefetchHomeItem(item) }
-            .immersiveClickable(onClick = { onHomeItemClick(navController, item) })
-            .clip(shape).background(container),
-    ) {
-        Box(Modifier.fillMaxWidth().aspectRatio(1.35f).clip(shape)) {
-            Box(
-                Modifier.align(Alignment.CenterEnd).offset(x = 16.dp).fillMaxWidth(0.72f)
-                    .aspectRatio(1f).background(content.copy(alpha = 0.09f), CircleShape),
-            )
-            Box(Modifier.align(Alignment.Center).fillMaxWidth(0.58f).aspectRatio(1f)) {
-                ImmersiveCover(
-                    item.imageUrl, Modifier.fillMaxSize().rotate(if (tone % 2 == 0) -8f else 8f),
-                    shape = coverShape, border = false,
-                )
-                if (playing) ImmersivePlayingBars(Modifier.align(Alignment.Center))
-                HomeEpisodeBadge(item, Modifier.align(Alignment.TopEnd))
-            }
-        }
-        Column(Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, bottom = 16.dp)) {
-            Text(
-                item.name, style = MaterialTheme.typography.titleMedium,
-                color = content, maxLines = 1, overflow = TextOverflow.Ellipsis,
-            )
-            Text(
-                item.cardSubtitle().ifBlank { " " }, style = MaterialTheme.typography.bodySmall,
-                color = content, maxLines = 1, overflow = TextOverflow.Ellipsis,
-            )
-        }
-    }
+    ImmersiveSpotlightCard(
+        title = item.name,
+        subtitle = item.cardSubtitle(),
+        imageUrl = item.imageUrl,
+        tone = tone,
+        onClick = { onHomeItemClick(navController, item) },
+        modifier = modifier.pressHint { prefetchHomeItem(item) },
+        roundArtwork = item is HomeItem.Artist,
+        playing = item.isPlayingIn(playingContext),
+        badge = { HomeEpisodeBadge(item, Modifier.align(Alignment.TopEnd)) },
+    )
 }
 
 @Composable
@@ -681,7 +645,7 @@ private fun HomeListeningTile(
     playing: Boolean = false,
     badge: @Composable androidx.compose.foundation.layout.BoxScope.() -> Unit = {},
 ) {
-    val (container, content) = homeCardColors(tone)
+    val (container, content) = immersiveTonalColors(tone)
     val shape = RoundedCornerShape(22.dp)
     Row(
         modifier.fillMaxWidth().immersiveClickable(onClick = onClick)

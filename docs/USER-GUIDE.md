@@ -22,6 +22,8 @@ The quality offered by an extension depends on its provider and the recording it
 
 ## Troubleshooting
 
+On Android devices marked as low RAM or reporting less than 3 GB of usable RAM, Distortion automatically uses lighter visuals. It reduces motion and background loading, disables Canvas, and limits music video resolution. You can enable the same behavior on other phones with **Settings → Data and battery → Battery saver**.
+
 | Symptom | What to check |
 | --- | --- |
 | Spotify sign-in loops or playback stalls | Try the same account and track in Spotify to isolate the issue. In Distortion, use **Restart the player** in Settings and retry. |

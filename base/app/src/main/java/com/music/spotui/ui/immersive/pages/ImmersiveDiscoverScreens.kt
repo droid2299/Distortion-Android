@@ -3,10 +3,8 @@ package com.music.spotui.ui.immersive.pages
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -49,7 +47,6 @@ import com.music.spotui.ui.immersive.Immersive
 import com.music.spotui.ui.immersive.components.ImmersiveListRow
 import com.music.spotui.ui.immersive.components.ImmersiveMessageState
 import com.music.spotui.ui.immersive.components.ImmersiveShelfCard
-import com.music.spotui.ui.immersive.components.ImmersiveCover
 import com.music.spotui.ui.immersive.components.immersiveSongListSkeleton
 import com.music.spotui.ui.immersive.components.immersiveClickable
 import com.music.spotui.ui.immersive.motion.immersiveItemPlacement
@@ -91,13 +88,12 @@ fun ImmersiveNewReleasesScreen(navController: NavController) {
                     contentPadding = PaddingValues(horizontal = Immersive.Gutter),
                     horizontalArrangement = Arrangement.spacedBy(14.dp),
                 ) {
-                    itemsIndexed(features.take(8), key = { i, t -> "feature:${t.id}:$i" }) { _, t ->
-                        Column(Modifier.width(featureWidth).immersiveClickable(onClick = { navController.navigate(t.route()) })) {
-                            Text(t.name, style = Immersive.Headline, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
-                            Text(t.artists, style = Immersive.Subhead, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                                modifier = Modifier.padding(bottom = 8.dp))
-                            ImmersiveCover(t.cover, Modifier.fillMaxWidth().aspectRatio(1.45f), Immersive.CoverMedium)
-                        }
+                    itemsIndexed(features.take(8), key = { i, t -> "feature:${t.id}:$i" }) { index, t ->
+                        com.music.spotui.ui.immersive.components.ImmersiveSpotlightCard(
+                            title = t.name, subtitle = t.artists, imageUrl = t.cover, tone = index,
+                            onClick = { navController.navigate(t.route()) },
+                            modifier = Modifier.width(featureWidth),
+                        )
                     }
                 }
             }

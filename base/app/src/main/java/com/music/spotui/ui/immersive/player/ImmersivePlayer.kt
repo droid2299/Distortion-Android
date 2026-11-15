@@ -338,7 +338,7 @@ internal fun ArtworkImage(cover: String, modifier: Modifier) {
         model = cover.takeIf { it.isNotBlank() },
         contentDescription = null,
         contentScale = ContentScale.Crop,
-        transition = CrossFade,
+        transition = if (app.myspoti.power.LocalLightweightUi.current) null else CrossFade,
         loading = placeholder(R.drawable.placeholder),
         failure = placeholder(R.drawable.placeholder),
         modifier = modifier,

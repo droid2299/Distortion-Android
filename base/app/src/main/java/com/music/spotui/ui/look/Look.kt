@@ -60,7 +60,8 @@ val LocalReduceMotion = compositionLocalOf<Boolean?> { null }
  * scale is 0). Read once per composition; the setting rarely changes while a screen is up.
  */
 @Composable
-fun rememberReduceMotion(): Boolean = LocalReduceMotion.current ?: rememberReduceMotionSetting()
+fun rememberReduceMotion(): Boolean =
+    app.myspoti.power.LocalLightweightUi.current || (LocalReduceMotion.current ?: rememberReduceMotionSetting())
 
 @Composable
 private fun rememberReduceMotionSetting(): Boolean {

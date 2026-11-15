@@ -50,7 +50,6 @@ import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -456,7 +455,7 @@ private fun QueueEntry(row: QRow, removed: SnapshotStateList<String>, dragging: 
         gesturesEnabled = !dragging,
         modifier = Modifier
             .graphicsLayer { this.alpha = alpha }
-            .clip(RoundedCornerShape(14.dp))
+            .clip(Immersive.CoverMedium)
             .background(veil),
         backgroundContent = {
             // Drawn only while swiping: the row is transparent, so at rest this × showed

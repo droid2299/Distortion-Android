@@ -901,10 +901,13 @@ private fun LibraryGrid(
                         },
                     ),
             ) {
-                LibraryEntryCover(
-                    entry,
-                    Modifier.fillMaxWidth().aspectRatio(1f).clip(shape).background(Immersive.Raised).immersiveThumbnailBorder(shape),
-                )
+                Box(
+                    Modifier.fillMaxWidth().aspectRatio(1f)
+                        .background(Immersive.scheme.secondaryContainer, Immersive.Card)
+                        .padding(10.dp),
+                ) {
+                    LibraryEntryCover(entry, Modifier.fillMaxSize().clip(shape))
+                }
                 Spacer(Modifier.height(6.dp))
                 Text(
                     text = entry.name,

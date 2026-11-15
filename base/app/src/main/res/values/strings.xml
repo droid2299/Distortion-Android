@@ -19,6 +19,7 @@
 
 
     <string name="energy_saver_title" tools:ignore="MissingTranslation">Battery saver</string>
+    <string name="lightweight_ui_auto" tools:ignore="MissingTranslation">This device uses lighter visuals automatically to reduce memory use.</string>
     <string name="energy_saver_summary" tools:ignore="MissingTranslation">Canvas off, lighter videos and animations</string>
     <string name="video_fullscreen_enter" tools:ignore="MissingTranslation">Enter fullscreen</string>
     <string name="video_fullscreen_exit" tools:ignore="MissingTranslation">Exit fullscreen</string>

@@ -688,7 +688,9 @@ private fun ContextHeader(
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         run {
-            Box(Modifier.size(sleeve).shadow(SleeveShadow, SleeveShape)) {
+            Box(Modifier.size(sleeve).then(
+                if (app.myspoti.power.LocalLightweightUi.current) Modifier else Modifier.shadow(SleeveShadow, SleeveShape),
+            )) {
                 if (isLiked) LikedSleeve(Modifier.matchParentSize())
                 else ImmersiveCover(
                     url = p.coverUri,

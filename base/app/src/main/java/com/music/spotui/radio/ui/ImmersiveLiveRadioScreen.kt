@@ -14,7 +14,9 @@ import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.FavoriteBorder
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
@@ -26,7 +28,7 @@ import com.music.spotui.radio.RadioPlayer
 import com.music.spotui.radio.RadioStation
 import com.music.spotui.ui.immersive.Immersive
 import com.music.spotui.ui.immersive.components.ImmersiveListRow
-import com.music.spotui.ui.immersive.components.ImmersiveShelfCard
+import com.music.spotui.ui.immersive.components.ImmersiveSpotlightCard
 import com.music.spotui.ui.immersive.components.ImmersiveMessageState
 import com.music.spotui.ui.immersive.components.ImmersiveSearchField
 import com.music.spotui.ui.immersive.components.SectionHeader
@@ -83,13 +85,14 @@ fun ImmersiveLiveRadioScreen(navController: NavController) {
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 modifier = Modifier.padding(bottom = 16.dp),
             ) {
-                itemsIndexed(featured, key = { index, station -> "featured:${station.stationUuid}:$index" }) { _, station ->
-                    ImmersiveShelfCard(
+                itemsIndexed(featured, key = { index, station -> "featured:${station.stationUuid}:$index" }) { index, station ->
+                    ImmersiveSpotlightCard(
+                        tone = index,
                         title = station.name,
                         subtitle = stationSubtitle(station),
                         imageUrl = station.favicon,
                         onClick = { RadioPlayer.play(station) },
-                        modifier = Modifier.width(132.dp),
+                        modifier = Modifier.width(180.dp),
                     )
                 }
             }
@@ -109,8 +112,11 @@ fun ImmersiveLiveRadioScreen(navController: NavController) {
 @Composable
 private fun StationRow(station: RadioStation) {
     // The station LocalPlayer is on, by its synthetic song id, as the mini player shows it.
-    val currentId by com.music.spotui.di.Graph.currentSongState.songId
-    val current = currentId == RadioPlayer.songIdFor(station)
+    val song = com.music.spotui.di.Graph.currentSongState
+    val stationId = remember(station) { RadioPlayer.songIdFor(station) }
+    val playing by remember(stationId) {
+        derivedStateOf { song.songId.value == stationId && song.playingState.value }
+    }
     val fav = RadioFavoritesStore.isFavorite(station.stationUuid)
     ImmersiveListRow(
         title = station.name,
@@ -118,7 +124,7 @@ private fun StationRow(station: RadioStation) {
         imageUrl = station.favicon.ifBlank { null },
         round = false,
         onClick = { RadioPlayer.play(station) },
-        playing = current && com.music.spotui.di.Graph.currentSongState.playingState.value,
+        playing = playing,
         trailing = {
             Icon(
                 if (fav) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,

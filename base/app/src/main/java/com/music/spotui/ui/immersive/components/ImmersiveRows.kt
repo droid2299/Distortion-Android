@@ -5,7 +5,7 @@
 package com.music.spotui.ui.immersive.components
 
 import com.music.spotui.ui.components.secondaryClick
-import androidx.compose.animation.animateColorAsState
+import androidx.compose.foundation.background
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
@@ -27,7 +27,6 @@ import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -93,10 +92,7 @@ fun ImmersiveSongRow(
     offline: OfflineStatus? = null,
     trailing: (@Composable () -> Unit)? = null,
 ) {
-    val titleColor by animateColorAsState(
-        targetValue = if (current) Immersive.Accent else Immersive.Text,
-        label = "immersive song row title",
-    )
+    val titleColor = if (current) Immersive.scheme.onSecondaryContainer else Immersive.Text
     val subtitle = if (showAlbum && song.album.isNotBlank() && song.singer.isNotBlank()) {
         "${song.singer} · ${song.album}"
     } else {
@@ -110,6 +106,7 @@ fun ImmersiveSongRow(
         // Dimmed too when marked "Not interested": lists skip it, a tap still plays it.
         modifier = modifier.alpha(if (song.playable && !com.music.spotui.data.preferences.HiddenSongs.isHidden(song.spotifyTrackId)) 1f else 0.45f),
         titleColor = titleColor,
+        highlighted = current,
         explicit = song.explicit,
         leading = {
             if (trackNumber != null) {
@@ -176,10 +173,7 @@ fun ImmersiveListRow(
     playing: Boolean = false,
     trailing: (@Composable () -> Unit)? = null,
 ) {
-    val titleColor by animateColorAsState(
-        targetValue = if (playing) Immersive.Accent else Immersive.Text,
-        label = "immersive list row title",
-    )
+    val titleColor = if (playing) Immersive.scheme.onSecondaryContainer else Immersive.Text
     RowScaffold(
         title = title,
         subtitle = subtitle.orEmpty(),
@@ -187,6 +181,7 @@ fun ImmersiveListRow(
         onLongClick = onMore,
         modifier = modifier,
         titleColor = titleColor,
+        highlighted = playing,
         explicit = false,
         leading = {
             Box(Modifier.size(RowCover)) {
@@ -214,6 +209,7 @@ private fun RowScaffold(
     onLongClick: (() -> Unit)?,
     modifier: Modifier,
     titleColor: Color,
+    highlighted: Boolean,
     explicit: Boolean,
     leading: @Composable () -> Unit,
     gapAfterLeading: Dp,
@@ -226,6 +222,9 @@ private fun RowScaffold(
     Row(
         modifier = modifier
             .fillMaxWidth()
+            .padding(horizontal = 8.dp)
+            .clip(Immersive.CoverMedium)
+            .then(if (highlighted) Modifier.background(Immersive.scheme.secondaryContainer) else Modifier)
             // A mouse's right click opens the same menu as the long press (DeX, tablets).
             .secondaryClick(onLongClick)
             .combinedClickable(
@@ -238,7 +237,7 @@ private fun RowScaffold(
                     }
                 },
             )
-            .padding(horizontal = Immersive.Gutter, vertical = 8.dp),
+            .padding(horizontal = Immersive.Gutter - 8.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         leading()
