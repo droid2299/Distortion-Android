@@ -1,5 +1,7 @@
 # Distortion
 
+[![Android build](https://github.com/droid2299/Distortion-Android/actions/workflows/android.yml/badge.svg?branch=main&event=push)](https://github.com/droid2299/Distortion-Android/actions/workflows/android.yml?query=branch%3Amain)
+
 **An open-source Material You music player for Android that works with your Spotify account.** Browse your mixes, swipe the mini player open, and follow along with synchronized lyrics.
 
 [![Download for Android](https://img.shields.io/badge/Download_for_Android-ARMv8-3DDC84?style=for-the-badge&logo=android&logoColor=white)](https://github.com/droid2299/Distortion-Android/releases/download/v1.0.2/Distortion-1.0.2-ARMv8.apk)
