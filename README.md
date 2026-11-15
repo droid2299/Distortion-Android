@@ -7,7 +7,33 @@
 
 [All downloads](https://github.com/droid2299/Distortion-Android/releases/latest) · [User guide](docs/USER-GUIDE.md) · [Changelog](CHANGELOG.md) · [Report an issue](https://github.com/droid2299/Distortion-Android/issues/new)
 
-<img src="docs/screenshots/distortion-demo.gif" width="300" alt="Distortion on Android showing Your Mix, a swipe up from the mini player, and synchronized lyrics">
+## Screenshots
+
+### Browse
+
+| Home | New | Radio |
+| :---: | :---: | :---: |
+| <img src="docs/screenshots/v1.0.2/home.jpg" width="205" alt="Home screen"> | <img src="docs/screenshots/v1.0.2/new.jpg" width="205" alt="New screen"> | <img src="docs/screenshots/v1.0.2/radio.jpg" width="205" alt="Radio screen"> |
+
+| Library | Search |
+| :---: | :---: |
+| <img src="docs/screenshots/v1.0.2/library.jpg" width="205" alt="Library screen"> | <img src="docs/screenshots/v1.0.2/search.jpg" width="205" alt="Search screen"> |
+
+### Playback
+
+| Now Playing | Lyrics | Queue |
+| :---: | :---: | :---: |
+| <img src="docs/screenshots/v1.0.2/now-playing.jpg" width="205" alt="Now Playing screen"> | <img src="docs/screenshots/v1.0.2/lyrics.jpg" width="205" alt="Lyrics screen"> | <img src="docs/screenshots/v1.0.2/queue.jpg" width="205" alt="Queue screen"> |
+
+### Detail pages and settings
+
+| Artist | Album | Playlist |
+| :---: | :---: | :---: |
+| <img src="docs/screenshots/v1.0.2/artist.jpg" width="205" alt="Artist screen"> | <img src="docs/screenshots/v1.0.2/album.jpg" width="205" alt="Album screen"> | <img src="docs/screenshots/v1.0.2/playlist.jpg" width="205" alt="Playlist screen"> |
+
+| Settings | Extensions | Download settings |
+| :---: | :---: | :---: |
+| <img src="docs/screenshots/v1.0.2/settings.jpg" width="205" alt="Settings screen"> | <img src="docs/screenshots/v1.0.2/extensions.jpg" width="205" alt="Extensions screen"> | <img src="docs/screenshots/v1.0.2/downloads.jpg" width="205" alt="Download settings screen"> |
 
 ## Install
 
