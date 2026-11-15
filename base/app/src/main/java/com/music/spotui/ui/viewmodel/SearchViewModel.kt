@@ -1,6 +1,10 @@
 package com.music.spotui.ui.viewmodel
 
+import android.os.SystemClock
 import com.music.spotui.di.Graph
+import com.music.spotui.di.SessionActions
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.withContext
 import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
@@ -36,6 +40,8 @@ class SearchViewModel constructor(private val repository: AppRepository = Graph.
     }
 
     private var searchJob: Job? = null
+    private var radioJob: Job? = null
+    private var resultsSession = SessionActions.generation
 
     /** What is typed and the chip picked: kept here so they are still there back from a result. */
     var query by androidx.compose.runtime.mutableStateOf("")
@@ -60,17 +66,18 @@ class SearchViewModel constructor(private val repository: AppRepository = Graph.
      * if the user has since started something else.
      */
     fun startRadioFromSong(song: SongsModel) {
-        currentSongState.updateQueue(listOf(song))
+        radioJob?.cancel()
+        val revision = currentSongState.startRadioQueue(song)
         val seed = song.spotifyTrackId
         if (seed.isBlank()) return
-        viewModelScope.launch(Dispatchers.IO) {
-            val recs = repository.provideRecommendations(listOf(seed))
-            val current = currentSongState.queue.value
-            // Only extend if this radio is still the active queue (user didn't tap away).
-            if (current.size == 1 && current.first().id == song.id) {
-                val fresh = recs.filter { it.id != song.id }
-                if (fresh.isNotEmpty()) currentSongState.updateQueue(current + fresh)
+        val session = SessionActions.generation
+        radioJob = viewModelScope.launch {
+            val recommendations = withContext(Dispatchers.IO) {
+                repository.provideRecommendations(listOf(seed))
             }
+            if (session != SessionActions.generation) return@launch
+            val fresh = recommendations.filter { it.id != song.id }
+            if (fresh.isNotEmpty()) currentSongState.updateQueueIfCurrent(revision, listOf(song) + fresh)
         }
     }
 
@@ -81,20 +88,28 @@ class SearchViewModel constructor(private val repository: AppRepository = Graph.
     fun search(query: String) {
         this.query = query
         searchJob?.cancel()
+        val session = SessionActions.generation
+        if (query.isBlank() || resultsSession != session) {
+            resultsSession = session
+            _results.value = Response.Success(SearchResults())
+            _songs.value = Response.Success(emptyList())
+            if (query.isBlank()) return
+        }
         // Typed again lately (back to a shorter text, a retyped word): the results of then, at once.
-        RecentSearches.get(query)?.let { cached ->
+        recentSearches.get(session, query)?.let { cached ->
             _results.value = Response.Success(cached)
             _songs.value = Response.Success(cached.songs)
             return
         }
-        searchJob = viewModelScope.launch(Dispatchers.IO) {
+        searchJob = viewModelScope.launch {
             delay(300) // the debounce: a result per pause in typing, not per letter
             var last: SearchResults? = null
-            repository.searchEverything(query).collect { result ->
+            repository.searchEverything(query.trim()).flowOn(Dispatchers.IO).collect { result ->
+                if (session != SessionActions.generation) return@collect
                 // While the next results load, the last ones stay on screen.
                 val keep = result is Response.Loading && (_results.value as? Response.Success)?.data?.let { it != SearchResults() } == true
                 if (!keep) _results.value = result
-                if (result is Response.Success) last = result.data
+                if (result !is Response.Loading) last = (result as? Response.Success)?.data
                 // Keep the legacy songs flow in sync for any remaining consumers.
                 _songs.value = when (result) {
                     is Response.Success -> Response.Success(result.data.songs)
@@ -103,23 +118,43 @@ class SearchViewModel constructor(private val repository: AppRepository = Graph.
                 }
             }
             // Only a search that ran to its end (not one cut by the next letter, nor an error) is remembered.
-            last?.let { RecentSearches.put(query, it) }
+            if (session == SessionActions.generation) last?.let { recentSearches.put(session, query, it) }
         }
     }
 
     /** The last searches by their text, for a few minutes; shared by every instance. */
-    private object RecentSearches {
-        private const val KEEP = 20
-        private const val FRESH_MS = 3 * 60_000L
+    private companion object {
+        val recentSearches = RecentSearches()
+    }
+
+    internal class RecentSearches {
+        private var session = Long.MIN_VALUE
+        private companion object {
+            const val KEEP = 20
+            const val FRESH_MS = 3 * 60_000L
+        }
         private val map = object : LinkedHashMap<String, Pair<Long, SearchResults>>(24, 0.75f, true) {
             override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, Pair<Long, SearchResults>>) = size > KEEP
         }
 
-        @Synchronized fun get(query: String): SearchResults? =
-            map[key(query)]?.takeIf { System.currentTimeMillis() - it.first < FRESH_MS }?.second
+        @Synchronized
+        fun get(generation: Long, query: String, now: Long = SystemClock.elapsedRealtime()): SearchResults? {
+            if (!useSession(generation)) return null
+            return map[key(query)]?.takeIf { now - it.first < FRESH_MS }?.second
+        }
 
-        @Synchronized fun put(query: String, results: SearchResults) {
-            if (results != SearchResults()) map[key(query)] = System.currentTimeMillis() to results
+        @Synchronized
+        fun put(generation: Long, query: String, results: SearchResults, now: Long = SystemClock.elapsedRealtime()) {
+            if (useSession(generation) && results != SearchResults()) map[key(query)] = now to results
+        }
+
+        private fun useSession(generation: Long): Boolean {
+            if (generation < session) return false
+            if (generation != session) {
+                map.clear()
+                session = generation
+            }
+            return true
         }
 
         private fun key(query: String) = query.trim().lowercase()

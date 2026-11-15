@@ -177,7 +177,8 @@ fun SumUpSearchScreen(
         if (text.isBlank()) return@produceState
         kotlinx.coroutines.delay(300)
         value = runCatching { app.myspoti.host.android.MyspotiRuntime.api.search.suggestions(text.trim(), 6) }.getOrDefault(emptyList())
-            .filter { !it.equals(text.trim(), ignoreCase = true) }
+            .filter { it.isNotBlank() && !it.equals(text.trim(), ignoreCase = true) }
+            .distinct()
     }
 
     LazyColumn(

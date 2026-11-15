@@ -32,11 +32,26 @@ class CurrentSongState constructor() {
     private val _queue: MutableState<List<SongsModel>> = mutableStateOf(emptyList())
     val queue: State<List<SongsModel>> get() = _queue
 
+    private var queueRevision = 0L
+
+    @Synchronized
     fun updateQueue(queue: List<SongsModel>) {
         // Playback finds the current track by id, and the queue screen keys rows by
         // id, so a track listed twice (e.g. in a playlist) is queued once.
         val songs = queue.distinctBy { it.id }
+        queueRevision++
         _queue.value = songs
+    }
+
+    @Synchronized
+    internal fun startRadioQueue(seed: SongsModel): Long {
+        updateQueue(listOf(seed))
+        return queueRevision
+    }
+
+    @Synchronized
+    internal fun updateQueueIfCurrent(revision: Long, songs: List<SongsModel>) {
+        if (revision == queueRevision) updateQueue(songs)
     }
 
     val shuffle = mutableStateOf(false)

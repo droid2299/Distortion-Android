@@ -163,7 +163,8 @@ fun ImmersiveSearchScreen(navController: NavController) {
         if (text.isBlank()) return@produceState
         delay(300)
         value = runCatching { MyspotiRuntime.api.search.suggestions(text.trim(), 6) }.getOrDefault(emptyList())
-            .filter { !it.equals(text.trim(), ignoreCase = true) }
+            .filter { it.isNotBlank() && !it.equals(text.trim(), ignoreCase = true) }
+            .distinct()
     }
     val tiles = rememberBrowseTiles()
 

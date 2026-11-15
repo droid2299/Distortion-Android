@@ -1,6 +1,8 @@
 package com.music.spotui.data.api
 
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.Dispatchers
 import android.util.Log
@@ -393,6 +395,7 @@ class Api constructor(
         // Any facet Spotify offers: a top chip, or one opened beside it (Music > Following).
         runCatching { api.home.feed(facet, itemsPerShelf = 20) }.fold(
             onSuccess = { feed ->
+                currentCoroutineContext().ensureActive()
                 com.music.spotui.data.entity.HomeSubChips.learn(feed.chips)
                 val sections = feed.shelves.mapNotNull { shelf ->
                     val items = shelf.items.distinctBy { it.uri }.mapNotNull(::homeItem)
@@ -400,10 +403,19 @@ class Api constructor(
                     if (items.isEmpty()) null else HomeSection(title = shelf.title.orEmpty(), items = items)
                 }.distinctBy { it.title.lowercase().ifBlank { it.hashCode().toString() } }
                 val model = HomeFeedModel(greeting = feed.greeting, sections = sections)
-                if (facet.isEmpty()) { HomeCache.home = model; ScreenCache.home.write(model) } else HomeCache.facets[facet] = model
+                if (facet.isEmpty()) {
+                    HomeCache.home = model
+                    if (model != cached) ScreenCache.home.write(model)
+                } else {
+                    HomeCache.facets[facet] = model
+                }
                 emit(Response.Success(model))
             },
-            onFailure = { Log.e("Api", "getHomeFeed failed", it); if (cached == null) emit(Response.Error(it.message ?: "error")) },
+            onFailure = {
+                if (it is CancellationException) throw it
+                Log.e("Api", "getHomeFeed failed", it)
+                if (cached == null) emit(Response.Error(it.message ?: "error"))
+            },
         )
     }
 
@@ -425,6 +437,7 @@ class Api constructor(
         if (query.isBlank()) { emit(Response.Success(SearchResults())); return@flow }
         if (!ready()) { emit(Response.Error(notSignedIn())); return@flow }
         val music = runCatching { api.search.all(query, limit = 20) }.getOrElse {
+            if (it is CancellationException) throw it
             Log.e("Api", "searchEverything failed", it); emit(Response.Error(it.message ?: "error")); return@flow
         }
         val base = SearchResults(
@@ -434,6 +447,7 @@ class Api constructor(
             playlists = music.playlists.items.map(::playlistEntry),
         )
         emit(Response.Success(base))
+        if (!Features.PODCASTS) return@flow
         val (shows, episodes) = coroutineScope {
             val s = async { runCatching { api.search.shows(query, limit = 12).items }.getOrDefault(emptyList()) }
             val e = async { runCatching { api.search.episodes(query, limit = 12).items }.getOrDefault(emptyList()) }

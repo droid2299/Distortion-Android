@@ -1,6 +1,11 @@
 package com.music.spotui.ui.viewmodel
 
+import android.os.SystemClock
 import com.music.spotui.di.Graph
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOn
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.music.spotui.data.api.Response
@@ -28,25 +33,14 @@ class HomeViewModel constructor(private val repository: AppRepository = Graph.re
         // when the player is ready again, then a few times with growing pauses.
         viewModelScope.launch {
             app.myspoti.host.android.MyspotiRuntime.api.ready.collect { ready ->
-                if (ready && _home.value is Response.Error) fetchHome()
-            }
-        }
-        viewModelScope.launch {
-            var tries = 0
-            _home.collect { state ->
-                if (state is Response.Success) tries = 0
-                if (state is Response.Error && tries < RETRY_DELAYS_MS.size) {
-                    kotlinx.coroutines.delay(RETRY_DELAYS_MS[tries++])
-                    if (_home.value is Response.Error) fetchHome()
-                }
+                if (ready && _home.value is Response.Error && homeJob?.isActive != true) fetchHome()
             }
         }
     }
 
     /** Tries again now (the Home error's button). */
     fun retry() {
-        _home.value = Response.Loading()
-        fetchHome()
+        fetchHome(reset = true)
     }
 
     /**
@@ -55,7 +49,7 @@ class HomeViewModel constructor(private val repository: AppRepository = Graph.re
      * days showed the same releases and picks (reported: nothing new to discover).
      */
     fun refreshIfStale() {
-        if (System.currentTimeMillis() - fetchedAt >= STALE_MS) fetchHome()
+        if (SystemClock.elapsedRealtime() - fetchedAt >= STALE_MS && homeJob?.isActive != true) fetchHome()
     }
 
     /**
@@ -65,7 +59,7 @@ class HomeViewModel constructor(private val repository: AppRepository = Graph.re
     fun selectFacet(f: String) {
         facet.value = if (facet.value != f) f
             else com.music.spotui.data.entity.HomeSubChips.parentOf(f)?.takeIf { it != f } ?: ""
-        fetchHome()
+        fetchHome(reset = true)
     }
 
     private companion object {
@@ -73,14 +67,35 @@ class HomeViewModel constructor(private val repository: AppRepository = Graph.re
         const val STALE_MS = 30 * 60_000L
     }
 
-    private fun fetchHome() {
+    private fun fetchHome(reset: Boolean = false) {
         homeJob?.cancel()
-        val f = facet.value
-        fetchedAt = System.currentTimeMillis()
-        homeJob = viewModelScope.launch(Dispatchers.IO) {
-            repository.provideHomeFeed(f).collect { feed ->
-                _home.value = feed
-            }
+        val selectedFacet = facet.value
+        if (reset) _home.value = Response.Loading()
+        fetchedAt = SystemClock.elapsedRealtime()
+        homeJob = viewModelScope.launch {
+            retryHomeFeed(RETRY_DELAYS_MS) { repository.provideHomeFeed(selectedFacet) }
+                .flowOn(Dispatchers.IO)
+                .collect { feed ->
+                    if (feed !is Response.Loading || _home.value !is Response.Success) {
+                        _home.value = feed
+                    }
+                }
         }
+    }
+}
+
+/** A failed attempt gets its own retry even when the UI already shows the same error. */
+internal fun <T> retryHomeFeed(
+    delaysMs: LongArray,
+    request: suspend () -> Flow<Response<T>>,
+): Flow<Response<T>> = flow {
+    for (attempt in 0..delaysMs.size) {
+        var failed = false
+        request().collect { result ->
+            failed = result is Response.Error
+            if (attempt == 0 || result !is Response.Loading) emit(result)
+        }
+        if (!failed || attempt == delaysMs.size) break
+        delay(delaysMs[attempt])
     }
 }

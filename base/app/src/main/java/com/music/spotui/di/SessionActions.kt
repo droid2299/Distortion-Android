@@ -9,6 +9,10 @@ import kotlinx.coroutines.flow.StateFlow
 
 /** Session-wide actions the screens trigger. */
 object SessionActions {
+    @Volatile
+    internal var generation = 0L
+        private set
+
     private val _signedOut = MutableStateFlow(false)
     /** True from a logout until the next sign-in: the activity shows the login page, then starts over. */
     val signedOut: StateFlow<Boolean> = _signedOut
@@ -46,6 +50,7 @@ object SessionActions {
      * Extensions are the app's and keep running; their settings and the quality are the account's (ProfilePrefs).
      */
     private fun leaveAccount(app: android.content.Context, forget: Boolean) {
+        generation++
         // This account's downloads go aside: the next account on the phone sees none of them.
         val account = com.music.spotui.data.api.ProfileCache.id
         val key = account?.let { com.music.spotui.data.offline.OfflineAccounts.keyOf(it) } ?: MyspotiRuntime.host.accounts.list.value.current?.key
@@ -163,6 +168,7 @@ object SessionActions {
      * (OfflineAccounts.claim puts another account's aside then). Nothing else of a sign-out is done.
      */
     fun sessionLost() {
+        generation++
         Logbook.log("session lost without a sign-out: the account is read again at the next session")
         com.music.spotui.data.api.ProfileCache.clearSession()
         com.music.spotui.data.LibraryOutbox.signedOut()

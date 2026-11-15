@@ -77,6 +77,7 @@ class MyspotiApplication : Application() {
      * (the home feed is loaded by the first screen): the tabs open on fresh content.
      */
     private fun prefetch() {
+        if (!app.myspoti.host.android.MyspotiRuntime.isStarted) return
         kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.SupervisorJob() + kotlinx.coroutines.Dispatchers.IO).launch {
             app.myspoti.host.android.MyspotiRuntime.api.ready.first { it }
             if (!getSharedPreferences("myspoti_prefs", MODE_PRIVATE).getBoolean("LoggedIn", false)) return@launch
