@@ -249,6 +249,9 @@ object Extensions {
         }
         // A romanizer added or gone changes the lyrics as much as a source: they are read again with it.
         if (now.lyrics != before.lyrics || now.romanize != before.romanize) com.music.spotui.data.api.LyricsApi.sourcesChanged(keepFound = !before.ready)
+        if (before.download.isEmpty() && now.download.isNotEmpty()) {
+            com.music.spotui.data.offline.OfflineFavorites.refresh()
+        }
         // Lists kept downloaded skipped their songs for want of a source: synced now.
         if (before.ready && before.download.isEmpty() && now.download.isNotEmpty())
             com.music.spotui.data.offline.OfflineCollections.refreshAll(ctx, force = true)

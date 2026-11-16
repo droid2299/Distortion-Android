@@ -64,6 +64,7 @@ object ProfileCache {
                     // Its listen history and its downloads are the ones shown (see OfflineAccounts).
                     com.music.spotui.data.local.ListenHistory.claim(key)
                     com.music.spotui.data.offline.OfflineAccounts.claim(context.applicationContext, me.username)
+                    com.music.spotui.data.offline.OfflineFavorites.refresh()
                     return@launch
                 }
             } finally {

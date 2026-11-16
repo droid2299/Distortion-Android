@@ -44,6 +44,7 @@ data class OfflineTrack(
      * ("Quality: FLAC", manifest `role: quality`), for Stats for nerds; null without one.
      */
     val extensionQuality: String? = null,
+    val automaticFavorite: Boolean = false,
 ) {
     val isEpisode: Boolean get() = kind == KIND_PODCAST
 
@@ -52,6 +53,7 @@ data class OfflineTrack(
         .put("albumId", albumId).put("duration", durationMs).put("coverUrl", coverUrl)
         .put("file", file).put("cover", cover).put("source", source).put("verified", verified)
         .put("bytes", bytes).put("added", addedAt).put("kind", kind)
+        .apply { if (automaticFavorite) put("automaticFavorite", true) }
         .apply { providerId?.let { put("providerId", it) } }
         .apply { extensionQuality?.let { put("extQuality", it) } }
 
@@ -70,6 +72,7 @@ data class OfflineTrack(
             // Absent in an index written before it was kept: unknown.
             providerId = o.optString("providerId").ifBlank { null },
             extensionQuality = o.optString("extQuality").ifBlank { null },
+            automaticFavorite = o.optBoolean("automaticFavorite"),
         )
     }
 }

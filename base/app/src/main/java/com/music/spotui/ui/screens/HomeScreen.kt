@@ -234,6 +234,9 @@ fun HomeFeedContent(navController: NavController, feed: HomeFeedModel, facet: St
                 HomeHeaderRow(navController, facet, onFacet)
             }
         }
+        item(key = "home:discovery-tools") {
+            com.music.spotui.ui.immersive.pages.ListeningTools(navController)
+        }
         shortcuts?.let { tiles ->
             item {
                 HomeShortcutGrid(navController, tiles)

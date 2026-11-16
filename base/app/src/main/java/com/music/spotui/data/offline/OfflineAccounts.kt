@@ -29,6 +29,9 @@ object OfflineAccounts {
     internal fun keyOf(userId: String): String =
         MessageDigest.getInstance("SHA-256").digest(userId.toByteArray()).take(12).joinToString("") { "%02x".format(it) }
 
+    internal fun isOwnedBy(context: Context, key: String): Boolean =
+        runCatching { ownerOf(live(context)) == key }.getOrDefault(false)
+
     /** Signing out: this account's downloads go aside; [userId] names them when the folder has no stamp yet. */
     suspend fun park(context: Context, userId: String?) = lock.withLock {
         val dir = live(context)

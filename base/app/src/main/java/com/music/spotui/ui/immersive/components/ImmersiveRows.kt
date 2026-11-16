@@ -4,6 +4,7 @@
  */
 package com.music.spotui.ui.immersive.components
 
+import com.music.spotui.ui.theme.AppSpacing
 import com.music.spotui.ui.components.secondaryClick
 import androidx.compose.foundation.background
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -222,7 +223,7 @@ private fun RowScaffold(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 8.dp)
+            .padding(horizontal = AppSpacing.S)
             .clip(Immersive.CoverMedium)
             .then(if (highlighted) Modifier.background(Immersive.scheme.secondaryContainer) else Modifier)
             // A mouse's right click opens the same menu as the long press (DeX, tablets).
@@ -237,7 +238,7 @@ private fun RowScaffold(
                     }
                 },
             )
-            .padding(horizontal = Immersive.Gutter - 8.dp, vertical = 8.dp),
+            .padding(horizontal = Immersive.Gutter - AppSpacing.S, vertical = AppSpacing.S),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         leading()

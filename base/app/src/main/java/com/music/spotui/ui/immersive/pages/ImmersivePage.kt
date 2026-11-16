@@ -1,5 +1,6 @@
 package com.music.spotui.ui.immersive.pages
 
+import com.music.spotui.ui.theme.AppSpacing
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.snap
 import androidx.compose.foundation.background
@@ -107,7 +108,7 @@ internal class ImmersiveGroupScope {
     }
 }
 
-private val GroupSeparatorInset = 16.dp
+private val GroupSeparatorInset = AppSpacing.L
 
 /**
  * An inset grouped section, as in iOS Settings: a small [header] over a rounded [Immersive.Raised]
@@ -127,12 +128,12 @@ internal fun LazyListScope.immersiveGroup(
         if (scope.rows.isEmpty()) return@item
         val header = header ?: headerRes?.let { androidx.compose.ui.res.stringResource(it) }
         val footer = footer ?: footerRes?.let { androidx.compose.ui.res.stringResource(it) }
-        Column(Modifier.fillMaxWidth().padding(horizontal = Immersive.Gutter).padding(top = 14.dp)) {
+        Column(Modifier.fillMaxWidth().padding(horizontal = Immersive.Gutter).padding(top = AppSpacing.L)) {
             if (header != null) {
                 Text(
                     header,
                     style = Immersive.Headline.copy(color = Immersive.scheme.primary),
-                    modifier = Modifier.padding(start = GroupSeparatorInset, bottom = 6.dp),
+                    modifier = Modifier.padding(start = GroupSeparatorInset, bottom = AppSpacing.S),
                 )
             }
             Column(Modifier.fillMaxWidth().clip(Immersive.Card).background(Immersive.scheme.surfaceContainer)) {
@@ -153,7 +154,7 @@ internal fun LazyListScope.immersiveGroup(
                 Text(
                     footer,
                     style = Immersive.Caption.copy(color = Immersive.TextTertiary),
-                    modifier = Modifier.padding(start = GroupSeparatorInset, end = GroupSeparatorInset, top = 6.dp),
+                    modifier = Modifier.padding(start = GroupSeparatorInset, end = GroupSeparatorInset, top = AppSpacing.S),
                 )
             }
         }
@@ -163,7 +164,7 @@ internal fun LazyListScope.immersiveGroup(
 /** A free-standing block on the page (a message, a chart) with the page's gutters. */
 internal fun LazyListScope.immersiveBlock(key: String, content: @Composable () -> Unit) {
     item(key = "block:$key", contentType = "block") {
-        Box(Modifier.fillMaxWidth().padding(horizontal = Immersive.Gutter, vertical = 8.dp)) { content() }
+        Box(Modifier.fillMaxWidth().padding(horizontal = Immersive.Gutter, vertical = AppSpacing.S)) { content() }
     }
 }
 
@@ -192,7 +193,7 @@ internal fun ImmersiveGroupRow(
             .fillMaxWidth()
             .then(if (onClick != null) Modifier.immersiveClickable(onClick = onClick, pressedScale = 0.99f, enabled = enabled) else Modifier)
             .heightIn(min = 52.dp)
-            .padding(horizontal = GroupSeparatorInset, vertical = 10.dp),
+            .padding(horizontal = GroupSeparatorInset, vertical = AppSpacing.M),
     ) {
         if (icon != null) {
             Box(
@@ -242,7 +243,7 @@ internal fun ImmersiveSwitchRow(
             .fillMaxWidth()
             .toggleable(checked, enabled = enabled, role = Role.Switch, onValueChange = onChecked)
             .heightIn(min = 52.dp)
-            .padding(horizontal = GroupSeparatorInset, vertical = 10.dp),
+            .padding(horizontal = GroupSeparatorInset, vertical = AppSpacing.M),
     ) {
         Column(Modifier.weight(1f)) {
             Text(title, style = Immersive.Body.copy(color = if (enabled) Immersive.Text else Immersive.TextTertiary), maxLines = 2, overflow = TextOverflow.Ellipsis)

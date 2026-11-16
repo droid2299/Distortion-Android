@@ -534,6 +534,7 @@ class MainActivity : AppCompatActivity() {
      */
     override fun onResume() {
         super.onResume()
+        com.music.spotui.data.offline.OfflineFavorites.refresh()
         if (!showingLogin) return
         lifecycleScope.launch {
             if (MyspotiRuntime.awaitSignedIn(1_500)) {

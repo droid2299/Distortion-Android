@@ -5,6 +5,7 @@
  */
 package com.music.spotui.ui.immersive.screens
 
+import com.music.spotui.ui.theme.AppSpacing
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -14,7 +15,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
 import app.myspoti.engine.R
 import app.myspoti.host.android.MyspotiRuntime
 import com.music.spotui.data.api.Features
@@ -65,4 +65,4 @@ internal fun BrowseTileRow(
     }
 }
 
-private val TileSpacing = 12.dp
+private val TileSpacing = AppSpacing.M

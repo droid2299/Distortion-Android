@@ -1,5 +1,6 @@
 package com.music.spotui.ui.immersive.pages
 
+import com.music.spotui.ui.theme.AppSpacing
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -82,11 +83,11 @@ fun ImmersiveNewReleasesScreen(navController: NavController) {
     ImmersivePage(title = stringResource(R.string.bottom_tab_new), onBack = { navController.popBackStack() }, rootTab = true) {
         val features = latest?.takeIf { it.isNotEmpty() } ?: followed.orEmpty()
         if (features.isNotEmpty()) item(key = "new:features") {
-            BoxWithConstraints(Modifier.padding(bottom = 18.dp)) {
+            BoxWithConstraints(Modifier.padding(bottom = AppSpacing.Section)) {
                 val featureWidth = minOf(maxWidth * 0.82f, 360.dp)
                 LazyRow(
                     contentPadding = PaddingValues(horizontal = Immersive.Gutter),
-                    horizontalArrangement = Arrangement.spacedBy(14.dp),
+                    horizontalArrangement = Arrangement.spacedBy(AppSpacing.L),
                 ) {
                     itemsIndexed(features.take(8), key = { i, t -> "feature:${t.id}:$i" }) { index, t ->
                         com.music.spotui.ui.immersive.components.ImmersiveSpotlightCard(
@@ -107,9 +108,9 @@ fun ImmersiveNewReleasesScreen(navController: NavController) {
                 }
                 else -> item(key = "$key:shelf") {
                     LazyRow(
-                        horizontalArrangement = Arrangement.spacedBy(14.dp),
+                        horizontalArrangement = Arrangement.spacedBy(AppSpacing.L),
                         contentPadding = PaddingValues(horizontal = Immersive.Gutter),
-                        modifier = Modifier.fillMaxWidth().padding(bottom = 18.dp),
+                        modifier = Modifier.fillMaxWidth().padding(bottom = AppSpacing.Section),
                     ) {
                         itemsIndexed(list, key = { i, t -> "$key:${t.id}:$i" }) { _, t ->
                             ImmersiveShelfCard(
@@ -224,11 +225,19 @@ fun ImmersiveRecapScreen(navController: NavController) {
     }
     val recap = loaded ?: ListenHistory.Recap(0, 0, emptyMap(), emptyList(), emptyList(), emptyList())
     ImmersivePage(title = stringResource(R.string.recap_title), onBack = { navController.popBackStack() }) {
+        immersiveGroup("monthly-recap") {
+            row {
+                ImmersiveGroupRow(
+                    title = stringResource(R.string.app_recap_monthly), chevron = true,
+                    onClick = { navController.navigate(com.music.spotui.ui.navigation.Routes.MonthlyRecap.route) },
+                )
+            }
+        }
         item(key = "tabs") {
             ImmersiveSegmentedControl(
                 options = listOf(stringResource(R.string.stats_tab_spotify), stringResource(R.string.stats_tab_phone)),
                 selectedIndex = tab, onSelect = { tab = it },
-                modifier = Modifier.padding(horizontal = Immersive.Gutter, vertical = 6.dp),
+                modifier = Modifier.padding(horizontal = Immersive.Gutter, vertical = AppSpacing.S),
             )
         }
         if (tab == 0) spotifyStats(navController) else phoneStats(navController, recap, periods.map { it.first }, period) { period = it }
@@ -252,7 +261,7 @@ private fun SpotifyStatsBlock(navController: NavController) {
         ImmersiveSegmentedControl(
             options = rangeLabels.map { stringResource(it.second) },
             selectedIndex = range, onSelect = { range = it },
-            modifier = Modifier.padding(horizontal = Immersive.Gutter, vertical = 6.dp),
+            modifier = Modifier.padding(horizontal = Immersive.Gutter, vertical = AppSpacing.S),
         )
         when {
             state == null -> repeat(5) { com.music.spotui.ui.immersive.components.ImmersiveSongRowSkeleton(index = it) }
@@ -261,11 +270,11 @@ private fun SpotifyStatsBlock(navController: NavController) {
             else -> {
                 top.artistTotal?.takeIf { it > 0 }?.let { total ->
                     Text(stringResource(R.string.stats_artists_ranked, total), style = Immersive.Subhead,
-                        modifier = Modifier.padding(horizontal = Immersive.Gutter, vertical = 10.dp))
+                        modifier = Modifier.padding(horizontal = Immersive.Gutter, vertical = AppSpacing.M))
                 }
                 if (top.artists.isNotEmpty()) {
                     SectionHeader(stringResource(R.string.recap_top_artists))
-                    LazyRow(contentPadding = PaddingValues(horizontal = Immersive.Gutter), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                    LazyRow(contentPadding = PaddingValues(horizontal = Immersive.Gutter), horizontalArrangement = Arrangement.spacedBy(AppSpacing.L)) {
                         itemsIndexed(top.artists, key = { _, a -> a.uri }) { i, a ->
                             ImmersiveShelfCard(
                                 title = "${i + 1}. ${a.name}", subtitle = null,
@@ -306,7 +315,7 @@ private fun androidx.compose.foundation.lazy.LazyListScope.phoneStats(
         ImmersiveSegmentedControl(
             options = periodLabels.map { stringResource(it) },
             selectedIndex = period, onSelect = onPeriod,
-            modifier = Modifier.padding(horizontal = Immersive.Gutter, vertical = 6.dp),
+            modifier = Modifier.padding(horizontal = Immersive.Gutter, vertical = AppSpacing.S),
         )
     }
     item(key = "totals") {

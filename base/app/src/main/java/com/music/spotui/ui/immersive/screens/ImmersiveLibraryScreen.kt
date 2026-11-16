@@ -6,6 +6,7 @@
  */
 package com.music.spotui.ui.immersive.screens
 
+import com.music.spotui.ui.theme.AppSpacing
 import com.music.spotui.ui.immersive.shell.immersiveHazeSource
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Spring
@@ -440,7 +441,7 @@ private fun LibraryHeader(
         Column(Modifier.padding(horizontal = Immersive.Gutter)) {
             LibraryChipLabels.forEach { (k, label) ->
                 Row(
-                    modifier = Modifier.fillMaxWidth().immersiveClickable(onClick = { onKind(k) }).padding(vertical = 14.dp),
+                    modifier = Modifier.fillMaxWidth().immersiveClickable(onClick = { onKind(k) }).padding(vertical = AppSpacing.L),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Icon(
@@ -464,9 +465,9 @@ private fun LibraryHeader(
         }
         if (recent.isNotEmpty()) {
             SectionHeader(stringResource(R.string.library_sort_recently_added))
-            Column(Modifier.padding(horizontal = Immersive.Gutter), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            Column(Modifier.padding(horizontal = Immersive.Gutter), verticalArrangement = Arrangement.spacedBy(AppSpacing.L)) {
                 recent.chunked(2).forEach { row ->
-                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(AppSpacing.M)) {
                         row.forEach { entry ->
                             Column(Modifier.weight(1f).immersiveClickable(onClick = { onOpenRecent(entry) })) {
                                 LibraryEntryCover(entry, Modifier.fillMaxWidth().aspectRatio(1f).clip(Immersive.CoverMedium))
@@ -848,8 +849,8 @@ private fun LibraryGrid(
             start = Immersive.Gutter, end = Immersive.Gutter,
             top = immersiveTopContentPadding(), bottom = Immersive.BottomChrome,
         ),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalArrangement = Arrangement.spacedBy(18.dp),
+        horizontalArrangement = Arrangement.spacedBy(AppSpacing.M),
+        verticalArrangement = Arrangement.spacedBy(AppSpacing.L),
     ) {
         item(key = "library:header", span = { GridItemSpan(maxLineSpan) }) {
             Box(Modifier.immersiveBleed(Immersive.Gutter)) { header() }

@@ -67,7 +67,10 @@ object DataSaver {
                 override fun onCapabilitiesChanged(network: Network, caps: NetworkCapabilities) {
                     val was = metered
                     metered = !caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_METERED)
-                    if (was && !metered) com.music.spotui.data.offline.OfflineCollections.onUnmetered(app)
+                    if (was && !metered) {
+                        com.music.spotui.data.offline.OfflineCollections.onUnmetered(app)
+                        com.music.spotui.data.offline.OfflineFavorites.refresh()
+                    }
                     // Wi-Fi and mobile data each have their own streaming level.
                     if (was != metered) { com.music.spotui.data.preferences.applyStreamingQuality(app); com.music.spotui.extensions.Extensions.networkChanged() }
                     changed()

@@ -982,6 +982,7 @@ object SongPlayer {
                 com.music.spotui.data.local.ListenHistory.record(com.music.spotui.data.local.ListenHistory.Listen(
                     System.currentTimeMillis(), listenKey, s.title, s.singer, s.album, s.coverUri, listenPlayedMs, listenSource,
                     com.music.spotui.data.local.ListenHistory.artistsOf(s.singer, s.artistIds),
+                    spotifyTrackId = s.spotifyTrackId,
                 ))
             }
             listenKey = key; listenSong = song; listenSource = source; listenPlayedMs = 0

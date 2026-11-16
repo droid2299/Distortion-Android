@@ -62,7 +62,7 @@ object QueueSync {
     }
 
     private fun usable(): Boolean =
-        (ConnectMirrorPref.on || com.music.spotui.data.preferences.DownloadSyncPref.on) && LocalPlayer.active.value && ConnectMirror.running && !SongPlayer.routing &&
+        (ConnectMirrorPref.on || com.music.spotui.data.preferences.DownloadSyncPref.on) && LocalPlayer.active.value && !LocalPlayer.adaptiveQueue && ConnectMirror.running && !SongPlayer.routing &&
             api.ready.value && !page.playsElsewhere.value && !page.adPlaying.value
 
     private val sync = Runnable {

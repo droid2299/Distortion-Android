@@ -89,6 +89,8 @@ import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import com.music.spotui.di.SongPlayer
+import com.music.spotui.di.AdaptiveSetSession
+import com.music.spotui.ui.immersive.pages.setTime
 import com.music.spotui.ui.components.RepeatIcons
 import com.music.spotui.ui.immersive.Immersive
 import com.music.spotui.ui.screens.ExplicitBadge
@@ -126,6 +128,7 @@ fun ImmersiveQueuePanel(modifier: Modifier = Modifier, contentPadding: PaddingVa
     val shuffle = song.shuffle.value
     val repeatMode = SongPlayer.repeatMode.value
     val contextName = SongPlayer.nowPlaying.value.contextName
+    val hasAdaptiveSet by remember { androidx.compose.runtime.derivedStateOf { AdaptiveSetSession.status.value != null } }
 
     // Rows swiped away, hidden at once: the queue takes a moment to report the removal.
     val removed = remember { mutableStateListOf<String>() }
@@ -269,6 +272,19 @@ fun ImmersiveQueuePanel(modifier: Modifier = Modifier, contentPadding: PaddingVa
             bottom = bottomPad,
         ),
     ) {
+        if (hasAdaptiveSet) {
+            item(key = "adaptive-set") {
+                val status = AdaptiveSetSession.status.value ?: return@item
+                Column(Modifier.padding(vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(stringResource(R.string.app_set_title), style = androidx.compose.material3.MaterialTheme.typography.titleMedium)
+                    Text(stringResource(R.string.app_set_queue, setTime(status.remainingMs), setTime(status.projectedMs), setTime(status.targetMs)))
+                    if (status.closerUnavailable) Text(stringResource(R.string.app_set_closer_unavailable))
+                    androidx.compose.material3.TextButton(onClick = { AdaptiveSetSession.stop() }) {
+                        Text(stringResource(R.string.app_set_stop_adapting))
+                    }
+                }
+            }
+        }
         item(key = "header") {
             QueueHeader(
                 shuffle = shuffle,

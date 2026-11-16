@@ -1,5 +1,6 @@
 package com.music.spotui.ui.immersive.player
 
+import com.music.spotui.ui.theme.AppSpacing
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -237,7 +238,7 @@ fun ImmersivePodcastPlayer(navController: NavController) {
     // Scrubber, podcast transport and the row of speed, sleep timer, devices and queue.
     val controls: @Composable () -> Unit = {
         PlayerScrubber(state = state, onSeek = actions.seekTo)
-        Spacer(Modifier.height(8.dp))
+        Spacer(Modifier.height(AppSpacing.S))
         PodcastTransportRow(
             isPlaying = state.playing,
             isLoading = state.buffering,
@@ -245,7 +246,7 @@ fun ImmersivePodcastPlayer(navController: NavController) {
             onPlayPause = actions.playPause,
             onForward = { SongPlayer.skipBy(SKIP_MS) },
         )
-        Spacer(Modifier.height(12.dp))
+        Spacer(Modifier.height(AppSpacing.S))
         Row(
             modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -270,7 +271,7 @@ fun ImmersivePodcastPlayer(navController: NavController) {
                 onClick = { showQueue = true },
             )
         }
-        Spacer(Modifier.height(18.dp))
+        Spacer(Modifier.height(AppSpacing.M))
     }
 
     BoxWithConstraints(Modifier.fillMaxSize().background(Immersive.scheme.surfaceContainerLow)) {
@@ -429,27 +430,30 @@ private fun PodcastTransportRow(
 ) {
     val playTouch = 76.dp
     Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceAround,
+        modifier = Modifier.fillMaxWidth().height(playTouch),
+        horizontalArrangement = Arrangement.spacedBy(AppSpacing.S),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        SkipButton(back = true, onClick = onBack)
-        if (isLoading) {
-            // Same footprint as the play/pause target: a smaller box would shunt everything below it.
-            Box(Modifier.size(playTouch), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(color = Immersive.Accent, strokeWidth = 3.dp, modifier = Modifier.size(38.dp))
-            }
-        } else {
-            TransportGlyph(
-                icon = if (isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
-                contentDescription = stringResource(if (isPlaying) R.string.immersive_player_pause else R.string.immersive_player_play),
-                size = 36.dp,
-                touchSize = playTouch,
-                onClick = onPlayPause,
-                prominent = true,
-            )
+        Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
+            SkipButton(back = true, onClick = onBack)
         }
-        SkipButton(back = false, onClick = onForward)
+        Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
+            if (isLoading) {
+                CircularProgressIndicator(color = Immersive.Accent, strokeWidth = 3.dp, modifier = Modifier.size(38.dp))
+            } else {
+                TransportGlyph(
+                    icon = if (isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
+                    contentDescription = stringResource(if (isPlaying) R.string.immersive_player_pause else R.string.immersive_player_play),
+                    size = 36.dp,
+                    touchSize = playTouch,
+                    onClick = onPlayPause,
+                    prominent = true,
+                )
+            }
+        }
+        Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
+            SkipButton(back = false, onClick = onForward)
+        }
     }
 }
 

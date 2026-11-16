@@ -1,5 +1,6 @@
 package com.music.spotui.ui.immersive
 
+import com.music.spotui.ui.theme.AppSpacing
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.shape.CircleShape
@@ -49,7 +50,7 @@ object Immersive {
     val Lyric: TextStyle get() = type.headlineMedium.copy(color = Text, fontWeight = FontWeight.Bold)
 
     // Spacing.
-    val Gutter = 20.dp
+    val Gutter = AppSpacing.Gutter
     val RowHeight = 64.dp
     /** Room the floating tab bar and mini player take at the bottom of every page. */
     val BottomChrome = 180.dp

@@ -6,6 +6,7 @@
  */
 package com.music.spotui.ui.immersive.components
 
+import com.music.spotui.ui.theme.AppSpacing
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -92,7 +93,7 @@ fun SectionHeader(
 ) {
     Row(
         modifier = modifier
-            .padding(horizontal = Immersive.Gutter, vertical = 10.dp)
+            .padding(horizontal = Immersive.Gutter, vertical = AppSpacing.M)
             .fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -118,7 +119,7 @@ fun SectionHeader(
                 style = Immersive.Subhead.copy(color = Immersive.Accent, fontWeight = FontWeight.Medium),
                 modifier = Modifier
                     .clickable(role = Role.Button, onClick = onSeeAll)
-                    .padding(start = 12.dp, top = 4.dp, bottom = 4.dp),
+                    .padding(start = AppSpacing.M, top = AppSpacing.XS, bottom = AppSpacing.XS),
             )
         }
     }
@@ -133,7 +134,7 @@ fun SectionHeader(
 fun ImmersiveShelfRow(
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(horizontal = Immersive.Gutter),
-    horizontalArrangement: Arrangement.Horizontal = Arrangement.spacedBy(14.dp),
+    horizontalArrangement: Arrangement.Horizontal = Arrangement.spacedBy(AppSpacing.L),
     state: LazyListState = rememberLazyListState(),
     content: LazyListScope.() -> Unit,
 ) {
@@ -166,7 +167,7 @@ fun ImmersiveShelf(
     state: LazyListState = rememberLazyListState(),
     content: LazyListScope.() -> Unit,
 ) {
-    Column(modifier.padding(bottom = 26.dp)) {
+    Column(modifier.padding(bottom = AppSpacing.Section)) {
         SectionHeader(title = title, onSeeAll = onSeeAll, subtitle = subtitle)
         ImmersiveShelfRow(state = state, content = content)
     }
@@ -340,7 +341,7 @@ internal fun ImmersiveSpotlightCard(
                 badge?.invoke(this)
             }
         }
-        Column(Modifier.fillMaxWidth().padding(start = 14.dp, end = 14.dp, bottom = 14.dp)) {
+        Column(Modifier.fillMaxWidth().padding(start = AppSpacing.L, end = AppSpacing.L, bottom = AppSpacing.L)) {
             Text(
                 title, style = MaterialTheme.typography.titleMedium, color = content,
                 maxLines = 1, overflow = TextOverflow.Ellipsis,

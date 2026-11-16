@@ -5,6 +5,7 @@
  */
 package com.music.spotui.ui.immersive.screens
 
+import com.music.spotui.ui.theme.AppSpacing
 import com.music.spotui.ui.immersive.shell.immersiveHazeSource
 import android.content.Context
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -186,7 +187,7 @@ fun ImmersiveSearchScreen(navController: NavController) {
         ) {
             immersiveLargeTitle(title)
             stickyHeader(key = "search:field") {
-                Column(Modifier.fillMaxWidth().background(Immersive.Page).padding(top = 4.dp, bottom = 6.dp)) {
+                Column(Modifier.fillMaxWidth().background(Immersive.Page).padding(top = AppSpacing.XS, bottom = AppSpacing.S)) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.fillMaxWidth().padding(horizontal = Immersive.Gutter),
@@ -349,7 +350,7 @@ private fun LazyListScope.recentSearches(
 ) {
     item(key = "recent:header") {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = Immersive.Gutter, vertical = 10.dp),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = Immersive.Gutter, vertical = AppSpacing.M),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
@@ -426,7 +427,7 @@ private fun SuggestionRow(term: String, onClick: () -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .clickable(role = Role.Button, onClick = onClick)
-            .padding(horizontal = Immersive.Gutter, vertical = 10.dp),
+            .padding(horizontal = Immersive.Gutter, vertical = AppSpacing.M),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(Icons.Rounded.Search, contentDescription = null, tint = Immersive.TextSecondary, modifier = Modifier.size(22.dp))
@@ -663,7 +664,7 @@ private fun TopResultCard(song: SongsModel, onPlay: () -> Unit, onMore: () -> Un
             ImmersiveMoreButton(onClick = onMore, tint = Immersive.Text, iconSize = 24.dp)
         }
         Spacer(Modifier.height(12.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(AppSpacing.M)) {
             ImmersiveButton(
                 text = stringResource(R.string.immersive_shell_play),
                 onClick = onPlay,

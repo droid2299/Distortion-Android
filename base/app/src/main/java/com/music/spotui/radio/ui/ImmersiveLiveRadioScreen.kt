@@ -1,5 +1,6 @@
 package com.music.spotui.radio.ui
 
+import com.music.spotui.ui.theme.AppSpacing
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -56,7 +57,7 @@ fun ImmersiveLiveRadioScreen(navController: NavController) {
             ImmersiveSearchField(
                 query = state.query, onQueryChange = { state.query = it }, onSubmit = {},
                 placeholder = stringResource(R.string.live_radio_search_hint),
-                modifier = Modifier.padding(horizontal = Immersive.Gutter, vertical = 6.dp),
+                modifier = Modifier.padding(horizontal = Immersive.Gutter, vertical = AppSpacing.S),
             )
         }
         if (state.genres.isNotEmpty()) item(key = "radio:genres") {
@@ -82,8 +83,8 @@ fun ImmersiveLiveRadioScreen(navController: NavController) {
         if (featured.isNotEmpty()) item(key = "radio:featured") {
             LazyRow(
                 contentPadding = PaddingValues(horizontal = Immersive.Gutter),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                modifier = Modifier.padding(bottom = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(AppSpacing.L),
+                modifier = Modifier.padding(bottom = AppSpacing.Section),
             ) {
                 itemsIndexed(featured, key = { index, station -> "featured:${station.stationUuid}:$index" }) { index, station ->
                     ImmersiveSpotlightCard(

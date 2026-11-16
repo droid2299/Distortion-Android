@@ -374,6 +374,12 @@ object AutoMix {
         }
     }
 
+    internal fun cachedFileAnalysis(uri: Uri): TrackAnalysis? {
+        if (uri.scheme == ExtensionAudio.SCHEME) return analysis(uri)
+        refreshFileVersion(uri)
+        return analysis(uri) ?: load(key(uri))
+    }
+
     private fun requestId(uri: Uri): String =
         if (uri.scheme == ExtensionAudio.SCHEME) "ext:" + uri.lastPathSegment.orEmpty() else uri.toString()
 

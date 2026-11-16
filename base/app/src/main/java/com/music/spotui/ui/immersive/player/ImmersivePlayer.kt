@@ -13,6 +13,7 @@
  */
 package com.music.spotui.ui.immersive.player
 
+import com.music.spotui.ui.theme.AppSpacing
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.Crossfade
 import androidx.compose.runtime.LaunchedEffect
@@ -139,7 +140,7 @@ private const val COVER_DECODE_PX = 640
 private val ART_BOX_TOP_PAD = 8.dp
 
 /** The player's side margin. Scrollable panels reach back across it. */
-internal val PLAYER_GUTTER = 16.dp
+internal val PLAYER_GUTTER = AppSpacing.L
 
 /**
  * How wide the player's content is ever allowed to get: a sleeve and a volume slider stretched
@@ -749,24 +750,23 @@ private fun PlayerControlsBlock(
     showVolume: Boolean,
     onSource: () -> Unit,
     onSourceLong: () -> Unit,
+    reserveVolumeSpace: Boolean = true,
 ) {
-    PlayerCredits(state, actions, MaterialTheme.colorScheme.onPrimaryContainer, onSource, onSourceLong)
-    Spacer(Modifier.height(6.dp))
-    PlayerScrubber(state, actions.seekTo, expressive = true)
-    Spacer(Modifier.height(8.dp))
-    MusicTransportRow(state, actions)
-    if (showVolume) {
-        VolumeRow(volume)
-    }
-    Spacer(Modifier.height(if (showVolume) 6.dp else 22.dp))
-    Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-        PlayerActionRow(state, actions)
+    Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.S)) {
+        PlayerCredits(state, actions, MaterialTheme.colorScheme.onPrimaryContainer, onSource, onSourceLong)
+        PlayerScrubber(state, actions.seekTo, expressive = true)
+        MusicTransportRow(state, actions)
+        if (showVolume) VolumeRow(volume)
+        Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+            PlayerActionRow(state, actions)
+        }
     }
     val extTrack = remember(state.title, state.artist) { com.music.spotui.extensions.Extensions.currentTrack() }
     com.music.spotui.extensions.MirrorIndicator()
     com.music.spotui.extensions.ExtensionPlayerButtons(extTrack)
-    val bottomSpace = if (showVolume) 12.dp else 12.dp + VOLUME_ROW_HEIGHT + 6.dp - 22.dp
-    Spacer(Modifier.height(bottomSpace))
+    // Reserve the volume row below the actions when hidden, so the transport stays anchored.
+    val hiddenVolumeSpace = if (showVolume || !reserveVolumeSpace) 0.dp else VOLUME_ROW_HEIGHT + AppSpacing.S
+    Spacer(Modifier.height(AppSpacing.M + hiddenVolumeSpace))
 }
 
 /**
@@ -834,6 +834,7 @@ private fun LandscapePlayer(
                     PlayerControlsBlock(
                         state = state, actions = actions, volume = volume,
                         showVolume = showVolume, onSource = onSource, onSourceLong = onSourceLong,
+                        reserveVolumeSpace = false,
                     )
                 }
             }

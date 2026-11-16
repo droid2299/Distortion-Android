@@ -34,6 +34,9 @@ sealed class Routes(
     object NewReleases : Routes(R.drawable.ic_tab_new, "New", "newreleases", R.string.bottom_tab_new)
     object Episodes : Routes(0, "Episodes", "episodes")
     object NewEpisodes : Routes(0, "NewEpisodes", "newepisodes")
+    object MixBuilder : Routes(0, "Build a Mix", "mix-builder")
+    object OfflineFavorites : Routes(0, "Offline Favorites", "offline-favorites")
+    object MonthlyRecap : Routes(0, "Monthly Recap", "monthly-recap")
     object Recap : Routes(0, "Recap", "recap")
     object Recent : Routes(0, "Recent", "recent")
     /** The "What's New" feed behind the bell on Home. */

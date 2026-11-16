@@ -130,6 +130,15 @@ fun MyNavHost(
             if (isImmersive()) com.music.spotui.ui.immersive.pages.ImmersiveNewEpisodesScreen(navHostController) else com.music.spotui.ui.screens.NewEpisodesScreen(navHostController)
         }
 
+        page(Routes.MixBuilder.route) {
+            com.music.spotui.ui.immersive.pages.MixBuilderScreen(navHostController)
+        }
+        page(Routes.OfflineFavorites.route) {
+            com.music.spotui.ui.immersive.pages.OfflineFavoritesScreen(navHostController)
+        }
+        page(Routes.MonthlyRecap.route) {
+            com.music.spotui.ui.immersive.pages.MonthlyRecapScreen(navHostController)
+        }
         page(Routes.Recap.route) {
             if (isImmersive()) com.music.spotui.ui.immersive.pages.ImmersiveRecapScreen(navHostController) else com.music.spotui.ui.screens.RecapScreen(navHostController)
         }

@@ -20,6 +20,13 @@ If Android reports a signature conflict, check whether the installed app came fr
 
 The quality offered by an extension depends on its provider and the recording it found. Open the player menu for **Sound quality** or **Stats for nerds**. For a source attempt, **Why this source?** can explain which provider was used. AutoMix and the equalizer apply to supported audio played directly by Distortion.
 
+## Mixes, offline favorites, and recap
+
+- **Build a Mix** on Home combines up to four artists or songs. Choose Familiar, Balanced, or Discover to change the balance of selected and recently heard music against recommendations. Tap a result to play it, or name and save the mix as a Spotify playlist.
+- **Adaptive Set** in Build a Mix fits music to a target duration. Choose a closing song and optionally order tracks using available energy analysis. Switch on **Offline only** for downloads and device audio. If you have an enabled audio-source extension, a generated mix can also supply streaming tracks. Open the player queue for the live estimate or choose **Keep current queue** to stop automatic changes.
+- **Offline Favorites** on Home plays an ordered selection of downloaded songs and audio from your device. Automatic downloads are off by default. Choose a storage budget to save recent favorites through a compatible download extension on an unmetered connection. Automatic copies use the space-saving quality setting. Use **Downloaded** to remove copies you no longer want.
+- **Monthly Recap** shows listening time, active days, and top tracks from this device. Browse earlier months, share an image through Android's share sheet, or save eligible top tracks as a private Spotify playlist. A newly installed copy needs listening history before it can show a recap.
+
 ## Troubleshooting
 
 On Android devices marked as low RAM or reporting less than 3 GB of usable RAM, Distortion automatically uses lighter visuals. It reduces motion and background loading, disables Canvas, and limits music video resolution. You can enable the same behavior on other phones with **Settings → Data and battery → Battery saver**.

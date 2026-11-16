@@ -12,6 +12,7 @@
  */
 package com.music.spotui.ui.immersive.player
 
+import com.music.spotui.ui.theme.AppSpacing
 import com.music.spotui.ui.components.zoneOn
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateDpAsState
@@ -26,7 +27,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -138,7 +138,7 @@ internal fun LyricsPlaybackControls(state: ImmersivePlayerState, actions: Immers
     Column(
         Modifier.fillMaxWidth().padding(horizontal = 26.dp, vertical = 12.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(20.dp),
+        verticalArrangement = Arrangement.spacedBy(AppSpacing.Gutter),
     ) {
         FilledIconButton(
             onClick = actions.playPause,
@@ -371,13 +371,15 @@ internal fun TransportGlyph(
     }
 }
 
-internal val VOLUME_ROW_HEIGHT = 32.dp
+internal val VOLUME_ROW_HEIGHT = AppSpacing.TouchTarget
+private val MusicTransportHeight = 76.dp
 
 /** The volume bar between its two speaker glyphs. */
 @Composable
 internal fun VolumeRow(volume: PlayerVolume) {
     Row(
         modifier = Modifier.fillMaxWidth().height(VOLUME_ROW_HEIGHT),
+        horizontalArrangement = Arrangement.spacedBy(AppSpacing.S),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(
@@ -386,7 +388,6 @@ internal fun VolumeRow(volume: PlayerVolume) {
             tint = LocalPlayerTint.current.copy(alpha = 0.5f),
             modifier = Modifier.size(20.dp),
         )
-        Spacer(Modifier.width(10.dp))
         val level = volume.level.value
         val slider = rememberSliderState(value = level)
         SideEffect { slider.value = level }
@@ -400,7 +401,6 @@ internal fun VolumeRow(volume: PlayerVolume) {
             onValueChangeFinished = volume::release,
             modifier = Modifier.weight(1f).semantics { contentDescription = volumeDescription },
         )
-        Spacer(Modifier.width(10.dp))
         Icon(
             Icons.AutoMirrored.Rounded.VolumeUp,
             contentDescription = stringResource(R.string.immersive_player_volume_up),
@@ -428,7 +428,7 @@ internal fun MusicTransportRow(state: ImmersivePlayerState, actions: ImmersivePl
     )
     Row(
         Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        horizontalArrangement = Arrangement.spacedBy(AppSpacing.S),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         FilledTonalIconButton(
@@ -436,7 +436,7 @@ internal fun MusicTransportRow(state: ImmersivePlayerState, actions: ImmersivePl
                 Haptics.click()
                 actions.previous()
             },
-            modifier = Modifier.weight(1f).height(82.dp).expressivePress(previousInteraction),
+            modifier = Modifier.weight(1f).height(MusicTransportHeight).expressivePress(previousInteraction),
             interactionSource = previousInteraction,
             colors = skipColors,
         ) {
@@ -447,7 +447,7 @@ internal fun MusicTransportRow(state: ImmersivePlayerState, actions: ImmersivePl
                 Haptics.click()
                 actions.playPause()
             },
-            modifier = Modifier.weight(1f).height(82.dp).expressivePress(playInteraction, enabled = !state.buffering),
+            modifier = Modifier.weight(1f).height(MusicTransportHeight).expressivePress(playInteraction, enabled = !state.buffering),
             interactionSource = playInteraction,
             enabled = !state.buffering,
             shape = RoundedCornerShape(corner.coerceAtLeast(0.dp)),
@@ -473,7 +473,7 @@ internal fun MusicTransportRow(state: ImmersivePlayerState, actions: ImmersivePl
                 Haptics.click()
                 actions.next()
             },
-            modifier = Modifier.weight(1f).height(82.dp).expressivePress(nextInteraction),
+            modifier = Modifier.weight(1f).height(MusicTransportHeight).expressivePress(nextInteraction),
             interactionSource = nextInteraction,
             colors = skipColors,
         ) {
@@ -490,11 +490,11 @@ internal fun PlayerActionRow(state: ImmersivePlayerState, actions: ImmersivePlay
             .height(64.dp)
             .clip(CircleShape)
             .background(scheme.surfaceContainerLowest.copy(alpha = 0.70f))
-            .padding(10.dp)
+            .padding(AppSpacing.S)
             .clip(CircleShape),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalArrangement = Arrangement.spacedBy(AppSpacing.S),
     ) {
-        val segment = Modifier.weight(1f).height(44.dp)
+        val segment = Modifier.weight(1f).height(AppSpacing.TouchTarget)
         if (com.music.spotui.data.preferences.PlayerModesPref.on) {
             val shuffleLabel = when {
                 state.smart -> R.string.smart_shuffle_title

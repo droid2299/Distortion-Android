@@ -1,5 +1,13 @@
 # Distortion changelog
 
+## 1.0.3
+
+- Adaptive Set builds a queue around a 15- to 60-minute target and an optional closing track. It adjusts upcoming tracks after skips or connection changes and shows a live estimate in the player queue. It uses downloads and device audio, with optional streaming from compatible audio extensions.
+- Build a Mix combines recommendations from up to four artists or songs. Choose a familiarity level, preview the results, or save them as a Spotify playlist.
+- Offline Favorites brings downloads and device audio together. Optional automatic downloads can save recent favorites through a compatible extension within a storage budget.
+- Monthly Recap shows listening time and top tracks recorded on your device. Share a recap image or save eligible tracks as a private playlist.
+- Standardized spacing across Material You screens and aligned the full player's transport controls and volume slider.
+
 ## 1.0.2
 
 - Redesigned Home with a Quick Access grid, stacked Recently Played cards, and a mix of large artwork cards and compact recommendations.

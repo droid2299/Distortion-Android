@@ -44,6 +44,8 @@ object LocalPlayer {
     /** The Spotify list the queue was taken from ("" for Local Files and the Downloaded list, and in its song radio). */
     val contextUri: String get() = if (current()?.let { it in radioSongs } == true) "" else listUri
     private var listUri: String = ""
+    internal var adaptiveQueue: Boolean = false
+        private set
     private var exo: ExoPlayer? = null
     private val errors = StreamErrors()
 
@@ -159,7 +161,10 @@ object LocalPlayer {
             // A station's server that closes the stream: a drop like any other, never "the end".
             val station = current()?.takeIf { it.isRadio }
             if (state == Player.STATE_ENDED && station != null) { reconnectRadio(p, station); return }
-            if (state == Player.STATE_ENDED && !playAgain(p)) atEnd(p)
+            if (state == Player.STATE_ENDED && !playAgain(p)) {
+                AdaptiveSetSession.ended()
+                atEnd(p)
+            }
         }
         override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) {
             log("playWhenReady $playWhenReady (${PLAY_WHEN_READY_REASONS.getOrElse(reason - 1) { "reason $reason" }})")
@@ -181,6 +186,7 @@ object LocalPlayer {
         override fun onTimelineChanged(timeline: androidx.media3.common.Timeline, reason: Int) = applyRepeat(p)
         override fun onIsPlayingChanged(isPlaying: Boolean) {
             log("isPlaying $isPlaying at ${p.currentPosition} ms")
+            AdaptiveSetSession.playingChanged(isPlaying)
             if (isPlaying) errors.played()
             if (isPlaying) tick.run()
             // A station that plays on for a while has its reconnect tries back (see reconnectRadio).
@@ -204,6 +210,7 @@ object LocalPlayer {
             // A song to play again that the player went past by itself: put back, never followed.
             if (reason == Player.MEDIA_ITEM_TRANSITION_REASON_AUTO && wentPastRepeat(p, p.previousMediaItemIndex)) return
             if (reason == Player.MEDIA_ITEM_TRANSITION_REASON_AUTO || reason == Player.MEDIA_ITEM_TRANSITION_REASON_REPEAT) startsAtZero(p)
+            current()?.let { AdaptiveSetSession.transitioned(it, reason) }
             if (skipHidden(p, reason)) return
             prefetchNext(p); continueIfLast(p)
         }
@@ -213,14 +220,15 @@ object LocalPlayer {
         // then Spotify plays it, where it was, and goes on; a queue that keeps failing stops.
         override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
             log("error ${error.errorCodeName}: ${generic(error.cause?.toString() ?: error.message.orEmpty())}")
-            val station = current()?.takeIf { it.isRadio }
-            if (station != null) { radioError(p, station, error); return }
+            val track = current()
+            if (track?.isRadio == true) { radioError(p, track, error); return }
             val item = p.currentMediaItem?.localConfiguration?.uri ?: return
             if (item.scheme == com.music.spotui.extensions.ExtensionAudio.SCHEME) com.music.spotui.extensions.Extensions.noteAttempt(item.lastPathSegment) { it.copy(error = "${error.errorCodeName}: ${error.cause ?: error.message.orEmpty()}") }
+            if (track != null && AdaptiveSetSession.failed(track)) return
             // A file that is gone (a download deleted while the queue played): never left stopped on it.
             if (item.scheme != com.music.spotui.extensions.ExtensionAudio.SCHEME && DeletedDownloads.isMissingFile(error.errorCode, error.cause)) return fileGone(p, item)
             if (item.scheme != com.music.spotui.extensions.ExtensionAudio.SCHEME) return
-            val t = current() ?: return
+            val t = track ?: return
             val noAudio = com.music.spotui.extensions.AudioRoute.isNoAudio(error)
             // No extension had it (the data source already asked twice): Spotify, no new ask.
             val again = errors.alreadyRetried(item.toString())
@@ -353,6 +361,7 @@ object LocalPlayer {
     fun downloadsDeleted(gone: Map<String, com.music.spotui.data.entity.SongsModel>) {
         val p = exo ?: return
         if (!active.value || tracks.isEmpty()) return
+        if (AdaptiveSetSession.invalidate()) return
         deletedDownloads.putAll(gone)
         val cur = p.currentMediaItemIndex
         val plan = DeletedDownloads.plan(tracks.map { t -> gone[t.uri.toString()]?.spotifyTrackId }, cur,
@@ -429,8 +438,10 @@ object LocalPlayer {
      * queue, it goes on after its last song as Spotify's does (see continueIfLast). [paused]: the song
      * is put there paused (another source picked for it while it was paused), the user's play starts it.
      */
-    fun play(list: List<LocalTrack>, index: Int, shuffle: Boolean = false, context: String? = null, contextUri: String = "", startMs: Long = 0L, continues: Boolean = false, paused: Boolean = false) {
+    fun play(list: List<LocalTrack>, index: Int, shuffle: Boolean = false, context: String? = null, contextUri: String = "", startMs: Long = 0L, continues: Boolean = false, paused: Boolean = false, adaptiveSet: Boolean = false) {
         if (list.isEmpty()) return
+        if (!adaptiveSet) AdaptiveSetSession.stop()
+        adaptiveQueue = adaptiveSet
         // Another song picked: repeat once was for the song left.
         val shown = SongPlayer.nowPlaying.value.uri.substringAfterLast(':')
         val picked = list.getOrNull(index.coerceIn(0, list.lastIndex))?.let(::spotifyId).orEmpty()
@@ -444,7 +455,7 @@ object LocalPlayer {
         val isStation = list.singleOrNull()?.isRadio == true
         radioRetries = 0; handler.removeCallbacks(radioSteady)
         // Spotify's queued songs (the account's: maybe queued on another device or install) play first.
-        val (all, fromSpotify) = if (isStation) list to emptyList<LocalTrack>() else QueueSync.withSpotifyQueue(list, index.coerceIn(0, list.lastIndex))
+        val (all, fromSpotify) = if (isStation || adaptiveSet) list to emptyList<LocalTrack>() else QueueSync.withSpotifyQueue(list, index.coerceIn(0, list.lastIndex))
         tracks.clear(); tracks.addAll(all); unshuffled = null
         // An index kept from fading belonged to the list before: this one fades from its first song.
         noFadeFor = -1
@@ -466,7 +477,7 @@ object LocalPlayer {
         p.shuffleModeEnabled = false
         // A new session takes the repeat the player shows (changed on a Spotify song meanwhile).
         replaying = null
-        repeat = SongPlayer.repeatMode.value
+        repeat = if (adaptiveSet) LocalRepeat.OFF else SongPlayer.repeatMode.value
         applyRepeat(p)
         // Paused before it loads: a player left playing by a song before never starts this one.
         if (paused) p.pause()
@@ -485,6 +496,8 @@ object LocalPlayer {
     /** Back to Spotify: stop and forget the local queue. */
     fun stop() {
         if (!active.value) return
+        AdaptiveSetSession.stop()
+        adaptiveQueue = false
         CastPlayback.stop(back = false)
         endFade()
         active.value = false
@@ -1335,6 +1348,7 @@ object LocalPlayer {
         override fun run() {
             handler.removeCallbacks(this)
             val p = exo ?: return
+            if (AdaptiveSetSession.active) return
             if (outgoing != null && mix == null) {
                 val t = CrossfadeRamp.progress(p.currentPosition, fadeMs)
                 p.volume = CrossfadeRamp.incomingGain(t)
@@ -1455,6 +1469,10 @@ object LocalPlayer {
     fun setGain(gain: Float) { if (outgoing == null && mix == null) exo?.volume = gain }
     fun pause() { if (CastPlayback.active) CastPlayback.pause() else exo?.pause() }
     fun next() {
+        if (AdaptiveSetSession.next()) {
+            com.music.spotui.extensions.Extensions.skipAsked("forward")
+            return
+        }
         // In the first half of a crossfade the main player is on the next song already, while the
         // screens (and the ear) are still on the one going out: a skip there went two songs on.
         // It lands on the song coming in, at full volume.
@@ -1463,7 +1481,7 @@ object LocalPlayer {
             log("skip during the crossfade: the song coming in plays")
             return endFade()
         }
-        if (mixOnSkip()) {
+        if (!AdaptiveSetSession.active && mixOnSkip()) {
             cancelOnce("next")
             com.music.spotui.extensions.Extensions.skipAsked("forward")
             return
@@ -1520,6 +1538,7 @@ object LocalPlayer {
     fun setShuffle(on: Boolean) {
         val p = exo ?: return
         if (on == (unshuffled != null) || tracks.isEmpty()) return
+        AdaptiveSetSession.stop()
         val cur = p.currentMediaItemIndex.coerceIn(0, tracks.lastIndex)
         if (on) {
             unshuffled = tracks.filterNot(isQueued)
@@ -1570,6 +1589,7 @@ object LocalPlayer {
     fun moveBeside(from: Int, target: Int, after: Boolean) {
         val p = exo ?: return
         val (order, toQueue) = LocalQueueOrder.moveBeside(tracks.toList(), p.currentMediaItemIndex, from, target, after, isQueued) ?: return
+        AdaptiveSetSession.stop()
         val t = tracks[from]
         if (toQueue) queued += t else queued -= t
         arrange(order)
@@ -1580,6 +1600,7 @@ object LocalPlayer {
         val p = exo ?: return
         if (target != null) return moveBeside(from, target, after)
         val order = LocalQueueOrder.moveToFront(tracks.toList(), p.currentMediaItemIndex, from) ?: return
+        AdaptiveSetSession.stop()
         queued += tracks[from]
         arrange(order)
     }
@@ -1591,6 +1612,7 @@ object LocalPlayer {
     fun enqueue(t: LocalTrack, next: Boolean) {
         val p = exo ?: return
         val at = LocalQueueOrder.insertIndex(tracks, p.currentMediaItemIndex, next, isQueued)
+        AdaptiveSetSession.stop()
         queued += t
         p.addMediaItem(at, item(t))
         tracks.add(at, t)
@@ -1605,6 +1627,7 @@ object LocalPlayer {
     fun enqueueAll(list: List<LocalTrack>, next: Boolean) {
         val p = exo ?: return
         if (list.isEmpty()) return
+        AdaptiveSetSession.stop()
         val songs = list.map { it.copy() }
         val at = LocalQueueOrder.insertIndex(tracks, p.currentMediaItemIndex, next, isQueued)
         queued += songs
@@ -1625,11 +1648,42 @@ object LocalPlayer {
     fun remove(index: Int) {
         val p = exo ?: return
         if (index !in tracks.indices || index == p.currentMediaItemIndex) return
+        AdaptiveSetSession.stop()
         p.removeMediaItem(index)
         val t = tracks.removeAt(index)
         queued -= t
         unshuffled = unshuffled?.filterNot { it === t }
         publish()
+    }
+
+    internal fun replaceAdaptiveTail(next: List<LocalTrack>): Boolean {
+        val p = exo ?: return false
+        if (arranging || p.mediaItemCount != tracks.size || p.currentMediaItemIndex !in tracks.indices) return false
+        val start = p.currentMediaItemIndex + 1
+        val shared = next.indices.takeWhile { tracks.getOrNull(start + it) === next[it] }.size
+        val at = start + shared
+        if (at == tracks.size && shared == next.size) return true
+        val suffix = next.drop(shared)
+        arranging = true
+        try {
+            val end = tracks.size
+            tracks.subList(at, end).clear()
+            tracks.addAll(suffix)
+            if (at < end) p.removeMediaItems(at, end)
+            if (suffix.isNotEmpty()) p.addMediaItems(at, suffix.map(::item))
+        } finally {
+            arranging = false
+        }
+        prefetchNext(p)
+        publish()
+        return true
+    }
+
+    internal fun advanceAdaptive(prepare: Boolean = false) {
+        val p = exo ?: return
+        if (!p.hasNextMediaItem()) return
+        p.seekToNextMediaItem()
+        if (prepare) p.prepare()
     }
 
     /** Puts the player's items in [target]'s order with moves only, so the current song keeps playing. */
@@ -1747,6 +1801,7 @@ object LocalPlayer {
     private var repeat = LocalRepeat.OFF
 
     fun setRepeatMode(mode: Int) {
+        if (mode != LocalRepeat.OFF) AdaptiveSetSession.stop()
         repeat = mode
         // Repeat once tapped again, or another mode: its replay to come is cancelled.
         if (mode != LocalRepeat.ONCE) replaying = null

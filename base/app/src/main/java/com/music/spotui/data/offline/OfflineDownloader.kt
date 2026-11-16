@@ -9,6 +9,7 @@ import com.music.spotui.di.Graph
 import com.music.spotui.video.InterruptibleHttp
 import com.music.spotui.video.YouTubeSource
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.async
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -63,10 +64,13 @@ object OfflineDownloader {
         val coverUrl: String,
         /** The quality chosen for this download ([DownloadQuality.name]); empty = the setting. */
         val quality: String = "",
+        val favoriteOwner: String = "",
+        val favoriteMaxBytes: Long = 0,
     ) {
         fun toJson(): JSONObject = JSONObject().put("id", trackId).put("title", title).put("artist", artist)
             .put("album", album).put("albumId", albumId).put("duration", durationMs).put("cover", coverUrl)
             .put("quality", quality)
+            .apply { if (favoriteOwner.isNotBlank()) put("favoriteOwner", favoriteOwner).put("favoriteMax", favoriteMaxBytes) }
 
         companion object {
             fun of(s: SongsModel) = Request(
@@ -76,6 +80,7 @@ object OfflineDownloader {
             fun fromJson(o: JSONObject) = Request(
                 o.getString("id"), o.optString("title"), o.optString("artist"), o.optString("album"),
                 o.optString("albumId"), o.optLong("duration"), o.optString("cover"), o.optString("quality"),
+                o.optString("favoriteOwner"), o.optLong("favoriteMax"),
             )
         }
     }
@@ -160,6 +165,24 @@ object OfflineDownloader {
         // Episodes go to PodcastDownloader: their id is no track id, so the download-source lookup
         // would 404 (or worse, match an unrelated recording by title).
         enqueueAll(songs.filter { it.spotifyTrackId.isNotBlank() && !isEpisodeKey(it.spotifyTrackId) }.map { Request.of(it).copy(quality = q) })
+    }
+
+    internal fun enqueueFavorites(songs: List<SongsModel>, owner: String) = synchronized(pending) {
+        if (!OfflineFavorites.canRun(owner)) return@synchronized
+        val completed = OfflineStore.tracks.values.filter { it.automaticFavorite }
+        val reserved = pending.values.filter { it.favoriteOwner.isNotBlank() && !OfflineStore.isDownloaded(it.trackId) }
+        val available = songs.distinctBy { it.spotifyTrackId }
+            .filter { it.spotifyTrackId.isNotBlank() && it.spotifyTrackId !in pending && !OfflineStore.isDownloaded(it.spotifyTrackId) }
+        val reservations = favoriteReservations(
+            OfflineFavorites.limitMb() * OfflineFavorites.MIB,
+            completed.sumOf { it.bytes } + reserved.sumOf { it.favoriteMaxBytes },
+            completed.size + reserved.size,
+            available.size,
+            OfflineStore.tmpDir.usableSpace,
+        )
+        enqueueAll(available.zip(reservations) { song, bytes ->
+            Request.of(song).copy(quality = "SMALL", favoriteOwner = owner, favoriteMaxBytes = bytes)
+        })
     }
 
     private fun enqueueAll(list: List<Request>) {
@@ -256,11 +279,16 @@ object OfflineDownloader {
 
     private suspend fun work(r: Request) {
         // Cancelled while it waited in the queue.
-        if (synchronized(pending) { !pending.containsKey(r.trackId) }) return
+        if (synchronized(pending) { pending[r.trackId] !== r }) return
+        if (r.favoriteOwner.isNotBlank() && (!OfflineFavorites.canRun(r.favoriteOwner) ||
+                !OfflineAccounts.isOwnedBy(Graph.app, r.favoriteOwner))) {
+            finishFavorite(r)
+            return
+        }
         // Data saver on mobile data: downloads wait for Wi-Fi.
         while (com.music.spotui.data.DataSaver.active) {
             kotlinx.coroutines.delay(5_000)
-            if (synchronized(pending) { !pending.containsKey(r.trackId) }) return
+            if (synchronized(pending) { pending[r.trackId] !== r }) return
         }
         val job = scope.launch {
             var by = emptyList<String>()
@@ -271,9 +299,13 @@ object OfflineDownloader {
                 OfflineStore.add(t)
                 withContext(Dispatchers.Main) { requests.remove(r.trackId) }
                 // Its lyrics kept with it, for playing offline (looked up behind, one song at a time).
-                if (com.music.spotui.data.preferences.LyricsOfflinePref.on) com.music.spotui.data.api.LyricsApi.keepForOffline(
+                if (com.music.spotui.data.preferences.LyricsOfflinePref.on &&
+                    (r.favoriteOwner.isBlank() || OfflineFavorites.canRun(r.favoriteOwner))) com.music.spotui.data.api.LyricsApi.keepForOffline(
                     com.music.spotui.data.api.LyricsApi.Track(r.trackId, r.title, r.artist, r.album, r.durationMs, r.coverUrl))
                 null
+            } catch (e: FavoriteDeferred) {
+                finishFavorite(r)
+                return@launch
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Unavailable) {
@@ -297,6 +329,48 @@ object OfflineDownloader {
         running.remove(r.trackId, job)
     }
 
+    private class FavoriteDeferred : Exception()
+
+    private suspend fun finishFavorite(r: Request) {
+        synchronized(pending) {
+            if (pending[r.trackId] !== r) return
+            pending.remove(r.trackId)
+            savePending()
+        }
+        withContext(Dispatchers.Main) {
+            if (requests[r.trackId] === r) {
+                requests.remove(r.trackId)
+                OfflineStore.status.remove(r.trackId)
+            }
+        }
+    }
+
+    private suspend fun <T> onUnmetered(r: Request, block: suspend () -> T): T = kotlinx.coroutines.supervisorScope {
+        val job = async { block() }
+        val watch = launch {
+            while (job.isActive) {
+                kotlinx.coroutines.delay(500)
+                if (!OfflineFavorites.canRun(r.favoriteOwner)) job.cancel()
+            }
+        }
+        try {
+            job.await()
+        } catch (e: CancellationException) {
+            currentCoroutineContext().ensureActive()
+            throw FavoriteDeferred()
+        } finally {
+            watch.cancel()
+        }
+    }
+
+    private fun checkFavoriteFile(r: Request, file: File) {
+        if (r.favoriteOwner.isBlank()) return
+        val size = file.length() + 4096
+        if (!OfflineFavorites.canRun(r.favoriteOwner) || size > r.favoriteMaxBytes) throw FavoriteDeferred()
+        val used = OfflineStore.tracks.values.filter { it.automaticFavorite }.sumOf { it.bytes }
+        if (used + size > OfflineFavorites.limitMb() * OfflineFavorites.MIB) throw FavoriteDeferred()
+    }
+
     private suspend fun download(r: Request): OfflineTrack {
         if (!isDownloadsEnabled(Graph.app)) throw Unavailable("downloads are off")
         val quality = qualityOf(r)
@@ -308,12 +382,14 @@ object OfflineDownloader {
 
             // ── The files the download-source extensions give, tried in their order; each one
             // is checked (real audio, the song's length) before it is taken.
-            val file = resolveAndFetch(r, meta, audioTmp, quality)
+            val file = if (r.favoriteOwner.isBlank()) resolveAndFetch(r, meta, audioTmp, quality)
+            else onUnmetered(r) { resolveAndFetch(r, meta, audioTmp, quality) }
             currentCoroutineContext().ensureActive()
 
             val out: File
             if (file.lossy != null) {
                 // A small file as the source served it (M4A, MP3): kept as it is.
+                checkFavoriteFile(r, audioTmp)
                 out = File(OfflineStore.audioDir, "${r.trackId}.${file.lossy}")
                 if (!audioTmp.renameTo(out)) throw IOException("could not move the file")
             } else if (quality == com.music.spotui.data.preferences.DownloadQuality.SMALL) {
@@ -323,11 +399,13 @@ object OfflineDownloader {
                 try {
                     // Encoding is long: a few at a time, the other downloads go on meanwhile.
                     encodeSlots.withPermit { runInterruptible(Dispatchers.Default) { AacTranscoder.transcode(audioTmp, aacTmp) } }
+                    checkFavoriteFile(r, aacTmp)
                     if (aacTmp.length() < 10_000 || !aacTmp.renameTo(out)) throw IOException("could not encode the small file")
                 } finally {
                     aacTmp.delete()
                 }
             } else {
+                checkFavoriteFile(r, audioTmp)
                 out = File(OfflineStore.audioDir, "${r.trackId}.flac")
                 if (!audioTmp.renameTo(out)) throw IOException("could not move the file")
             }
@@ -336,7 +414,7 @@ object OfflineDownloader {
             return withContext(NonCancellable) {
                 // Kept encrypted: the file only plays in Myspoti, on this phone.
                 runInterruptible(Dispatchers.IO) { OfflineCrypto.encryptInPlace(Graph.app, out) }
-                val cover = runCatching {
+                val cover = if (r.favoriteOwner.isNotBlank()) "" else runCatching {
                     val c = File(OfflineStore.coverDir, "${r.trackId}.jpg")
                     httpGet(app.myspoti.host.android.Covers.large(meta.coverUrl), c); c.name
                 }.getOrDefault("")
@@ -349,6 +427,7 @@ object OfflineDownloader {
                     verified = file.isrcMatched,
                     bytes = out.length(), addedAt = System.currentTimeMillis(), providerId = file.extensionId,
                     extensionQuality = com.music.spotui.extensions.Extensions.qualityLine(file.extensionId, app.myspoti.extensions.SettingSection.DOWNLOADS),
+                    automaticFavorite = r.favoriteOwner.isNotBlank(),
                 )
             }
         } finally {

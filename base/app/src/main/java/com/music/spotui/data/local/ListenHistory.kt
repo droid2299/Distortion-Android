@@ -23,6 +23,7 @@ object ListenHistory {
         val source: Source,
         /** Each credited artist on its own, for the top artists; just the line's first one for older listens. */
         val artists: List<String> = listOf(artist.substringBefore(",").trim()),
+        val spotifyTrackId: String = "",
     )
 
     /**
@@ -49,7 +50,7 @@ object ListenHistory {
         val line = JSONObject()
             .put("at", listen.atMs).put("key", listen.key).put("title", listen.title).put("artist", listen.artist)
             .put("album", listen.album).put("cover", listen.cover).put("ms", listen.playedMs).put("src", listen.source.name)
-            .put("artists", org.json.JSONArray(listen.artists))
+            .put("artists", org.json.JSONArray(listen.artists)).put("trackId", listen.spotifyTrackId)
             .toString()
         synchronized(lock) {
             f.appendText(line + "\n")
@@ -70,7 +71,7 @@ object ListenHistory {
                 val artists = o.optJSONArray("artists")?.let { a -> List(a.length()) { a.getString(it) } }?.filter { it.isNotBlank() }
                 Listen(o.getLong("at"), o.getString("key"), o.getString("title"), artist, o.optString("album"),
                     o.optString("cover"), o.getLong("ms"), Source.valueOf(o.optString("src", "SPOTIFY")),
-                    artists?.ifEmpty { null } ?: listOf(artist.substringBefore(",").trim()))
+                    artists?.ifEmpty { null } ?: listOf(artist.substringBefore(",").trim()), o.optString("trackId"))
             }.getOrNull()
         }
         loaded = list
@@ -177,8 +178,9 @@ object ListenHistory {
         .take(10)
 
     /** Totals and top lists for listens since [sinceMs]. */
-    fun recap(sinceMs: Long): Recap {
-        val list = all().filter { it.atMs >= sinceMs }
+    fun recap(sinceMs: Long): Recap = recap(all().filter { it.atMs >= sinceMs })
+
+    internal fun recap(list: List<Listen>): Recap {
         fun rank(group: (Listen) -> String, subtitle: (Listen) -> String) = list.groupBy(group)
             .filterKeys { it.isNotBlank() }
             .map { (name, l) -> Ranked(name, subtitle(l.first()), l.first().cover, l.size, l.sumOf { it.playedMs } / 60_000) }

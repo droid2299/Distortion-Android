@@ -5,6 +5,7 @@
  */
 package com.music.spotui.ui.immersive.screens
 
+import com.music.spotui.ui.theme.AppSpacing
 import android.os.SystemClock
 import android.widget.Toast
 import app.myspoti.api.RecentItem
@@ -210,6 +211,9 @@ private fun ImmersiveHomeFeed(navController: NavController, pageWidth: Dp) {
                     Icon(Icons.Rounded.Settings, stringResource(R.string.settings_title))
                 }
             }
+        }
+        item(key = "home:discovery-tools") {
+            com.music.spotui.ui.immersive.pages.ListeningTools(navController)
         }
         when {
             sections.isNotEmpty() -> {
@@ -513,7 +517,7 @@ private fun HomeRecentlyPlayed(navController: NavController, recent: List<Recent
         onSeeAll = { navController.navigate(Routes.Recent.route) },
     ) {
         items(stacks, key = { it.first().uri }) { entries ->
-            Column(Modifier.width(252.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(Modifier.width(252.dp), verticalArrangement = Arrangement.spacedBy(AppSpacing.S)) {
                 entries.forEachIndexed { index, entry ->
                     HomeListeningTile(
                         title = entry.title,
@@ -530,16 +534,16 @@ private fun HomeRecentlyPlayed(navController: NavController, recent: List<Recent
 
 @Composable
 private fun HomeQuickAccess(navController: NavController, tiles: List<HomeItem>, playingContext: State<String>) {
-    BoxWithConstraints(Modifier.fillMaxWidth().padding(bottom = 26.dp)) {
+    BoxWithConstraints(Modifier.fillMaxWidth().padding(bottom = AppSpacing.Section)) {
         val columns = (maxWidth.value / 160f).toInt().coerceIn(2, 4)
         Column {
             SectionHeader(stringResource(R.string.home_quick_access))
             Column(
                 Modifier.padding(horizontal = Immersive.Gutter),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(AppSpacing.S),
             ) {
                 tiles.chunked(columns).forEachIndexed { rowIndex, row ->
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(AppSpacing.S)) {
                         row.forEachIndexed { columnIndex, item ->
                             HomeItemTile(
                                 navController, item, playingContext, rowIndex + columnIndex,
@@ -580,7 +584,7 @@ private fun HomeRecommendationSection(
             }
         } else {
             items((entries.size + 1) / 2, key = { keys[it * 2] }) { stack ->
-                Column(Modifier.width(tileWidth), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(Modifier.width(tileWidth), verticalArrangement = Arrangement.spacedBy(AppSpacing.S)) {
                     val first = stack * 2
                     for (index in first until minOf(first + 2, entries.size)) {
                         HomeItemTile(navController, entries[index], playingContext, index + sectionIndex)
@@ -650,7 +654,7 @@ private fun HomeListeningTile(
     Row(
         modifier.fillMaxWidth().immersiveClickable(onClick = onClick)
             .clip(shape).background(container).heightIn(min = 70.dp).padding(8.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalArrangement = Arrangement.spacedBy(AppSpacing.S),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(Modifier.size(44.dp)) {
