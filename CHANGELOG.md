@@ -1,5 +1,9 @@
 # Distortion changelog
 
+## Unreleased
+
+- Added **Continue without an account** for local music and live radio, with the existing player and a **Connect Spotify** action. The guest choice survives restarts and does not replace an existing Spotify sign-in. Spotify-only library and catalog actions remain unavailable until sign-in succeeds.
+
 ## 1.0.3
 
 - Adaptive Set builds a queue around a 15- to 60-minute target and an optional closing track. It adjusts upcoming tracks after skips or connection changes and shows a live estimate in the player queue. It uses downloads and device audio, with optional streaming from compatible audio extensions.

@@ -42,7 +42,7 @@
 
 ## Install
 
-Distortion requires Android 10 or later and a Spotify account. Use **Download for Android** for most recent phones, or choose another APK under **Assets** in the latest release. **Add to Obtainium** tracks stable releases and selects the universal APK, which supports both ARM architectures.
+Distortion requires Android 10 or later. Spotify features require a Spotify account; **Continue without an account** opens local music and live radio instead. Use **Download for Android** for most recent phones, or choose another APK under **Assets** in the latest release. **Add to Obtainium** tracks stable releases and selects the universal APK, which supports both ARM architectures.
 
 | Device | APK suffix |
 | --- | --- |

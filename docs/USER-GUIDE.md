@@ -4,7 +4,9 @@
 
 1. Download the APK for your device from [GitHub Releases](https://github.com/droid2299/Distortion-Android/releases/latest). Most recent phones use **ARMv8**. The **universal** APK supports both ARM architectures. Choose **TV** for Android TV or Google TV.
 2. Open the downloaded APK. If Android opens **Install unknown apps**, allow the browser or file manager you used, then return to the installer.
-3. Open Distortion and sign in with your Spotify account on the Spotify sign-in page.
+3. Open Distortion. Sign in with your Spotify account, or choose **Continue without an account** to play local files and live radio. From the account-free Home, choose **Connect Spotify** when you want your Spotify library. Back from that sign-in returns to account-free listening.
+
+Account-free mode remembers your choice across restarts. Local audio requires the audio permission and files stored on your device; radio requires a connection. This mode does not expose Spotify library actions or public-catalog search. Existing signed-in installations continue to open their normal Home.
 
 For an existing public installation, open **Settings → App** (or **About** in Classic) and tap the refresh icon next to the version or open the new APK directly. Keep the app installed while applying the update to retain its settings and stored data. If you are moving from the earlier Distortion **2.4.1** build to the **1.x** series, download the APK manually once. The older updater sees the 1.x version name as earlier.
 

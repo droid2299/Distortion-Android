@@ -50,7 +50,7 @@ object DataSaver {
         wasActive = now
         main.post {
             if (now) app.myspoti.host.android.MyspotiRuntime.suspendPlayer()
-            else app.myspoti.host.android.MyspotiRuntime.resume()
+            else if (!GuestSession.active) app.myspoti.host.android.MyspotiRuntime.resume()
         }
     }
 

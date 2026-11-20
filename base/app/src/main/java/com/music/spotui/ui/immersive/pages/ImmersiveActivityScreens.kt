@@ -173,7 +173,7 @@ private fun ImmersiveFriendRow(f: FriendActivity, now: Long, navController: NavC
 
 /** "Local Files" of the Immersive look: the device's own audio, played by [LocalPlayer]. */
 @Composable
-fun ImmersiveLocalFilesScreen(navController: NavController) {
+fun ImmersiveLocalFilesScreen(navController: NavController, allowPlaylistEdits: Boolean = true) {
     val context = LocalContext.current
     var granted by remember { mutableStateOf(LocalMusic.hasPermission(context)) }
     var askedOnce by remember { mutableStateOf(false) }
@@ -252,7 +252,7 @@ fun ImmersiveLocalFilesScreen(navController: NavController) {
                             playing = current,
                             // The whole folder plays from this song, even when the list is filtered.
                             onClick = { tracks?.let { all -> LocalPlayer.play(all, all.indexOf(t).coerceAtLeast(0)) } },
-                            onMore = { adding = t },
+                            onMore = if (allowPlaylistEdits) ({ adding = t }) else null,
                         )
                     }
                 }
