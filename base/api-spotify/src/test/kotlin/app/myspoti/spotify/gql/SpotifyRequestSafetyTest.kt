@@ -6,6 +6,10 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.cancelChildren
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.JsonObject
@@ -22,6 +26,7 @@ import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import java.net.InetAddress
 import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.TimeUnit
 
 class SpotifyRequestSafetyTest {
     private class Session(scope: CoroutineScope, client: OkHttpClient) {
@@ -152,6 +157,28 @@ class SpotifyRequestSafetyTest {
     }
 
     @Test fun `credentialed redirect is returned without contacting the destination`() = runBlocking {
+        withHttps { server, session ->
+            server.enqueue(MockResponse.Builder().body("""{"granted_token":{"token":"client","expires_after_seconds":7200}}""").build())
+            server.enqueue(MockResponse.Builder().code(302).addHeader("Location", "https://other.example:${server.port}/destination").build())
+            server.enqueue(MockResponse.Builder().body("Unexpected redirect").build())
+            assertEquals(302, session.http.send("GET", "https://api.spotify.com/me").first)
+            assertEquals(2, server.requestCount)
+        }
+    }
+
+    @Test fun `a renewed GraphQL read remains cancellable`() = runBlocking {
+        withHttps { server, session ->
+            server.enqueue(MockResponse.Builder().body("""{"granted_token":{"token":"client","expires_after_seconds":7200}}""").build())
+            server.enqueue(MockResponse.Builder().code(401).body("{}").build())
+            server.enqueue(MockResponse.Builder().body("{}").headersDelay(5, TimeUnit.SECONDS).build())
+            val read = launch { session.http.sendRead("POST", "https://api.spotify.com/query", "{}") }
+            withTimeout(5_000) { while (server.requestCount < 3) delay(10) }
+            withTimeout(2_000) { read.cancelAndJoin() }
+            assertEquals(2, session.reads.get())
+        }
+    }
+
+    private suspend fun CoroutineScope.withHttps(block: suspend (MockWebServer, Session) -> Unit) {
         val certificate = HeldCertificate.Builder().addSubjectAlternativeName("api.spotify.com")
             .addSubjectAlternativeName("clienttoken.spotify.com").addSubjectAlternativeName("other.example").build()
         val serverTls = HandshakeCertificates.Builder().heldCertificate(certificate).build()
@@ -161,15 +188,11 @@ class SpotifyRequestSafetyTest {
             server.start()
             val client = OkHttpClient.Builder().dns { listOf(InetAddress.getLoopbackAddress()) }
                 .sslSocketFactory(clientTls.sslSocketFactory(), clientTls.trustManager)
+                .callTimeout(10, TimeUnit.SECONDS)
                 .addInterceptor { chain -> chain.proceed(chain.request().newBuilder().url(chain.request().url.newBuilder().port(server.port).build()).build()) }
                 .build()
-            server.enqueue(MockResponse.Builder().body("""{"granted_token":{"token":"client","expires_after_seconds":7200}}""").build())
-            server.enqueue(MockResponse.Builder().code(302).addHeader("Location", "https://other.example:${server.port}/destination").build())
-            server.enqueue(MockResponse.Builder().body("Unexpected redirect").build())
             try {
-                val session = Session(this, client)
-                assertEquals(302, session.http.send("GET", "https://api.spotify.com/me").first)
-                assertEquals(2, server.requestCount)
+                block(server, Session(this, client))
             } finally {
                 coroutineContext.cancelChildren()
                 client.connectionPool.evictAll()
