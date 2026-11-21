@@ -228,6 +228,8 @@ class WebPlayerHost(private val context: Context) : BridgeHost {
         purgeRemovedProfiles()
     }
 
+    private var browserPresentation = BrowserPresentation.PLAYER
+
     @SuppressLint("SetJavaScriptEnabled")
     var view: WebView = createView()
 
@@ -237,14 +239,14 @@ class WebPlayerHost(private val context: Context) : BridgeHost {
      * [onRenderProcessGone] returns false (see [rebuild]).
      */
     @SuppressLint("SetJavaScriptEnabled")
-    private fun createView(): WebView = AwakeWebView(android.content.MutableContextWrapper(context.applicationContext)).apply {
+    private fun createView(presentation: BrowserPresentation = browserPresentation): WebView = AwakeWebView(android.content.MutableContextWrapper(context.applicationContext)).apply {
         // The account's profile, before anything else is done with the view (androidx.webkit's rule).
         useProfile(this)
         settings.apply {
             javaScriptEnabled = true
             domStorageEnabled = true
             mediaPlaybackRequiresUserGesture = false
-            userAgentString = fingerprint.userAgent
+            if (presentation == BrowserPresentation.PLAYER) userAgentString = fingerprint.userAgent
             cacheMode = WebSettings.LOAD_DEFAULT
             loadWithOverviewMode = true
             useWideViewPort = true
@@ -262,7 +264,7 @@ class WebPlayerHost(private val context: Context) : BridgeHost {
         }
         // Client hints must agree with the desktop user agent: by default the WebView announces
         // "Android WebView" / mobile in Sec-CH-UA headers and navigator.userAgentData.
-        if (androidx.webkit.WebViewFeature.isFeatureSupported(androidx.webkit.WebViewFeature.USER_AGENT_METADATA)) {
+        if (presentation == BrowserPresentation.PLAYER && androidx.webkit.WebViewFeature.isFeatureSupported(androidx.webkit.WebViewFeature.USER_AGENT_METADATA)) {
             val brands = fingerprint.brands.map {
                 androidx.webkit.UserAgentMetadata.BrandVersion.Builder().setBrand(it.name).setMajorVersion(it.major).setFullVersion(it.fullVersion).build()
             }
@@ -358,6 +360,19 @@ class WebPlayerHost(private val context: Context) : BridgeHost {
             }
 
             override fun onPageStarted(view: WebView, url: String, favicon: Bitmap?) {
+                if (view !== this@WebPlayerHost.view) return
+                val targetPresentation = BrowserPresentation.forUrl(url)
+                if (targetPresentation != null && targetPresentation != presentation) {
+                    view.stopLoading()
+                    view.alpha = 0f
+                    rebuild(presentation = targetPresentation) {
+                        if (targetPresentation == BrowserPresentation.SIGN_IN) beginLoginLoad()
+                        else setLoginLoad(LoginLoad.NONE)
+                        loadAsked = true
+                        this@WebPlayerHost.view.loadUrl(url)
+                    }
+                    return
+                }
                 Logbook.log("page start ${Logbook.noQuery(url).take(120)}")
                 mainFrameFailed = false
                 // A "finished" comes just before the player's document starts: its wait must not run out on a
@@ -422,6 +437,8 @@ class WebPlayerHost(private val context: Context) : BridgeHost {
             }
 
             override fun onPageFinished(view: WebView, url: String) {
+                if (view !== this@WebPlayerHost.view) return
+                if (BrowserPresentation.forUrl(url)?.let { it != presentation } == true) return
                 Logbook.log("page finished ${Logbook.noQuery(url).take(120)}")
                 main.removeCallbacks(loadTimeout)
                 if (url.startsWith(PLAYER_URL) && !mainFrameFailed) { pageFailures = 0; main.removeCallbacks(retryPlayerPage) }
@@ -485,8 +502,10 @@ class WebPlayerHost(private val context: Context) : BridgeHost {
      * the new one takes its place in the same container, and the page loads again. Without this
      * the app kept a dead page — a blank screen with the sound gone — until it was restarted.
      */
-    private fun rebuild(then: (() -> Unit)? = null): Boolean = main.post {
+    private fun rebuild(presentation: BrowserPresentation = browserPresentation, then: (() -> Unit)? = null): Boolean = main.post {
         main.removeCallbacks(drmWatch)
+        main.removeCallbacks(retryPlayerPage)
+        main.removeCallbacks(loadTimeout)
         val wasLoaded = loadAsked
         // Mid sign-in: the page comes back to the sign-in, not to an anonymous player in front of the user.
         val wasLogin = _loginRequired.value || _loginLoad.value != LoginLoad.NONE
@@ -495,6 +514,7 @@ class WebPlayerHost(private val context: Context) : BridgeHost {
         (view as? AwakeWebView)?.releaseFromWindow()
         runCatching { view.stopLoading() }
         runCatching { view.destroy() }
+        browserPresentation = presentation
         view = createView()
         pageStarts = 0
         _url.value = ""
@@ -506,7 +526,7 @@ class WebPlayerHost(private val context: Context) : BridgeHost {
         if (then != null) { then(); return@post }
         // The new view's first navigation can be lost while the browser side still settles after
         // the kill (seen: no page start for 4 s): the watchdog looks again after 1.5 s, not 4 s.
-        if (wasLogin) { loadAsked = wasLoaded; beginLoginLoad(); view.loadUrl(LOGIN_URL) }
+        if (wasLogin) { loadAsked = wasLoaded; loadLoginPage() }
         else if (wasLoaded) load(firstWatchMs = REBUILD_WATCH_MS) else view.loadUrl("about:blank")
     }
 
@@ -645,6 +665,14 @@ class WebPlayerHost(private val context: Context) : BridgeHost {
         // A player retry or load timeout still pending would replace the sign-in page just asked for.
         main.removeCallbacks(retryPlayerPage)
         main.removeCallbacks(loadTimeout)
+        loadLoginPage()
+    }
+
+    private fun loadLoginPage() {
+        if (browserPresentation != BrowserPresentation.SIGN_IN) {
+            rebuild(presentation = BrowserPresentation.SIGN_IN) { loadLoginPage() }
+            return
+        }
         beginLoginLoad()
         view.loadUrl(LOGIN_URL)
     }
@@ -655,7 +683,7 @@ class WebPlayerHost(private val context: Context) : BridgeHost {
         // The profile stays, with no account in it: the next sign-in on it is read as whoever it is.
         accounts.update { it.signedOut(profile) }
         beginLoginLoad()
-        cleanSlate { view.loadUrl(LOGIN_URL) }
+        cleanSlate { loadLoginPage() }
     }
 
     /**
@@ -663,7 +691,13 @@ class WebPlayerHost(private val context: Context) : BridgeHost {
      * a sign-in behind (the cookies and storage of a flow that never finished), and Spotify's page
      * answers "Oops! Something went wrong" to a flow it cannot match with its own state.
      */
-    fun retryLogin() = main.post { beginLoginLoad(); cleanSlate { view.loadUrl(LOGIN_URL) } }
+    fun retryLogin() = main.post {
+        main.removeCallbacks(retryPlayerPage)
+        main.removeCallbacks(loadTimeout)
+        view.stopLoading()
+        beginLoginLoad()
+        cleanSlate { loadLoginPage() }
+    }
 
     /**
      * Before a report sent from the sign-in: what the page shows right now (its path, title, the
@@ -741,7 +775,7 @@ class WebPlayerHost(private val context: Context) : BridgeHost {
         if (!multiProfile) return
         var name = ""
         accounts.update { list -> list.adding(System.currentTimeMillis()).also { name = it.second }.first }
-        moveTo(name) { loadAsked = true; beginLoginLoad(); view.loadUrl(LOGIN_URL) }
+        moveTo(name) { loadAsked = true; loadLoginPage() }
     }
 
     /**
