@@ -27,7 +27,8 @@ import java.util.concurrent.atomic.AtomicInteger
 class BridgeException(message: String) : Exception(message)
 
 /** Request/response over a [BridgeHost], plus the page's pushed events. */
-class Bridge(private val host: BridgeHost, scope: CoroutineScope) {
+class Bridge private constructor(private val host: BridgeHost, scope: CoroutineScope, private val playbackContext: Boolean) {
+    constructor(host: BridgeHost, scope: CoroutineScope) : this(host, scope, true)
     private val ids = AtomicInteger(0)
 
     /** Diagnostics: receives one line per call, result and page message. */
@@ -87,11 +88,12 @@ class Bridge(private val host: BridgeHost, scope: CoroutineScope) {
         // Lenient reads: a field of an unexpected type counts as missing.
         fun field(name: String) = msg[name] as? JsonPrimitive
         val type = field("type")?.contentOrNull
+        if (!playbackContext && type !in setOf("ready", "result", "error")) return
         if (type == "state") {
             val track = ((msg["state"] as? JsonObject)?.get("track") as? JsonObject)?.get("name")?.toString()
             if (track != null && track != lastTrack) { lastTrack = track; app.myspoti.spotify.report.Refusal402.song() }
         }
-        if (type == "ready") app.myspoti.spotify.report.Refusal402.pageReady()
+        if (type == "ready" && playbackContext) app.myspoti.spotify.report.Refusal402.pageReady()
         if (type == "net") licenceNote(msg)
         logger?.let { log ->
             if (type == "state") {
@@ -126,6 +128,7 @@ class Bridge(private val host: BridgeHost, scope: CoroutineScope) {
 
     /** Injects the bridge into the current page. Hosts call this after each page load. */
     suspend fun inject() {
+        check(playbackContext) { "The public catalogue cannot load playback commands" }
         // onPageFinished can fire twice for one page load (a redirect settling): a second
         // injection into the SAME page must not announce "ready" again, or every ready
         // collector (state refresh, web token, audio quality, volume) runs twice. The page
@@ -143,7 +146,7 @@ class Bridge(private val host: BridgeHost, scope: CoroutineScope) {
     fun pageGone() {
         pagesGone++
         gone = true
-        PageDevice.pageGone()
+        if (playbackContext) PageDevice.pageGone()
         _ready.value = false
         pending.values.forEach { it.completeExceptionally(BridgeException("page reloaded")) }
     }
@@ -179,6 +182,7 @@ class Bridge(private val host: BridgeHost, scope: CoroutineScope) {
     /** [quiet]: a poll made every few seconds; only its failures are logged. */
     /** [label]: who sends it, written in its log line (a play's origin). */
     suspend fun call(method: String, args: JsonObject = JsonObject(emptyMap()), timeoutMs: Long = 20_000, quiet: Boolean = false, label: String? = null): JsonElement {
+        if (!playbackContext && method != "token.get") throw BridgeException("Unsupported public catalogue command")
         // The page is reloading: nothing would answer, the call would only wait for its timeout.
         val page = pagesGone
         if (gone) throw BridgeException("not ready")
@@ -228,6 +232,7 @@ class Bridge(private val host: BridgeHost, scope: CoroutineScope) {
     }
 
     companion object {
+        fun publicCatalogue(host: BridgeHost, scope: CoroutineScope): Bridge = Bridge(host, scope, false)
         val json = Json { ignoreUnknownKeys = true }
 
         /** A buffering flip of the same song is logged at most this often (see stateWorthLogging). */
