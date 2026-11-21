@@ -50,9 +50,20 @@ class PublicCatalogueSessionTest {
                     val result = session.searchPage(kind, "Daft Punk")
                     assertTrue("No public results for $kind", result.entries.isNotEmpty())
                     assertTrue(result.entries.all { it.kind == kind && it.title.isNotBlank() })
+                    if (kind == CatalogueKind.TRACK) {
+                        val offset = checkNotNull(result.nextOffset)
+                        val next = session.searchPage(kind, "Daft Punk", offset)
+                        assertTrue("The next song page was empty", next.entries.isNotEmpty())
+                        assertNotEquals(result.entries.map { it.uri }, next.entries.map { it.uri })
+                    }
                     val detail = session.details(result.entries.first())
                     assertEquals(result.entries.first().uri, detail.entry.uri)
                     assertTrue(detail.entry.title.isNotBlank())
+                    detail.nextOffset?.let { offset ->
+                        val next = session.moreTracks(detail.entry, offset)
+                        assertTrue("The next track page was empty for $kind", next.entries.isNotEmpty())
+                        assertTrue(next.entries.all { it.kind == CatalogueKind.TRACK })
+                    }
                 }
             }
         } finally { instrumentation.runOnMainSync { session.close() } }
