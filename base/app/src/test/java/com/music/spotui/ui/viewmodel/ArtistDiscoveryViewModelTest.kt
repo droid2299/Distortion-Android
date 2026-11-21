@@ -1,7 +1,6 @@
 package com.music.spotui.ui.viewmodel
 
 import android.app.Application
-import androidx.lifecycle.ViewModelStore
 import androidx.lifecycle.viewModelScope
 import app.myspoti.api.Artist
 import app.myspoti.api.Playlist
@@ -21,16 +20,16 @@ import java.util.concurrent.atomic.AtomicInteger
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35], application = Application::class)
 class ArtistDiscoveryViewModelTest {
-    private val store = ViewModelStore()
+    private val models = mutableListOf<ArtistDiscoveryViewModel>()
     private val uri = "spotify:artist:${"a".repeat(22)}"
     private fun playlist(name: String) = Playlist("spotify:playlist:$name", name, null, null, emptyList(), 0)
-    private fun keep(model: ArtistDiscoveryViewModel) = model.also { store.put("model", it) }
+    private fun keep(model: ArtistDiscoveryViewModel) = model.also { models += it }
     private fun await(condition: () -> Boolean) {
         val deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5)
         while (!condition() && System.nanoTime() < deadline) Thread.sleep(10)
         assertTrue("Discovery state did not settle", condition())
     }
-    @After fun clear() = store.clear()
+    @After fun clear() { models.forEach { it.viewModelScope.cancel() } }
 
     @Test fun failuresAndRetriesAreIndependentAcrossSections() {
         val reads = AtomicInteger()
