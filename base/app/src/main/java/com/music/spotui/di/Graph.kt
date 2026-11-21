@@ -16,10 +16,11 @@ object Graph {
 
     fun init(application: Application) {
         app = application
+        com.music.spotui.data.GuestSession.init(application)
         // The data saver first: on a metered network with it on, nothing may go out, not even the page.
         com.music.spotui.data.DataSaver.init(application)
         // The Spotify session: hidden Web Player + API (operation hashes refresh themselves).
-        MyspotiRuntime.start(application, loadPage = !com.music.spotui.data.DataSaver.active)
+        MyspotiRuntime.start(application, loadPage = !com.music.spotui.data.DataSaver.active && !com.music.spotui.data.GuestSession.active)
         // The streaming quality the user chose, set on the player at every page load.
         com.music.spotui.data.preferences.applyStreamingQuality(application)
         // The crossfade length (0 = off), in the player from the first song on.

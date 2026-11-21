@@ -191,6 +191,11 @@ fun rememberImmersivePlayer(navController: NavController): ImmersivePlayerBridge
 
     // Read at the moment of the tap, not captured: the lambdas below live as long as the screen.
     val actions = remember(vm, navController) {
+        fun accountAction(action: () -> Unit) {
+            if (com.music.spotui.data.GuestSession.active) {
+                Toast.makeText(context, context.getString(R.string.guest_connect), Toast.LENGTH_SHORT).show()
+            } else action()
+        }
         ImmersivePlayerActions(
             playPause = {
                 // The same optimistic update as the Classic player: the glyph flips at once.
@@ -228,18 +233,18 @@ fun rememberImmersivePlayer(navController: NavController): ImmersivePlayerBridge
                 }
             },
             cycleRepeat = { SongPlayer.cycleRepeat() },
-            toggleLike = {
+            toggleLike = { accountAction {
                 val on = !vm.likeState.value
                 vm.updateLikeState(on)
                 if (on) Toast.makeText(context, context.getString(R.string.immersive_player_added_to_liked), Toast.LENGTH_SHORT).show()
-            },
-            openAlbum = {
+            } },
+            openAlbum = { accountAction {
                 com.music.spotui.ui.screens.openNowPlayingAlbum(vm, vm.currentSongSinger.value, smartScope) { navController.navigate(it) }
-            },
-            openArtist = {
+            } },
+            openArtist = { accountAction {
                 vm.goToArtist(SongPlayer.currentTrackId, vm.currentSongSinger.value) { route -> navController.navigate(route) }
-            },
-            openArtistRef = { a -> navController.navigate(com.music.spotui.ui.components.ArtistChooser.routeOf(a)) },
+            } },
+            openArtistRef = { a -> accountAction { navController.navigate(com.music.spotui.ui.components.ArtistChooser.routeOf(a)) } },
             close = { PlayerSheet.close() },
         )
     }

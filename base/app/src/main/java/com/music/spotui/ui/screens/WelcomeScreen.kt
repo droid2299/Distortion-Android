@@ -73,7 +73,7 @@ import kotlin.math.sin
  * the button rise into place one after the other, over a soft green light that drifts.
  */
 @Composable
-fun WelcomeScreen(onLogin: () -> Unit) {
+fun WelcomeScreen(onLogin: () -> Unit, onGuest: () -> Unit = {}) {
     // One entrance per part, a beat apart: logo, name, features, button.
     val parts = remember { List(4) { Animatable(0f) } }
     LaunchedEffect(Unit) {
@@ -136,6 +136,9 @@ fun WelcomeScreen(onLogin: () -> Unit) {
                 ) {
                     Text(stringResource(R.string.welcome_login), color = androidx.compose.material3.MaterialTheme.colorScheme.onPrimary, fontFamily = AppSans,
                         fontWeight = FontWeight.Bold, fontSize = 17.sp)
+                }
+                androidx.compose.material3.TextButton(onClick = onGuest, modifier = Modifier.fillMaxWidth()) {
+                    Text(stringResource(R.string.guest_continue))
                 }
                 Text(
                     stringResource(R.string.welcome_privacy),

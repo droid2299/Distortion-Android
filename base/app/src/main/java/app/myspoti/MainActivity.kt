@@ -130,12 +130,14 @@ class MainActivity : AppCompatActivity() {
                                 onDone = { setupNeeded = false },
                             )
                             signedIn -> if (tv) com.music.spotui.ui.tv.TvApp() else App()
+                            com.music.spotui.data.GuestSession.active -> com.music.spotui.ui.screens.GuestScreen(onLogin = { showLogin() })
                             connecting -> ConnectingScreen()
-                            else -> WelcomeScreen(onLogin = { showLogin() })
+                            else -> WelcomeScreen(onLogin = { showLogin() }, onGuest = { enterGuest() })
                         }
                         // The sign-in page opening (the app's own screen, never a white page) or not coming (an
                         // error with Try again, never a page that stays blank): over whatever is under it.
                         if (showingLogin) {
+                            androidx.activity.compose.BackHandler(enabled = com.music.spotui.data.GuestSession.active) { enterGuest() }
                             val load by MyspotiRuntime.host.loginLoad.collectAsState()
                             when {
                                 load == LoginLoad.FAILED || loginProblem -> LoginProblemScreen(onRetry = {
@@ -176,7 +178,7 @@ class MainActivity : AppCompatActivity() {
         // A new activity while the sign-in page is open (the system let the old one go while the user
         // read the e-mail code): the page is still there and is put back in front as it was left. It
         // used to stay hidden behind the welcome screen, and "Log in" started the flow over.
-        if (!signedIn && MyspotiRuntime.loginRequired.value) {
+        if (!signedIn && !com.music.spotui.data.GuestSession.active && MyspotiRuntime.loginRequired.value) {
             showingLogin = true
             MyspotiRuntime.host.attach(root, visible = true)
         }
@@ -356,6 +358,15 @@ class MainActivity : AppCompatActivity() {
         MyspotiRuntime.host.openLogin()
     }
 
+    private fun enterGuest() {
+        if (signedIn) return
+        loginWait?.cancel()
+        connecting = false
+        hideLogin()
+        com.music.spotui.data.GuestSession.set(this, true)
+        MyspotiRuntime.suspendPlayer()
+    }
+
     private fun hideLogin() {
         showingLogin = false
         loginProblem = false
@@ -372,6 +383,8 @@ class MainActivity : AppCompatActivity() {
     private fun sessionConfirmed() {
         // Another door already started the screens over: this activity is on its way out.
         if (isFinishing) return
+        if (com.music.spotui.data.GuestSession.active && !showingLogin) return
+        com.music.spotui.data.GuestSession.set(this, false)
         loginProblem = false
         if (com.music.spotui.di.SessionActions.signedOut.value || com.music.spotui.di.SessionActions.switching.value) {
             // Signed in again after a logout or an account switch, maybe as someone else: start the
@@ -557,6 +570,7 @@ class MainActivity : AppCompatActivity() {
         val api = MyspotiRuntime.spotify
         lifecycleScope.launch {
             combine(api.ready, MyspotiRuntime.loginRequired) { ready, login -> ready to login }.collect { (ready, login) ->
+                if (com.music.spotui.data.GuestSession.active && !showingLogin) return@collect
                 when {
                     login && !showingLogin && signedIn -> {
                         // The session expired: whoever signs in on that page may be another account.
