@@ -4,9 +4,10 @@ name: Android
 
 on:
   push:
-    branches: [master, main]
+    branches: [master, main, 'codex/**', 'feature/**', 'fix/**']
     tags: ["v*"]
   pull_request:
+  merge_group:
   workflow_dispatch:
 
 permissions:
@@ -19,6 +20,10 @@ defaults:
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 45
+    concurrency:
+      group: android-build-${{ github.event.pull_request.number || github.ref }}
+      cancel-in-progress: true
     steps:
       - uses: actions/checkout@v7
 
@@ -37,10 +42,10 @@ jobs:
       # testDebugUnitTest, the JVM modules (extensions, api-spotify, host-cdp) run test.
       # The live tests in host-cdp skip themselves without a browser to drive.
       - name: Unit tests
-        run: ./gradlew :app:testDebugUnitTest :host-android:testDebugUnitTest :extensions:test :api-spotify:test :host-cdp:test
+        run: ./gradlew :api:test :automix:test :app:testDebugUnitTest :host-android:testDebugUnitTest :extensions:test :api-spotify:test :host-cdp:test
 
       - name: Test reports
-        if: ${{ failure() }}
+        if: ${{ always() }}
         uses: actions/upload-artifact@v7
         with:
           name: test-reports
@@ -57,8 +62,18 @@ jobs:
       - uses: actions/upload-artifact@v7
         if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
         with:
-          name: myspoti-debug
+          name: distortion-debug
           path: base/app/build/outputs/apk/debug/*.apk
+          retention-days: 14
+
+      - name: Optimized APK smoke build
+        run: ./gradlew :app:assembleRelease -PoverDev -Pabis=arm64-v8a
+
+      - uses: actions/upload-artifact@v7
+        if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
+        with:
+          name: distortion-optimized-test
+          path: base/app/build/outputs/apk/release/*.apk
           retention-days: 14
 
   release:
@@ -85,6 +100,9 @@ jobs:
 
       # Strict semver tags, so Obtainium and the app compare versions right: "v2.2.1-beta.1" (a beta
       # of the next version, above the last stable) or "v2.2.1". See tools/check_tag.py.
+      - name: Release commit belongs to main
+        run: git merge-base --is-ancestor "$GITHUB_SHA" origin/main
+
       - name: Tag format
         working-directory: .
         run: python3 tools/check_tag.py "$GITHUB_REF_NAME"
