@@ -100,8 +100,9 @@ fun GuestCatalogueScreen(onLogin: () -> Unit) {
         } catch (cancelled: CancellationException) {
             throw cancelled
         } catch (_: Exception) {
+            ensureActive()
             failed = true
-        } finally { loading = false }
+        } finally { if (isActive) loading = false }
     }
 
     fun loadMore() {
@@ -129,8 +130,8 @@ fun GuestCatalogueScreen(onLogin: () -> Unit) {
                     detailCache.put(selected.uri, merged)
                 }
             } catch (cancelled: CancellationException) { throw cancelled }
-            catch (_: Exception) { moreFailed = true }
-            finally { loadingMore = false }
+            catch (_: Exception) { ensureActive(); moreFailed = true }
+            finally { if (isActive) loadingMore = false }
         }
     }
 

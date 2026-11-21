@@ -120,6 +120,7 @@ class PublicCatalogueSession(context: Context) : BridgeHost, Closeable {
     override fun close() {
         if (closed) return
         closed = true
+        failure.value = true
         bridge.pageGone()
         scope.cancel()
         client.dispatcher.cancelAll()
