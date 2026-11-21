@@ -6,6 +6,8 @@ import androidx.webkit.WebViewCompat
 import app.myspoti.host.android.MyspotiRuntime
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.Dispatchers
 import org.junit.Assert.*
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -14,6 +16,26 @@ import java.util.concurrent.TimeUnit
 
 @RunWith(AndroidJUnit4::class)
 class PublicCatalogueSessionTest {
+    @Test fun artistDiscoveryUsesTheLiveReadOnlyCatalogue() = runBlocking {
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        lateinit var session: PublicCatalogueSession
+        instrumentation.runOnMainSync { session = PublicCatalogueSession(instrumentation.targetContext) }
+        try {
+            withTimeout(90_000) {
+                session.awaitReady()
+                withContext(Dispatchers.IO) {
+                    val artist = "spotify:artist:4tZwfgrHOc3mvqYlEYSvVi"
+                    val selection = session.catalog.discoveredOn(artist)
+                    assertTrue(selection.filterNotNull().all { it.uri.startsWith("spotify:playlist:") && it.name.isNotBlank() })
+                    selection.firstOrNull { it != null }?.let { playlist ->
+                        assertEquals(playlist.uri, session.playlists.playlist(playlist.uri).uri)
+                    }
+                    assertTrue(session.catalog.relatedArtists(artist).all { it.uri.startsWith("spotify:artist:") })
+                }
+            }
+        } finally { instrumentation.runOnMainSync { session.close() } }
+    }
+
     @Test fun accountCookiesAreNotVisibleToThePublicProfile() {
         val instrumentation = InstrumentationRegistry.getInstrumentation()
         val origin = "https://catalogue-isolation.invalid/"
