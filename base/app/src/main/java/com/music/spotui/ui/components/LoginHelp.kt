@@ -94,9 +94,7 @@ fun LoginHelpDialog(onClose: () -> Unit) {
 @Composable
 fun LoginReportLink(modifier: Modifier = Modifier) {
     val ctx = LocalContext.current
-    Text(
-        stringResource(R.string.login_help_slow),
-        color = AppText.copy(alpha = 0.6f), fontFamily = AppSans, fontSize = 14.sp,
-        modifier = modifier.clip(RoundedCornerShape(50)).clickable { sendLoginReport(ctx) }.padding(horizontal = 14.dp, vertical = 10.dp),
-    )
+    TextButton(onClick = { sendLoginReport(ctx) }, modifier = modifier) {
+        Text(stringResource(R.string.login_help_slow), style = androidx.compose.material3.MaterialTheme.typography.labelLarge)
+    }
 }
