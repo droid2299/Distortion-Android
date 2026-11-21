@@ -4,7 +4,7 @@
 
 1. Download the APK for your device from [GitHub Releases](https://github.com/droid2299/Distortion-Android/releases/latest). Most recent phones use **ARMv8**. The **universal** APK supports both ARM architectures. Choose **TV** for Android TV or Google TV.
 2. Open the downloaded APK. If Android opens **Install unknown apps**, allow the browser or file manager you used, then return to the installer.
-3. Open Distortion and sign in with your Spotify account on the Spotify sign-in page.
+3. Open Distortion and sign in with your Spotify account on the Spotify sign-in page. Use email and enter the code Spotify sends you. Google sign-in can be rejected inside the embedded browser; signing into Chrome does not sign Distortion in.
 
 For an existing public installation, open **Settings → App** (or **About** in Classic) and tap the refresh icon next to the version or open the new APK directly. Keep the app installed while applying the update to retain its settings and stored data. If you are moving from the earlier Distortion **2.4.1** build to the **1.x** series, download the APK manually once. The older updater sees the 1.x version name as earlier.
 
