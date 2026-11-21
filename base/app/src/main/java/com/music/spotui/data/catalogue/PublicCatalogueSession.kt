@@ -37,7 +37,7 @@ class PublicCatalogueSession(context: Context) : BridgeHost, Closeable {
     private val failure = MutableStateFlow(false)
     private val incoming = MutableSharedFlow<String>(extraBufferCapacity = 16)
     override val messages: SharedFlow<String> = incoming
-    private val bridge = Bridge(this, scope)
+    private val bridge = Bridge.publicCatalogue(this, scope)
     private val client = OkHttpClient.Builder().connectTimeout(10, TimeUnit.SECONDS)
         .readTimeout(15, TimeUnit.SECONDS).callTimeout(25, TimeUnit.SECONDS)
         .addInterceptor { chain ->
@@ -47,7 +47,7 @@ class PublicCatalogueSession(context: Context) : BridgeHost, Closeable {
             }
             response
         }.build()
-    private var closed = false
+    @Volatile private var closed = false
     val view: WebView
     private val http: SpotifyHttp
     val search: SpotifySearch
@@ -79,6 +79,9 @@ class PublicCatalogueSession(context: Context) : BridgeHost, Closeable {
             override fun onPermissionRequest(request: PermissionRequest) = request.deny()
         }
         view.webViewClient = object : WebViewClient() {
+            override fun onPageStarted(view: WebView, url: String, favicon: android.graphics.Bitmap?) {
+                if (!closed) bridge.pageGone()
+            }
             override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
                 if (!request.isForMainFrame) return false
                 val allowed = request.url.scheme == "https" && request.url.host == "open.spotify.com"
@@ -88,7 +91,7 @@ class PublicCatalogueSession(context: Context) : BridgeHost, Closeable {
             override fun onPageFinished(view: WebView, url: String) {
                 val target = android.net.Uri.parse(url)
                 if (!closed && target.scheme == "https" && target.host == "open.spotify.com") {
-                    view.evaluateJavascript(bootstrap, null)
+                    view.evaluateJavascript("window.__mspPage = ${bridge.pagesGone}; $bootstrap", null)
                 }
             }
             override fun onReceivedError(view: WebView, request: WebResourceRequest, error: android.webkit.WebResourceError) {
@@ -144,8 +147,12 @@ class PublicCatalogueSession(context: Context) : BridgeHost, Closeable {
         bridge.pageGone()
         scope.cancel()
         client.dispatcher.cancelAll()
-        client.connectionPool.evictAll()
-        client.dispatcher.executorService.shutdown()
+        // Closing an idle TLS socket can perform network I/O. Keep disposal off
+        // the UI thread and independent of the session scope we just cancelled.
+        client.dispatcher.executorService.execute {
+            try { client.connectionPool.evictAll() }
+            finally { client.dispatcher.executorService.shutdown() }
+        }
         runCatching { view.stopLoading() }
         (view.parent as? android.view.ViewGroup)?.removeView(view)
         view.destroy()

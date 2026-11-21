@@ -14,6 +14,9 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.hasScrollToIndexAction
+import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.performScrollToNode
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -39,7 +42,9 @@ class GuestHomeTest {
         rule.onNodeWithText("Listen to music on this device, including FLAC files.").performClick()
         rule.onNodeWithText("Explore internet stations. Browsing and playback use your connection.").performScrollTo().performClick()
         rule.onNodeWithText("Discover songs, albums, artists and public playlists without signing in.").performScrollTo().performClick()
-        rule.onNodeWithText("Connect Spotify").performScrollTo().performClick()
+        // The final item can be outside LazyColumn's composition on small screens.
+        rule.onNode(hasScrollToIndexAction()).performScrollToNode(hasText("Connect Spotify"))
+        rule.onNodeWithText("Connect Spotify").performClick()
         rule.runOnIdle {
             assertEquals(1, local)
             assertEquals(1, radio)

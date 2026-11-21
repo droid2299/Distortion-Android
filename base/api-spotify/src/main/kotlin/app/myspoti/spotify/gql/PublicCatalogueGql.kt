@@ -14,22 +14,22 @@ class PublicCatalogueGql(
     override suspend fun query(name: String, variables: JsonObject): JsonElement {
         require(name in OPERATIONS) { "Operation is not available in the public catalogue" }
         try {
-        check(anonymous()) { "Public catalogue requires an anonymous session" }
-        val result = delegate.query(name, variables)
-        val data = (result as? JsonObject)?.get("data") as? JsonObject
-            ?: throw GqlException(name, "Public catalogue response has no data")
-        val searchCollection = when (name) {
-            "searchTracks" -> "tracksV2"
-            "searchArtists" -> "artists"
-            "searchAlbums" -> "albumsV2"
-            "searchPlaylists" -> "playlists"
-            else -> null
-        }
-        if (searchCollection != null) {
-            val collection = (data["searchV2"] as? JsonObject)?.get(searchCollection) as? JsonObject
-            if (collection?.get("items") !is JsonArray) throw GqlException(name, "Public catalogue search response changed")
-        }
-        return result
+            check(anonymous()) { "Public catalogue requires an anonymous session" }
+            val result = delegate.query(name, variables)
+            val data = (result as? JsonObject)?.get("data") as? JsonObject
+                ?: throw GqlException(name, "Public catalogue response has no data")
+            val searchCollection = when (name) {
+                "searchTracks" -> "tracksV2"
+                "searchArtists" -> "artists"
+                "searchAlbums" -> "albumsV2"
+                "searchPlaylists" -> "playlists"
+                else -> null
+            }
+            if (searchCollection != null) {
+                val collection = (data["searchV2"] as? JsonObject)?.get(searchCollection) as? JsonObject
+                if (collection?.get("items") !is JsonArray) throw GqlException(name, "Public catalogue search response changed")
+            }
+            return result
         } catch (timeout: TimeoutCancellationException) {
             currentCoroutineContext().ensureActive()
             throw GqlException(name, "Public catalogue request timed out")

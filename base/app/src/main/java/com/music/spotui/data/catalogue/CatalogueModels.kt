@@ -3,6 +3,8 @@ package com.music.spotui.data.catalogue
 import app.myspoti.api.*
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.Dispatchers
 
 enum class CatalogueKind { TRACK, ALBUM, ARTIST, PLAYLIST }
 enum class CatalogueSectionKind { SONGS, ALBUMS, ARTISTS, RELATED_ARTISTS }
@@ -18,10 +20,10 @@ internal fun Album.catalogueEntry() = CatalogueEntry(uri, name, artists.joinToSt
 internal fun Artist.catalogueEntry() = CatalogueEntry(uri, name, "", images.artwork(), CatalogueKind.ARTIST)
 internal fun Playlist.catalogueEntry() = CatalogueEntry(uri, name, owner.orEmpty(), images.artwork(), CatalogueKind.PLAYLIST)
 
-suspend fun PublicCatalogueSession.searchPage(kind: CatalogueKind, query: String, offset: Int = 0): CataloguePage {
+suspend fun PublicCatalogueSession.searchPage(kind: CatalogueKind, query: String, offset: Int = 0): CataloguePage = withContext(Dispatchers.IO) {
     require(query.trim().length in 2..200 && offset in 0..500)
     awaitReady()
-    return when (kind) {
+    when (kind) {
         CatalogueKind.TRACK -> search.tracks(query.trim(), offset, 20).let { CataloguePage(it.items.map(Track::catalogueEntry), it.nextOffset) }
         CatalogueKind.ALBUM -> search.albums(query.trim(), offset, 20).let { CataloguePage(it.items.map(Album::catalogueEntry), it.nextOffset) }
         CatalogueKind.ARTIST -> search.artists(query.trim(), offset, 20).let { CataloguePage(it.items.map(Artist::catalogueEntry), it.nextOffset) }
@@ -29,9 +31,9 @@ suspend fun PublicCatalogueSession.searchPage(kind: CatalogueKind, query: String
     }
 }
 
-suspend fun PublicCatalogueSession.details(entry: CatalogueEntry): CatalogueDetails {
+suspend fun PublicCatalogueSession.details(entry: CatalogueEntry): CatalogueDetails = withContext(Dispatchers.IO) {
     awaitReady()
-    return when (entry.kind) {
+    when (entry.kind) {
         CatalogueKind.TRACK -> {
             val track = catalog.track(entry.uri)
             val album = track.album?.let { CatalogueEntry(it.uri, it.name, "", it.images.artwork(), CatalogueKind.ALBUM) }
@@ -62,7 +64,7 @@ suspend fun PublicCatalogueSession.details(entry: CatalogueEntry): CatalogueDeta
     }
 }
 
-suspend fun PublicCatalogueSession.moreTracks(entry: CatalogueEntry, offset: Int): CataloguePage {
+suspend fun PublicCatalogueSession.moreTracks(entry: CatalogueEntry, offset: Int): CataloguePage = withContext(Dispatchers.IO) {
     require(offset in 0..500)
     awaitReady()
     val page = when (entry.kind) {
@@ -70,5 +72,5 @@ suspend fun PublicCatalogueSession.moreTracks(entry: CatalogueEntry, offset: Int
         CatalogueKind.PLAYLIST -> playlists.tracks(entry.uri, offset, 20)
         else -> error("This catalogue item has no track pages")
     }
-    return CataloguePage(page.items.map(Track::catalogueEntry), page.nextOffset)
+    CataloguePage(page.items.map(Track::catalogueEntry), page.nextOffset)
 }
