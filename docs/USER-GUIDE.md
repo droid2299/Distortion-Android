@@ -1,5 +1,9 @@
 # Distortion user guide
 
+## Artist discovery
+
+Open an artist and scroll to **Discovered On** to explore Spotify's current discovery playlist selection. Tap a playlist to open it. Selections can change or contain unavailable playlists; Distortion shows unavailable entries and offers Retry when a request fails. Related artists use the overview results when available and load separately otherwise. A discovery failure does not stop the rest of the artist page or playback.
+
 ## Install and update
 
 1. Download the APK for your device from [GitHub Releases](https://github.com/droid2299/Distortion-Android/releases/latest). Most recent phones use **ARMv8**. The **universal** APK supports both ARM architectures. Choose **TV** for Android TV or Google TV.

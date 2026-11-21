@@ -473,6 +473,10 @@ private fun ArtistOverviewContent(
                 }
             }
 
+            item(key = "artist-discovery") {
+                com.music.spotui.ui.components.ArtistDiscoverySection(overview.id, overview.relatedArtists.isNotEmpty(), navController)
+            }
+
             // About closes the page, after the shelves.
             if (!overview.biography.isNullOrBlank()) item(key = "about") {
                 SectionHeader(stringResource(R.string.creator_biography_section_title))

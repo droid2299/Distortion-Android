@@ -177,6 +177,25 @@ class SpotifyCatalog(private val gql: Gql, private val http: app.myspoti.spotify
         gql.query("queryArtistRelated", vars("uri" to uri)).entity("data.artistUnion", "queryArtistRelated")
             .list("relatedContent.relatedArtists.items").mapNotNull(::artist)
 
+    override suspend fun discoveredOn(uri: Uri): List<Playlist?> {
+        require(Regex("spotify:artist:[A-Za-z0-9]{22}").matches(uri)) { "Expected a Spotify artist URI" }
+        val operation = "queryArtistDiscoveredOn"
+        val artist = gql.query(operation, vars("uri" to uri)).entity("data.artistUnion", operation)
+        if (artist.str("uri") != uri) throw GqlException(operation, "Artist response does not match the request")
+        val rows = artist.at("relatedContent.discoveredOnV2.items") as? JsonArray
+            ?: throw GqlException(operation, "Artist response has no discovery collection")
+        return rows.map { row ->
+            val data = row.at("data") as? JsonObject ?: throw GqlException(operation, "Discovery slot has no data")
+            if (data.typename() == "GenericError") null
+            else {
+                if (data.typename() != "Playlist" || !Regex("spotify:playlist:[A-Za-z0-9]{22}").matches(data.str("uri").orEmpty()) || data.str("name").isNullOrBlank()) {
+                    throw GqlException(operation, "Discovery playlist is invalid")
+                }
+                playlist(data) ?: throw GqlException(operation, "Discovery playlist could not be read")
+            }
+        }
+    }
+
     override suspend fun appearsOn(uri: Uri): List<Album> =
         gql.query("queryArtistAppearsOn", vars("uri" to uri)).entity("data.artistUnion", "queryArtistAppearsOn")
             .list("relatedContent.appearsOn.items").mapNotNull(::release)
