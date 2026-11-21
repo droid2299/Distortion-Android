@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Browse songs, albums, artists and public playlists in guest mode using an isolated anonymous session, with metadata pages and paged track lists.
+
 - Added **Continue without an account** for local music and live radio, with the existing player and a **Connect Spotify** action. The guest choice survives restarts and does not replace an existing Spotify sign-in. Spotify-only library and catalog actions remain unavailable until sign-in succeeds.
 
 ## 1.0.3
