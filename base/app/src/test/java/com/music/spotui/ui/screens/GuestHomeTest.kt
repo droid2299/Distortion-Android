@@ -32,16 +32,19 @@ class GuestHomeTest {
         var local = 0
         var radio = 0
         var login = 0
+        var browse = 0
         rule.setContent {
-            MaterialTheme { GuestHome({ login++ }, { local++ }, { radio++ }) }
+            MaterialTheme { GuestHome({ login++ }, { local++ }, { radio++ }, { browse++ }) }
         }
         rule.onNodeWithText("Listen to music on this device, including FLAC files.").performClick()
         rule.onNodeWithText("Explore internet stations. Browsing and playback use your connection.").performScrollTo().performClick()
+        rule.onNodeWithText("Discover songs, albums, artists and public playlists without signing in.").performScrollTo().performClick()
         rule.onNodeWithText("Connect Spotify").performScrollTo().performClick()
         rule.runOnIdle {
             assertEquals(1, local)
             assertEquals(1, radio)
             assertEquals(1, login)
+            assertEquals(1, browse)
         }
     }
 
