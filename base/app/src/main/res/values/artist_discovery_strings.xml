@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="artist_discovered_on">Discovered On</string>
+    <string name="artist_discovered_on_detail">Explore Spotify’s current discovery playlist selection for this artist.</string>
+    <string name="artist_discovery_empty">No discovery playlists are currently available for this artist.</string>
+    <string name="artist_related_empty">No related artists are currently listed.</string>
+    <string name="artist_discovery_unavailable_slots">Some playlists in this selection are unavailable.</string>
+    <string name="artist_discovery_failed">Discovery could not be loaded. Check your connection and try again.</string>
+    <string name="artist_discovery_unsupported">This music source does not support artist discovery.</string>
+</resources>

@@ -100,6 +100,7 @@ interface Catalog {
     /** Albums, singles and compilations, newest first. */
     suspend fun discography(uri: Uri, offset: Int = 0, limit: Int = 50): Page<Album>
     suspend fun relatedArtists(uri: Uri): List<Artist>
+    suspend fun discoveredOn(uri: Uri): List<Playlist?> = throw UnsupportedOperationException("Artist discovery is not supported by this catalogue")
     suspend fun appearsOn(uri: Uri): List<Album>
     /** "More like this" albums for a track. */
     suspend fun similarAlbums(trackUri: Uri, limit: Int = 20): List<Album>

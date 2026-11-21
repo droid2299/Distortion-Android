@@ -512,6 +512,10 @@ private fun ArtistOverviewContent(
             }
         }
 
+        item(key = "artist-discovery") {
+            com.music.spotui.ui.components.ArtistDiscoverySection(overview.id, overview.relatedArtists.isNotEmpty(), navController)
+        }
+
         // ── Fans also like ──
         if (overview.relatedArtists.isNotEmpty()) {
             item { SectionHeader(stringResource(R.string.fans_also_like_section_title)) }
