@@ -99,8 +99,9 @@ fun GuestCatalogueScreen(onLogin: () -> Unit) {
             }
         } catch (cancelled: CancellationException) {
             throw cancelled
-        } catch (_: Exception) {
+        } catch (error: Exception) {
             ensureActive()
+            app.myspoti.host.android.Logbook.log("public catalogue read failed: ${error.javaClass.simpleName}")
             failed = true
         } finally { if (isActive) loading = false }
     }

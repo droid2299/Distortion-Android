@@ -39,7 +39,14 @@ class PublicCatalogueSession(context: Context) : BridgeHost, Closeable {
     override val messages: SharedFlow<String> = incoming
     private val bridge = Bridge(this, scope)
     private val client = OkHttpClient.Builder().connectTimeout(10, TimeUnit.SECONDS)
-        .readTimeout(15, TimeUnit.SECONDS).callTimeout(25, TimeUnit.SECONDS).build()
+        .readTimeout(15, TimeUnit.SECONDS).callTimeout(25, TimeUnit.SECONDS)
+        .addInterceptor { chain ->
+            val response = chain.proceed(chain.request())
+            if (response.code >= 300 || app.myspoti.engine.BuildConfig.DEBUG) {
+                app.myspoti.host.android.Logbook.log("public catalogue HTTP ${response.code} ${chain.request().url.host}${chain.request().url.encodedPath}")
+            }
+            response
+        }.build()
     private var closed = false
     val view: WebView
     private val http: SpotifyHttp
@@ -49,6 +56,9 @@ class PublicCatalogueSession(context: Context) : BridgeHost, Closeable {
 
     init {
         view = WebView(context)
+        view.importantForAccessibility = android.view.View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS
+        view.isFocusable = false
+        view.isFocusableInTouchMode = false
         androidx.webkit.ProfileStore.getInstance().getOrCreateProfile("distortion_public_catalogue")
         WebViewCompat.setProfile(view, "distortion_public_catalogue")
         view.settings.apply {
@@ -59,7 +69,10 @@ class PublicCatalogueSession(context: Context) : BridgeHost, Closeable {
         android.webkit.CookieManager.getInstance().setAcceptThirdPartyCookies(view, false)
         WebViewCompat.addWebMessageListener(view, "DistortionCatalogue", setOf(ORIGIN)) { _, message, origin, mainFrame, _ ->
             if (mainFrame && origin.scheme == "https" && origin.host == "open.spotify.com" && origin.port in listOf(-1, 443) && !closed) {
-                message.data?.takeIf { it.length <= 1_048_576 }?.let(incoming::tryEmit)
+                message.data?.takeIf { it.length <= 1_048_576 }?.let { payload ->
+                    if (runCatching { org.json.JSONObject(payload).optString("type") == "error" }.getOrDefault(false)) failure.value = true
+                    incoming.tryEmit(payload)
+                }
             }
         }
         view.webChromeClient = object : WebChromeClient() {
@@ -107,9 +120,16 @@ class PublicCatalogueSession(context: Context) : BridgeHost, Closeable {
         view.loadUrl("$ORIGIN/search")
     }
 
-    suspend fun awaitReady() = withTimeout(30_000) {
-        val state = combine(bridge.ready, failure) { ready, failed -> ready to failed }.first { it.first || it.second }
-        if (state.second || closed) throw IOException("Public catalogue could not be loaded")
+    suspend fun awaitReady() {
+        try {
+            withTimeout(30_000) {
+                val state = combine(bridge.ready, failure) { ready, failed -> ready to failed }.first { it.first || it.second }
+                if (state.second || closed) throw IOException("Public catalogue could not be loaded")
+            }
+        } catch (timeout: TimeoutCancellationException) {
+            currentCoroutineContext().ensureActive()
+            throw IOException("Public catalogue bootstrap timed out")
+        }
     }
 
     override suspend fun evaluate(script: String) = withContext(Dispatchers.Main.immediate) {

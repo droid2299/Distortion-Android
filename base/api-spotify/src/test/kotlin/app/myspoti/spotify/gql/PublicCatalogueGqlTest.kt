@@ -1,6 +1,8 @@
 package app.myspoti.spotify.gql
 
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.json.JsonObject
 import app.myspoti.spotify.bridge.Bridge
 import org.junit.jupiter.api.Assertions.*
@@ -33,6 +35,14 @@ class PublicCatalogueGqlTest {
         val gql = PublicCatalogueGql(object : Gql {
             override suspend fun query(name: String, variables: JsonObject) =
                 Bridge.json.parseToJsonElement("""{"data":{"searchV2":null},"errors":[{"message":"unavailable"}]}""")
+        }) { true }
+        assertThrows(GqlException::class.java) { runBlocking { gql.query("searchTracks", JsonObject(emptyMap())) } }
+    }
+
+    @Test fun `request timeouts are failures while the caller remains active`() = runBlocking {
+        val gql = PublicCatalogueGql(object : Gql {
+            override suspend fun query(name: String, variables: JsonObject): kotlinx.serialization.json.JsonElement =
+                withTimeout(10) { delay(60_000); JsonObject(emptyMap()) }
         }) { true }
         assertThrows(GqlException::class.java) { runBlocking { gql.query("searchTracks", JsonObject(emptyMap())) } }
     }

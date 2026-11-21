@@ -6,7 +6,7 @@ const vm = require('node:vm');
 
 const source = fs.readFileSync(path.join(__dirname, '../base/api-spotify/src/main/resources/bridge/catalogue-bridge.js'), 'utf8');
 
-function session(anonymous = true, registryAvailable = true) {
+function session(anonymous = true, registryAvailable = true, mobile = false) {
   const messages = [];
   const resolved = [];
   const pending = [];
@@ -26,10 +26,17 @@ function session(anonymous = true, registryAvailable = true) {
     }),
   };
   const root = { querySelectorAll: () => [] };
-  if (registryAvailable) root.__reactContainer$test = { memoizedProps: { value: platform } };
+  if (registryAvailable) {
+    const provider = { memoizedProps: { value: mobile ? platform.getRegistry() : platform } };
+    if (mobile) {
+      const stale = { alternate: provider };
+      provider.alternate = stale;
+      root.__reactContainer$test = stale;
+    } else root.__reactContainer$test = provider;
+  }
   const context = {
     window: { DistortionCatalogue: { postMessage: value => messages.push(JSON.parse(value)) } },
-    document: { getElementById: () => root },
+    document: { getElementById: id => id === 'appServerConfig' ? { textContent: JSON.stringify({ clientVersion: 'mobile-test-web' }) } : root },
     setTimeout: callback => pending.push(callback),
   };
   vm.runInNewContext(source, context, { timeout: 1000 });
@@ -43,6 +50,15 @@ test('anonymous bootstrap resolves no playback or library services', async () =>
   await value.call(1, 'token.get');
   assert.equal(value.messages[1].ok, true);
   assert.equal(value.messages[1].value.isAnonymous, true);
+});
+
+test('mobile registry and alternate React roots use the public page version', async () => {
+  const value = session(true, true, true);
+  assert.equal(value.messages[0].type, 'ready');
+  await value.call(1, 'token.get');
+  assert.equal(value.messages[1].ok, true);
+  assert.equal(value.messages[1].value.appVersion, 'mobile-test-web');
+  assert.deepEqual(value.resolved, ['TokenProvider']);
 });
 
 test('unsupported commands never reach the token or service registry', async () => {

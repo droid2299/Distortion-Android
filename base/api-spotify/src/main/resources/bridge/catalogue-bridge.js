@@ -1,32 +1,44 @@
 (() => {
   if (window.Myspoti) return;
   const post = value => window.DistortionCatalogue.postMessage(JSON.stringify(value));
-  let platform;
+  let version;
   let token;
+  const clientVersion = () => {
+    const script = document.getElementById('appServerConfig');
+    if (!script) return null;
+    const text = script.textContent.trim();
+    let config;
+    try { config = JSON.parse(text); } catch (_) { config = JSON.parse(atob(text)); }
+    return typeof config.clientVersion === 'string' ? config.clientVersion : null;
+  };
   const find = () => {
     const root = document.getElementById('main') || document.body;
     if (!root) return false;
     for (const element of [root, ...root.querySelectorAll('*')]) {
       const key = Object.keys(element).find(k => k.startsWith('__reactContainer$'));
       if (!key) continue;
-      const pending = [element[key]];
+      const pending = [element[key], element[key]?.stateNode?.current];
       const seen = new Set();
-      while (pending.length) {
+      while (pending.length && seen.size < 50000) {
         const fiber = pending.pop();
         if (!fiber || seen.has(fiber)) continue;
         seen.add(fiber);
         const value = fiber.memoizedProps && fiber.memoizedProps.value;
-        if (value && typeof value.getRegistry === 'function') {
-          const registry = value.getRegistry();
-          const tokenKey = [...registry._map.keys()].find(k => k && k.description === 'TokenProvider');
-          if (tokenKey) {
-            platform = value;
-            token = registry.resolve(tokenKey);
-            return true;
+        try {
+          const registry = value && (typeof value.getRegistry === 'function' ? value.getRegistry() : value);
+          if (registry && registry._map && typeof registry.resolve === 'function') {
+            const tokenKey = [...registry._map.keys()].find(k => k && k.description === 'TokenProvider');
+            const currentVersion = typeof value.version === 'string' ? value.version : clientVersion();
+            if (tokenKey && currentVersion) {
+              token = registry.resolve(tokenKey);
+              version = currentVersion;
+              return true;
+            }
           }
-        }
+        } catch (_) {}
         if (fiber.sibling) pending.push(fiber.sibling);
         if (fiber.child) pending.push(fiber.child);
+        if (fiber.alternate) pending.push(fiber.alternate);
       }
     }
     return false;
@@ -41,7 +53,7 @@
           accessToken: value.accessToken,
           expiresAtMs: value.accessTokenExpirationTimestampMs,
           clientId: value.clientId,
-          appVersion: platform.version,
+          appVersion: version,
           isAnonymous: true,
         }});
       } catch (_) {
