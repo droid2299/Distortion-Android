@@ -7,10 +7,10 @@
 
 **An open-source Material You music player for Android that works with your Spotify account.** Browse your mixes, swipe the mini player open, and follow along with synchronized lyrics.
 
-[![Download for Android](https://img.shields.io/badge/Download_for_Android-ARMv8-3DDC84?style=for-the-badge&logo=android&logoColor=white)](https://github.com/droid2299/Distortion-Android/releases/download/v1.0.3/Distortion-1.0.3-ARMv8.apk)
+[![Download for Android](https://img.shields.io/badge/Download_for_Android-ARMv8-3DDC84?style=for-the-badge&logo=android&logoColor=white)](https://github.com/droid2299/Distortion-Android/releases/download/v1.1.0/Distortion-1.1.0-ARMv8.apk)
 [![Add to Obtainium](https://img.shields.io/badge/Add_to_Obtainium-Updates-6650A4?style=for-the-badge)](https://apps.obtainium.imranr.dev/redirect?r=obtainium://app/%7B%22id%22%3A%22app.distortion.music%22%2C%22url%22%3A%22https%3A%2F%2Fgithub.com%2Fdroid2299%2FDistortion-Android%22%2C%22author%22%3A%22droid2299%22%2C%22name%22%3A%22Distortion%22%2C%22additionalSettings%22%3A%22%7B%5C%22apkFilterRegEx%5C%22%3A%5C%22%5EDistortion-%5B0-9%5D%2B%5C%5C%5C%5C.%5B0-9%5D%2B%5C%5C%5C%5C.%5B0-9%5D%2B-universal%5C%5C%5C%5C.apk%24%5C%22%2C%5C%22autoApkFilterByArch%5C%22%3Afalse%2C%5C%22includePrereleases%5C%22%3Afalse%7D%22%7D)
 
-[All downloads](https://github.com/droid2299/Distortion-Android/releases/latest) · [User guide](docs/USER-GUIDE.md) · [Changelog](CHANGELOG.md) · [Report an issue](https://github.com/droid2299/Distortion-Android/issues/new)
+[All downloads](https://github.com/droid2299/Distortion-Android/releases/latest) Â· [User guide](docs/USER-GUIDE.md) Â· [Changelog](CHANGELOG.md) Â· [Report an issue](https://github.com/droid2299/Distortion-Android/issues/new)
 
 ## Screenshots
 
@@ -42,7 +42,7 @@
 
 ## Install
 
-Distortion requires Android 10 or later. Spotify features require a Spotify account; **Continue without an account** opens local music and live radio instead. Use **Download for Android** for most recent phones, or choose another APK under **Assets** in the latest release. **Add to Obtainium** tracks stable releases and selects the universal APK, which supports both ARM architectures.
+Distortion requires Android 10 or later. Spotify playback and private library features require an account. **Continue without an account** opens device audio, live radio and public catalogue browsing. Use **Download for Android** for most recent phones, or choose another APK under **Assets** in the latest release. **Add to Obtainium** tracks stable releases and selects the universal APK, which supports both ARM architectures.
 
 | Device | APK suffix |
 | --- | --- |
@@ -55,6 +55,8 @@ Open the APK on your device. If Android asks, allow your browser or Files app to
 
 ## What you can do
 
+- **Explore without an account.** Browse public songs, albums, artists and playlists alongside local audio and live radio. Connect Spotify for catalogue playback and your library.
+- **Discover artists.** Open an artist and scroll to Discovered On for Spotify's current discovery playlists and related artists.
 - **Find music.** Home includes Your Mix, Continue Listening, and Recently Played. New, Radio, Library, and Search have their own tabs.
 - **Control playback.** Swipe across the cover to change tracks, swipe up on the mini player to expand it, and swipe down to collapse it. Now Playing includes a wavy seek bar, synchronized lyrics, and queue controls.
 - **Match your system theme.** The Material You interface and home-screen widget follow Android's colors.
