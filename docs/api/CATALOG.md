@@ -7,6 +7,16 @@ Placeholders: `{token}` web access token, `{client-token}`, `{id}` base62 id (22
 
 ## Common request shape
 
+### Distortion additions verified on 2026-11-21
+
+`Catalog.discoveredOn(artistUri)` calls `queryArtistDiscoveredOn` with a full `spotify:artist:{22-character base62 id}` URI. The response must identify the requested artist at `data.artistUnion.uri` and contain `relatedContent.discoveredOnV2.items[].data`. Playlist entries require a valid playlist URI and nonblank name. `GenericError` entries become nullable unavailable slots, preserving server order. An explicit empty array is valid; missing, malformed or mismatched data raises `GqlException`. Providers without this optional capability throw `UnsupportedOperationException`.
+
+Artist pages keep discovery and related-artist requests independent. Related artists already present in the overview are reused. The ViewModel caches results for five minutes, retries failed sections separately, and rejects stale responses after navigation.
+
+Guest catalogue browsing uses `PublicCatalogueSession` with a dedicated anonymous WebView profile. It requires multi-profile and web-message-listener support, rejects signed-in tokens, and allows only its explicit metadata queries. Its bridge exposes only `token.get`; playback and library commands are unavailable. Closing it cancels its requests and browser without resetting the main player's state. Parsing and connection disposal run off the UI thread. Spotify's authentication, licensing, rate limits and service availability still apply.
+
+Pixel 10 Pro XL instrumentation verified anonymous search and metadata for songs, albums, artists and playlists, pagination, cookie-profile isolation, Discovered On playlist metadata and related artists. These live checks validate the observed server responses, not future compatibility guarantees.
+
 ### GraphQL (pathfinder v2)
 
 `POST https://api-partner.spotify.com/pathfinder/v2/query`
