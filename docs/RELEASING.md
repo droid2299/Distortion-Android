@@ -30,6 +30,8 @@ The four named installable APKs are in `base/app/build/release-apks/`. Build wit
 
 ## Verify and publish
 
+The tag validator compares releases descended from Distortion's `v1.0.0` baseline. Historical tags before that version reset remain intact and are excluded from version ordering. Later releases in this lineage, including future major versions, still prevent downgrades. Run validation from a checkout with complete history and tags; missing baseline history fails validation.
+
 1. Verify every APK with `apksigner verify --print-certs`. Compare the stable signing certificate digest to the previous published APK. Use `aapt dump badging` to check that every stable APK has the expected version name, version code, and package ID `app.distortion.music`.
 2. On a test device, install the new stable APK over the previous stable APK. Check startup, account state, playback, and the update screen. Repeat on TV if the release changes the TV experience.
 3. Publish the matching `vX.Y.Z` tag and GitHub release against the recorded source commit. Attach the ARMv8, ARMv7, universal, and TV APKs. Use the matching changelog section as the release description and mark a stable release as latest.

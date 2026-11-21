@@ -30,6 +30,9 @@ jobs:
       - name: Branch policy tests
         run: python3 -m unittest discover -s ../tools -p test_branch_name.py
 
+      - name: Release tag policy tests
+        run: python3 -m unittest discover -s ../tools -p test_check_tag.py
+
       - uses: actions/setup-node@v7
         with:
           node-version: "24"
