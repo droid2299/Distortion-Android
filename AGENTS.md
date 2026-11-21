@@ -23,4 +23,6 @@ to your user in full.
 
 ## Feature branches and validation
 
+Branch names must use `<type>/<snake_case_description>`: `feature/`, `bug/`, `chore/`, `docs/`, `refactor/`, `test/`, `perf/` or `hotfix/`, according to the change. Examples: `feature/account_free_onboarding`, `bug/guest_tab_navigation`. Automated dependency branches may retain `dependabot/`. Use this convention for local and remote branches.
+
 Read CONTRIBUTING.md and docs/DEVELOPMENT.md before implementation. Every feature or fix starts on its own branch from current main. Never commit or push directly to main. Open a focused pull request, run the required CI and regression tests, and record device checks for changed UI or playback. Keep unverified work in a draft PR. Do not merge a feature until its checks pass and the relevant device scenarios are verified. Keep unrelated features in separate PRs; never claim skipped live tests passed. Releases must come from tested main commits.

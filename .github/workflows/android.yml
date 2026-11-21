@@ -4,7 +4,7 @@ name: Android
 
 on:
   push:
-    branches: [master, main, 'codex/**', 'feature/**', 'fix/**']
+    branches: [master, main, 'feature/**', 'bug/**', 'chore/**', 'docs/**', 'refactor/**', 'test/**', 'perf/**', 'hotfix/**', 'dependabot/**']
     tags: ["v*"]
   pull_request:
   merge_group:
@@ -26,6 +26,15 @@ jobs:
       cancel-in-progress: true
     steps:
       - uses: actions/checkout@v7
+
+      - name: Branch policy tests
+        run: python3 -m unittest discover -s ../tools -p test_branch_name.py
+
+      - name: Branch naming
+        if: github.event_name == 'pull_request' || (github.event_name == 'push' && github.ref_type == 'branch' && github.ref_name != 'main' && github.ref_name != 'master')
+        env:
+          BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
+        run: python3 ../tools/check_branch_name.py "$BRANCH_NAME"
 
       - uses: actions/setup-java@v6
         with:

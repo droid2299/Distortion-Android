@@ -8,7 +8,9 @@ Check the [user guide](docs/USER-GUIDE.md) and [open issues](https://github.com/
 
 ## Build and submit a change
 
-Every feature and fix has its own short-lived branch, such as `codex/account-free-onboarding` or `feature/adaptive-set-energy`. Start from the latest `main`. Do not push directly to `main`; open a pull request using the repository template. Keep unrelated features in separate pull requests.
+Every change has its own short-lived branch named `<type>/<snake_case_description>`. Use `feature/` for features, `bug/` for bug fixes, `chore/` for maintenance and CI, `docs/` for documentation, `refactor/` for restructuring, `test/` for test changes, `perf/` for performance work, and `hotfix/` for urgent fixes. Examples: `feature/account_free_onboarding`, `bug/guest_tab_navigation`, `chore/branch_naming_policy`. Automated dependency branches may keep the `dependabot/` prefix. The required CI build rejects pull requests with other branch names.
+
+Start from the latest `main`. Do not push directly to `main`; open a pull request using the repository template. Keep unrelated features in separate pull requests.
 
 Before merging, update the branch from `main` and let CI test the resulting merge commit. Require the `build` check, resolve review conversations, and record device validation. CI checks unit tests (including AutoMix) and builds both debug and optimized APKs. Live Spotify tests skip without a configured browser, so passing CI does not establish live-service compatibility. Test relevant playback sources on a device before merging. Review and merge with squash; publish releases only from tested commits on `main`.
 
