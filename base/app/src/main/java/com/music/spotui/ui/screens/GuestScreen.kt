@@ -6,6 +6,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.LibraryMusic
 import androidx.compose.material.icons.rounded.Radio
+import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -30,6 +31,7 @@ fun GuestScreen(onLogin: () -> Unit) {
         Triple("guest-home", R.string.navigationbar_musicappitems_home_title, Icons.Rounded.Home),
         Triple(Routes.LocalFiles.route, R.string.local_files_title, Icons.Rounded.LibraryMusic),
         Triple(Routes.LiveRadio.route, R.string.bottom_tab_radio, Icons.Rounded.Radio),
+        Triple("guest-catalogue", R.string.catalogue_title, Icons.Rounded.Search),
     )
     Box(Modifier.fillMaxSize()) {
         Scaffold(bottomBar = {
@@ -49,10 +51,11 @@ fun GuestScreen(onLogin: () -> Unit) {
         }) { padding ->
             NavHost(nav, startDestination = "guest-home", modifier = Modifier.padding(padding)) {
                 composable("guest-home") {
-                    GuestHome(onLogin, { nav.openGuestTab(Routes.LocalFiles.route) }, { nav.openGuestTab(Routes.LiveRadio.route) })
+                    GuestHome(onLogin, { nav.openGuestTab(Routes.LocalFiles.route) }, { nav.openGuestTab(Routes.LiveRadio.route) }, { nav.openGuestTab("guest-catalogue") })
                 }
                 composable(Routes.LocalFiles.route) { ImmersiveLocalFilesScreen(nav, allowPlaylistEdits = false) }
                 composable(Routes.LiveRadio.route) { com.music.spotui.radio.ui.ImmersiveLiveRadioScreen(nav) }
+                composable("guest-catalogue") { GuestCatalogueScreen(onLogin) }
                 composable(Routes.Queue.route) { ImmersiveQueueScreen(nav) }
                 composable(Routes.Equalizer.route) { ImmersiveEqualizerScreen(nav) }
             }
@@ -69,7 +72,7 @@ internal fun androidx.navigation.NavHostController.openGuestTab(route: String) {
 }
 
 @Composable
-internal fun GuestHome(onLogin: () -> Unit, onLocal: () -> Unit, onRadio: () -> Unit) {
+internal fun GuestHome(onLogin: () -> Unit, onLocal: () -> Unit, onRadio: () -> Unit, onBrowse: () -> Unit = {}) {
     LazyColumn(
         modifier = Modifier.fillMaxSize().statusBarsPadding(),
         contentPadding = PaddingValues(24.dp),
@@ -81,6 +84,7 @@ internal fun GuestHome(onLogin: () -> Unit, onLocal: () -> Unit, onRadio: () -> 
         }
         item { GuestCard(R.string.local_files_title, R.string.guest_local_description, onLocal) }
         item { GuestCard(R.string.bottom_tab_radio, R.string.guest_radio_description, onRadio) }
+        item { GuestCard(R.string.catalogue_title, R.string.catalogue_home_description, onBrowse) }
         item {
             Button(onClick = onLogin, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.guest_connect)) }
         }

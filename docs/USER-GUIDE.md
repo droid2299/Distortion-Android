@@ -6,7 +6,7 @@
 2. Open the downloaded APK. If Android opens **Install unknown apps**, allow the browser or file manager you used, then return to the installer.
 3. Open Distortion. Sign in with your Spotify account, or choose **Continue without an account** to play local files and live radio. From the account-free Home, choose **Connect Spotify** when you want your Spotify library. Back from that sign-in returns to account-free listening.
 
-Account-free mode remembers your choice across restarts. Local audio requires the audio permission and files stored on your device; radio requires a connection. This mode does not expose Spotify library actions or public-catalog search. Existing signed-in installations continue to open their normal Home.
+Account-free mode remembers your choice across restarts. Local audio requires the audio permission and files stored on your device; radio requires a connection. **Browse** searches songs, albums, artists and public playlists, with metadata pages and paged track lists. Browse uses a separate anonymous browser profile and requires a recent Android System WebView; it does not use your signed-in browser cookies. Spotify library actions and catalogue-track playback require connecting Spotify. Existing signed-in installations continue to open their normal Home.
 
 For Spotify sign-in, use email and enter the code Spotify sends you. Google sign-in can be rejected inside the embedded browser; signing into Chrome does not sign Distortion in.
 

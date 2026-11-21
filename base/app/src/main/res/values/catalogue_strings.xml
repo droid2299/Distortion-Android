@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="catalogue_title">Browse</string>
+    <string name="catalogue_home_description">Discover songs, albums, artists and public playlists without signing in.</string>
+    <string name="catalogue_hint">Search the public Spotify catalogue</string>
+    <string name="catalogue_intro">Find songs, albums, artists and public playlists. Enter at least two characters to search.</string>
+    <string name="catalogue_songs">Songs</string>
+    <string name="catalogue_albums">Albums</string>
+    <string name="catalogue_artists">Artists</string>
+    <string name="catalogue_playlists">Playlists</string>
+    <string name="catalogue_related">Related artists</string>
+    <string name="catalogue_back">Back to previous catalogue page</string>
+    <string name="catalogue_clear">Clear search</string>
+    <string name="catalogue_loading">Loading public catalogue…</string>
+    <string name="catalogue_empty">No results. Try a different search.</string>
+    <string name="catalogue_failed">The public catalogue could not be loaded. Check your connection and try again. Spotify may temporarily limit public browsing.</string>
+    <string name="catalogue_webview_required">Public browsing needs an updated Android System WebView with separate browser profiles. Update WebView, then try again.</string>
+    <string name="catalogue_playback_detail">You can browse without an account. Connect Spotify to play catalogue tracks. Device audio and live radio remain available in guest mode.</string>
+    <string name="catalogue_retry">Try again</string>
+    <string name="catalogue_more">Load more</string>
+</resources>
