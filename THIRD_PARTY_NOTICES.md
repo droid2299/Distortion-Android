@@ -7,6 +7,11 @@ the Genius controls, Canvas lifecycle, video title matching, and AutoMix motion 
 
 It builds on the projects below; their licences are compatible with the GPL-3.0.
 
+## SpotAPI — GPL-3.0
+https://github.com/Aran404/SpotAPI
+
+By the SpotAPI contributors. Its documented request policies and public catalogue/discovery response contracts informed Distortion's Kotlin implementation. The artist Discovered On parsing follows its distinction between unavailable slots and malformed responses. Distortion remains GPL-3.0; the Python runtime and transport are not bundled.
+
 ## Beat This! — MIT
 https://github.com/CPJKU/beat_this
 
