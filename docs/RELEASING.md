@@ -4,7 +4,7 @@
 
 1. Choose the next version and add its notes under a `## X.Y.Z` heading in [CHANGELOG.md](../CHANGELOG.md). This heading is the source for in-app and GitHub release notes.
 2. Choose an Android version code greater than the previous public APK's. Compare the version names independently, since the in-app updater uses version names to decide whether an update is available.
-3. Update the local version fallback in [the app Gradle file](../base/app/build.gradle.kts) and the ARMv8 download link in [the README](../README.md) to match the new release. Run the [test suite](DEVELOPMENT.md#verify-a-change) and push the release commit to `main`. Record the commit SHA that will receive the tag.
+3. Update the local version fallback in [the app Gradle file](../base/app/build.gradle.kts) and the ARMv8 download link in [the README](../README.md) to match the new release. Run the [test suite](DEVELOPMENT.md#verify-a-change) and open a release-preparation pull request from a `chore/` branch. Merge only after its required checks pass and the relevant device scenarios are verified. Confirm the post-merge `main` build passes, then record the main commit SHA that will receive the tag.
 
 ## Build and sign locally
 

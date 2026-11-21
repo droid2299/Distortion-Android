@@ -2,10 +2,16 @@
 
 ## Unreleased
 
-- Artist pages now include Spotify's **Discovered On** playlist selection, with separate retry controls and a related-artists fallback when the overview has none.
-- Browse songs, albums, artists and public playlists in guest mode using an isolated anonymous session, with metadata pages and paged track lists.
+## 1.1.0
 
-- Added **Continue without an account** for local music and live radio, with the existing player and a **Connect Spotify** action. The guest choice survives restarts and does not replace an existing Spotify sign-in. Spotify-only library and catalog actions remain unavailable until sign-in succeeds.
+- Use **Continue without an account** for device audio, including FLAC, live radio and public Spotify catalogue browsing. The guest choice survives restarts, and Connect Spotify remains available for playback and private library features.
+- Search songs, albums, artists and public playlists without signing in. Open metadata pages, follow related artists and load more results. Browse uses an isolated anonymous browser profile and cannot modify your Spotify library or control its player.
+- Explore **Discovered On** playlists on artist pages. Discovery and related-artist sections have independent loading, retry and cache handling, and stale requests cannot replace a newer artist's results.
+- Fixed Spotify email-code sign-in failing or remaining on a loading screen. Sign-in uses the system WebView presentation and restores the desktop player after authentication.
+- Hardened Spotify requests: credentialed requests require HTTPS and cannot redirect; safe reads share a bounded credential renewal, while writes are never automatically replayed after an uncertain result.
+- Moved catalogue parsing and connection cleanup off the UI thread and kept catalogue lifecycle events separate from playback state.
+
+Spotify playback still uses the existing Web Player. Catalogue availability depends on Spotify and requires an up-to-date Android System WebView. No DRM, licensing or playback-engine changes are included.
 
 ## 1.0.3
 
