@@ -13,6 +13,10 @@ import re
 import subprocess
 import sys
 
+# Distortion intentionally restarted its public versions at 1.0.0. Preserve
+# historical upstream tags, but compare releases only within this lineage.
+RELEASE_BASELINE = "v1.0.0"
+
 TAG = re.compile(r"^v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-beta\.([1-9]\d*))?$")
 
 
@@ -40,10 +44,37 @@ def check(tag, others):
     return None
 
 
+def release_tags(cwd=None):
+    """Return version tags descended from the distribution's release baseline.
+
+    Missing history or a checkout before the baseline fails closed. Later major
+    versions in this lineage still participate in the usual downgrade guard.
+    """
+    def git(*args):
+        return subprocess.run(["git", *args], cwd=cwd, capture_output=True, text=True, check=True).stdout.strip()
+
+    baseline = git("rev-parse", "--verify", f"refs/tags/{RELEASE_BASELINE}^{{commit}}")
+
+    def descended(ref):
+        result = subprocess.run(["git", "merge-base", "--is-ancestor", baseline, ref],
+                                cwd=cwd, capture_output=True, text=True)
+        if result.returncode not in (0, 1):
+            result.check_returncode()
+        return result.returncode == 0
+
+    if not descended("HEAD"):
+        raise ValueError(f"The release checkout must descend from {RELEASE_BASELINE}")
+    return [tag for tag in git("tag", "-l", "v*").splitlines()
+            if key(tag) is not None and descended(f"refs/tags/{tag}^{{commit}}")]
+
+
 if __name__ == "__main__":
     if len(sys.argv) != 2:
         sys.exit("usage: check_tag.py vX.Y.Z[-beta.N]")
-    existing = subprocess.run(["git", "tag", "-l", "v*"], capture_output=True, text=True, check=True).stdout.split()
+    try:
+        existing = release_tags()
+    except (subprocess.CalledProcessError, ValueError) as error:
+        sys.exit(f"::error::Cannot validate release history: {error}. Fetch the complete history and tags.")
     problem = check(sys.argv[1], existing)
     if problem:
         print(f"::error::{problem}")
