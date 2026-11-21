@@ -35,6 +35,8 @@ The app's playback and library interfaces are in [`data/engine`](../base/app/src
 
 The Spotify client keeps a table of operation hashes. It can refresh the table from the public Web Player bundles after a server explicitly rejects a read's hash. Recovery is bounded, avoids downloading bundles on metered connections, and retries the read only when the hash changes. Web Player changes to login, licensing, or the service bridge may still require an app update.
 
+Credentialed HTTP calls require HTTPS Spotify destinations, reject credentials in URLs, and disable redirects and automatic connection retries. A rejected safe read can renew credentials once; concurrent requests share renewal. Only bundled operations explicitly declared as queries qualify for GraphQL recovery. Writes and unknown operations are sent once, including when a transport failure leaves their outcome uncertain. Raw public-CDN calls carry no account credentials. These policies follow the request-handling principles documented by [SpotAPI](https://github.com/Aran404/SpotAPI/blob/main/docs/transport.md); the implementation remains in Kotlin.
+
 ## Verify a change
 
 Run the same unit-test tasks used by [Android CI](../.github/workflows/android.yml) from `base/`.

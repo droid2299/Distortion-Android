@@ -6,6 +6,7 @@ import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -30,12 +31,17 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import java.util.UUID
 
 /** Runs the call on the IO pool; the coroutine cancelled, the call is cancelled too (it then fails at once). */
-internal suspend fun okhttp3.Call.executeCancellable(): Pair<Int, String> = coroutineScope {
+internal suspend fun okhttp3.Call.executeCancellable(): Pair<Int, String> = executeCancellable { it.code to it.body.string() }
+
+internal suspend fun <T> okhttp3.Call.executeCancellable(read: (okhttp3.Response) -> T): T = coroutineScope {
     val call = this@executeCancellable
     val done = java.util.concurrent.atomic.AtomicBoolean(false)
     val watch = launch(start = CoroutineStart.UNDISPATCHED) { try { awaitCancellation() } finally { if (!done.get()) call.cancel() } }
     try {
-        withContext(Dispatchers.IO) { call.execute().use { it.code to it.body.string() } }
+        withContext(Dispatchers.IO) { call.execute().use(read) }
+    } catch (error: java.io.IOException) {
+        coroutineContext.ensureActive()
+        throw error
     } finally {
         done.set(true)
         watch.cancel()
@@ -114,6 +120,12 @@ class SpotifyHttp(
     /** Keeps the client token across launches; null: minted once per launch, as before. */
     private val tokenStore: ClientTokenStore? = null,
 ) {
+    private val credentialHttp = http.newBuilder()
+        .followRedirects(false)
+        .followSslRedirects(false)
+        .retryOnConnectionFailure(false)
+        .build()
+
     private data class WebToken(val access: String, val expiresAtMs: Long, val clientId: String, val appVersion: String, val anonymous: Boolean,
                                 val fetchedAtMs: Long = System.currentTimeMillis())
     private data class ClientToken(val value: String, val expiresAtMs: Long, val clientId: String = "")
@@ -170,10 +182,16 @@ class SpotifyHttp(
     }
 
     /** Sends a request with browser headers. Returns the status and body text. */
-    suspend fun send(method: String, url: String, body: String? = null, contentType: String = JSON_TYPE, accept: String = "application/json"): Pair<Int, String> {
+    suspend fun send(method: String, url: String, body: String? = null, contentType: String = JSON_TYPE, accept: String = "application/json"): Pair<Int, String> =
+        sendAttempt(method, url, body, contentType, accept, method in SAFE_METHODS, canRenew = true)
+
+    internal suspend fun sendRead(method: String, url: String, body: String): Pair<Int, String> =
+        sendAttempt(method, url, body, JSON_TYPE, "application/json", retrySafe = true, canRenew = true)
+
+    private suspend fun sendAttempt(method: String, url: String, body: String?, contentType: String, accept: String, retrySafe: Boolean, canRenew: Boolean): Pair<Int, String> {
         // The account's token only ever goes to Spotify itself.
-        val host = url.toHttpUrl().host
-        require(host == "spotify.com" || host.endsWith(".spotify.com")) { "not a Spotify host: $host" }
+        requireAccountTarget(url)
+        val account = deviceId
         val (w, c) = tokens()
         val builder = Request.Builder().url(url)
             .header("authorization", "Bearer ${w.access}")
@@ -188,14 +206,28 @@ class SpotifyHttp(
         // Bytes keep the content type exactly as given (OkHttp appends a charset to String bodies,
         // which some Spotify endpoints reject with 400).
         builder.method(method, body?.toByteArray()?.toRequestBody(contentType.toMediaType()) ?: if (method == "GET" || method == "DELETE") null else ByteArray(0).toRequestBody(null))
-        val call = http.newCall(builder.build())
+        val call = credentialHttp.newCall(builder.build())
         // A read is given up with its caller (a timeout, a song skipped): a blocking execute ignores
         // the coroutine's cancellation, and a caller's 3 s timeout then lasted the client's 10 s
         // (log seen: an extension asked for a skipped-to song 10 s late, behind its ISRC lookup).
         // Writes still run to their end: a caller gone must not leave one half sent.
-        val result = if (method == "GET") call.executeCancellable() else withContext(Dispatchers.IO) { call.execute().use { it.code to it.body.string() } }
-        if (result.first == 401) lock.withLock { web = null }
+        val result = if (retrySafe) call.executeCancellable() else withContext(Dispatchers.IO) { call.execute().use { it.code to it.body.string() } }
+        if (result.first == 401) {
+            invalidate(w)
+            if (retrySafe && canRenew && account == deviceId) return sendAttempt(method, url, body, contentType, accept, retrySafe, canRenew = false)
+        }
         return result
+    }
+
+    private fun requireAccountTarget(url: String) {
+        val target = url.toHttpUrl()
+        require(target.username.isEmpty() && target.password.isEmpty() && rawTarget(target.scheme, target.host) == RawTarget.ACCOUNT) {
+            "not an HTTPS Spotify account address"
+        }
+    }
+
+    private suspend fun invalidate(rejected: WebToken) = lock.withLock {
+        if (web?.access == rejected.access) web = null
     }
 
     /** What [sendRaw] got back: the status, lower-case header names (values joined by ", "), the body text. */
@@ -207,16 +239,22 @@ class SpotifyHttp(
      * headers); `*.spotifycdn.com` (public files) gets none. Other hosts, plain http, and caller
      * headers that would replace the credentials are refused or dropped. No X-Requested-With.
      */
-    suspend fun sendRaw(method: String, url: String, body: ByteArray?, headers: Map<String, String>): RawResponse {
+    suspend fun sendRaw(method: String, url: String, body: ByteArray?, headers: Map<String, String>): RawResponse =
+        sendRawAttempt(method, url, body, headers, canRenew = true)
+
+    private suspend fun sendRawAttempt(method: String, url: String, body: ByteArray?, headers: Map<String, String>, canRenew: Boolean): RawResponse {
         val target = url.toHttpUrl()
+        val account = deviceId
+        require(target.username.isEmpty() && target.password.isEmpty()) { "credentials in address" }
         val kind = rawTarget(target.scheme, target.host) ?: throw IllegalArgumentException("not a Spotify address: ${target.host}")
         val m = method.uppercase()
         require(m in RAW_METHODS) { "method $method" }
         val extra = headers.filterKeys { it.lowercase() !in RAW_DROPPED }
         val contentType = extra.entries.firstOrNull { it.key.equals("content-type", true) }?.value ?: JSON_TYPE
         val builder = Request.Builder().url(target)
-        if (kind == RawTarget.ACCOUNT) {
-            val (w, c) = tokens()
+        val credentials = if (kind == RawTarget.ACCOUNT) tokens() else null
+        if (credentials != null) {
+            val (w, c) = credentials
             builder.header("authorization", "Bearer ${w.access}")
                 .header("client-token", c.value)
                 .header("app-platform", "WebPlayer")
@@ -230,13 +268,17 @@ class SpotifyHttp(
         val payload = body?.toRequestBody(contentType.toMediaType())
             ?: if (m == "GET" || m == "HEAD" || m == "DELETE") null else ByteArray(0).toRequestBody(null)
         builder.method(m, payload)
-        val result = withContext(Dispatchers.IO) {
-            http.newCall(builder.build()).execute().use { r ->
-                RawResponse(r.code, r.headers.names().associate { n -> n.lowercase() to r.headers.values(n).joinToString(", ") },
-                    if (m == "HEAD") "" else r.body.string())
-            }
+        val call = credentialHttp.newCall(builder.build())
+        val read: (okhttp3.Response) -> RawResponse = { r ->
+            RawResponse(r.code, r.headers.names().associate { n -> n.lowercase() to r.headers.values(n).joinToString(", ") },
+                if (m == "HEAD") "" else r.body.string())
         }
-        if (result.status == 401 && kind == RawTarget.ACCOUNT) lock.withLock { web = null }
+        val result = if (m in SAFE_METHODS) call.executeCancellable(read)
+            else withContext(Dispatchers.IO) { call.execute().use(read) }
+        if (result.status == 401 && credentials != null) {
+            invalidate(credentials.first)
+            if (m in SAFE_METHODS && canRenew && account == deviceId) return sendRawAttempt(method, url, body, headers, canRenew = false)
+        }
         return result
     }
 
@@ -244,9 +286,12 @@ class SpotifyHttp(
      * A protobuf call on a spclient service (the mobile client's friend feed): the account's
      * credentials and headers as in [send], bytes in and out. Returns the status and the body bytes.
      */
-    suspend fun sendProto(method: String, url: String, body: ByteArray?): Pair<Int, ByteArray> {
-        val host = url.toHttpUrl().host
-        require(host == "spotify.com" || host.endsWith(".spotify.com")) { "not a Spotify host: $host" }
+    suspend fun sendProto(method: String, url: String, body: ByteArray?): Pair<Int, ByteArray> =
+        sendProtoAttempt(method, url, body, canRenew = true)
+
+    private suspend fun sendProtoAttempt(method: String, url: String, body: ByteArray?, canRenew: Boolean): Pair<Int, ByteArray> {
+        requireAccountTarget(url)
+        val account = deviceId
         val (w, c) = tokens()
         val request = Request.Builder().url(url)
             .header("authorization", "Bearer ${w.access}")
@@ -260,8 +305,14 @@ class SpotifyHttp(
             .header("user-agent", browserUserAgent ?: USER_AGENT)
             .method(method, body?.toRequestBody("application/x-protobuf".toMediaType()) ?: if (method == "GET" || method == "DELETE") null else ByteArray(0).toRequestBody(null))
             .build()
-        val result = withContext(Dispatchers.IO) { http.newCall(request).execute().use { it.code to it.body.bytes() } }
-        if (result.first == 401) lock.withLock { web = null }
+        val call = credentialHttp.newCall(request)
+        val read: (okhttp3.Response) -> Pair<Int, ByteArray> = { it.code to it.body.bytes() }
+        val result = if (method in SAFE_METHODS) call.executeCancellable(read)
+            else withContext(Dispatchers.IO) { call.execute().use(read) }
+        if (result.first == 401) {
+            invalidate(w)
+            if (method in SAFE_METHODS && canRenew && account == deviceId) return sendProtoAttempt(method, url, body, canRenew = false)
+        }
         return result
     }
 
@@ -318,7 +369,8 @@ class SpotifyHttp(
             .header("accept", "application/json")
             .header("user-agent", browserUserAgent ?: USER_AGENT)
             .build()
-        val (code, text) = withContext(Dispatchers.IO) { http.newCall(request).execute().use { it.code to it.body.string() } }
+        val (code, text) = withContext(Dispatchers.IO) { credentialHttp.newCall(request).execute().use { it.code to it.body.string() } }
+        if (code != 200) throw GqlException("clienttoken", "HTTP $code")
         val granted = runCatching { Bridge.json.parseToJsonElement(text).jsonObject["granted_token"]?.jsonObject }.getOrNull()
             ?: throw GqlException("clienttoken", "HTTP $code: ${text.take(200)}")
         val seconds = (granted["expires_after_seconds"] as? JsonPrimitive)?.long ?: 86_400
@@ -330,6 +382,7 @@ class SpotifyHttp(
     enum class RawTarget { ACCOUNT, PUBLIC }
 
     companion object {
+        private val SAFE_METHODS = setOf("GET", "HEAD", "OPTIONS")
         private val RAW_METHODS = setOf("GET", "HEAD", "POST", "PUT", "PATCH", "DELETE")
         /** The credentials and what the transport sets itself: never taken from an extension. */
         private val RAW_DROPPED = setOf(
@@ -363,6 +416,14 @@ class SpotifyHttp(
 fun isMutation(name: String): Boolean =
     Regex("^(add|remove|move|update|delete|set|Set|create|follow|unfollow|pin|unpin|edit|save|ban|unban|clear)[A-Z]").containsMatchIn(name)
 
+private val replaySafeOperations: Set<String> by lazy {
+    val text = GqlOps::class.java.getResourceAsStream("/spotify/gql-ops.json")!!.bufferedReader().use { it.readText() }
+    Bridge.json.parseToJsonElement(text).jsonObject.getValue("operations").jsonObject
+        .filterValues { (it as? JsonObject)?.get("kind")?.jsonPrimitive?.contentOrNull == "query" }.keys
+}
+
+internal fun isReplaySafeRead(name: String): Boolean = name in replaySafeOperations && !isMutation(name)
+
 /**
  * Throws when [response] reports a failure: errors without data for a read, any error or
  * no data at all for a mutation, where partial data would otherwise pass for a success.
@@ -389,7 +450,7 @@ class HttpGql(private val http: SpotifyHttp, private val source: OpsSource, priv
     val fellBack = java.util.concurrent.atomic.AtomicInteger()
 
     override suspend fun query(name: String, variables: JsonObject): JsonElement =
-        query(name, variables, ops.hash(name), canRefresh = !isMutation(name))
+        query(name, variables, ops.hash(name), canRefresh = isReplaySafeRead(name))
 
     private suspend fun query(
         name: String, variables: JsonObject, hash: String, canRefresh: Boolean,
@@ -404,9 +465,10 @@ class HttpGql(private val http: SpotifyHttp, private val source: OpsSource, priv
                 }
             }
         }
-        val mutation = isMutation(name)
+        val mutation = !isReplaySafeRead(name)
         val (code, text) = try {
-            http.send("POST", "https://api-partner.spotify.com/pathfinder/v2/query", body.toString())
+            if (mutation) http.send("POST", "https://api-partner.spotify.com/pathfinder/v2/query", body.toString())
+            else http.sendRead("POST", "https://api-partner.spotify.com/pathfinder/v2/query", body.toString())
         } catch (e: kotlinx.coroutines.CancellationException) {
             throw e
         } catch (e: java.io.IOException) {
@@ -414,6 +476,7 @@ class HttpGql(private val http: SpotifyHttp, private val source: OpsSource, priv
             if (mutation) throw GqlException(name, "no answer: ${e.message}")
             fellBack.incrementAndGet(); return fallback.query(name, variables)
         } catch (e: Exception) {
+            if (mutation) throw e
             fellBack.incrementAndGet(); return fallback.query(name, variables)
         }
         val response = when (code) {
@@ -432,7 +495,7 @@ class HttpGql(private val http: SpotifyHttp, private val source: OpsSource, priv
         if (code == 429) throw GqlException(name, "HTTP 429")
         if (code != 200) {
             // A server error may come after the write was done; a refusal (4xx) was not applied.
-            if (mutation && code >= 500) throw GqlException(name, "HTTP $code")
+            if (mutation || code in 300..399 || code == 401 || code == 403) throw GqlException(name, "HTTP $code")
             fellBack.incrementAndGet(); return fallback.query(name, variables)
         }
         direct.incrementAndGet()
