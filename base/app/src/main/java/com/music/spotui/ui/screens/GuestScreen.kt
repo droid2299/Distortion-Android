@@ -39,13 +39,7 @@ fun GuestScreen(onLogin: () -> Unit) {
                     tabs.forEach { (route, title, icon) ->
                         NavigationBarItem(
                             selected = entry?.destination?.route == route,
-                            onClick = {
-                                nav.navigate(route) {
-                                    popUpTo(nav.graph.startDestinationId) { saveState = true }
-                                    launchSingleTop = true
-                                    restoreState = true
-                                }
-                            },
+                            onClick = { nav.openGuestTab(route) },
                             icon = { Icon(icon, contentDescription = null) },
                             label = { Text(stringResource(title)) },
                         )
@@ -55,7 +49,7 @@ fun GuestScreen(onLogin: () -> Unit) {
         }) { padding ->
             NavHost(nav, startDestination = "guest-home", modifier = Modifier.padding(padding)) {
                 composable("guest-home") {
-                    GuestHome(onLogin, { nav.navigate(Routes.LocalFiles.route) }, { nav.navigate(Routes.LiveRadio.route) })
+                    GuestHome(onLogin, { nav.openGuestTab(Routes.LocalFiles.route) }, { nav.openGuestTab(Routes.LiveRadio.route) })
                 }
                 composable(Routes.LocalFiles.route) { ImmersiveLocalFilesScreen(nav, allowPlaylistEdits = false) }
                 composable(Routes.LiveRadio.route) { com.music.spotui.radio.ui.ImmersiveLiveRadioScreen(nav) }
@@ -64,6 +58,13 @@ fun GuestScreen(onLogin: () -> Unit) {
             }
         }
         ImmersivePlayerOverlay(nav)
+    }
+}
+
+internal fun androidx.navigation.NavHostController.openGuestTab(route: String) {
+    navigate(route) {
+        popUpTo("guest-home")
+        launchSingleTop = true
     }
 }
 

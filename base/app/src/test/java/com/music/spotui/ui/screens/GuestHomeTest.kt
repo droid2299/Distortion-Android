@@ -2,6 +2,14 @@ package com.music.spotui.ui.screens
 
 import android.app.Application
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Button
+import androidx.compose.material3.Text
+import androidx.compose.foundation.layout.Column
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -34,6 +42,30 @@ class GuestHomeTest {
             assertEquals(1, local)
             assertEquals(1, radio)
             assertEquals(1, login)
+        }
+    }
+
+    @Test fun homeDoesNotRestoreTheRadioOrLocalPageItJustLeft() {
+        rule.setContent {
+            val nav = rememberNavController()
+            val entry by nav.currentBackStackEntryAsState()
+            Column {
+                Button(onClick = { nav.openGuestTab("guest-home") }) { Text("Home tab") }
+                Button(onClick = { nav.openGuestTab("localfiles") }) { Text("Local tab") }
+                Button(onClick = { nav.openGuestTab("liveradio") }) { Text("Radio tab") }
+                Text("Selected: ${entry?.destination?.route}")
+                NavHost(nav, startDestination = "guest-home") {
+                    composable("guest-home") { Text("Guest home content") }
+                    composable("localfiles") { Text("Local content") }
+                    composable("liveradio") { Text("Radio content") }
+                }
+            }
+        }
+        for (tab in listOf("Radio tab", "Local tab", "Radio tab")) {
+            rule.onNodeWithText(tab).performClick()
+            rule.onNodeWithText("Home tab").performClick()
+            rule.onNodeWithText("Selected: guest-home").assertExists()
+            rule.onNodeWithText("Guest home content").assertExists()
         }
     }
 }
