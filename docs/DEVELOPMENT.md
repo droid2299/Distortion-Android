@@ -40,10 +40,19 @@ The Spotify client keeps a table of operation hashes. It can refresh the table f
 Run the same unit-test tasks used by [Android CI](../.github/workflows/android.yml) from `base/`.
 
 ```sh
-./gradlew :app:testDebugUnitTest :host-android:testDebugUnitTest :extensions:test :api-spotify:test :host-cdp:test
+./gradlew :api:test :automix:test :app:testDebugUnitTest :host-android:testDebugUnitTest :extensions:test :api-spotify:test :host-cdp:test
 ```
 
 For a Spotify query or bridge change, run the focused GraphQL suite as needed.
+
+Build both variants before a feature is merged. The optimized test build uses the development package and needs no production signing secret. It checks R8 and resource shrinking; it is not a stable release.
+
+```sh
+./gradlew :app:assembleDebug
+./gradlew :app:assembleRelease -PoverDev -Pabis=arm64-v8a
+```
+
+Follow the [feature branch and review policy](../CONTRIBUTING.md#build-and-submit-a-change). Test the optimized APK on a device for changed user flows, not just the debug APK. Signed updates and data migration also need a release-candidate check before publication.
 
 ```sh
 ./gradlew :api-spotify:test --tests 'app.myspoti.spotify.gql.*'
