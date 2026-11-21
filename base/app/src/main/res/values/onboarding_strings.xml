@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="onboarding_brand" translatable="false">Distortion</string>
+    <string name="onboarding_title">Listen your way</string>
+    <string name="onboarding_intro">Start with local music and radio, or connect your Spotify account.</string>
+    <string name="onboarding_local_title">Music on your device</string>
+    <string name="onboarding_local_detail">Play your own audio files, including FLAC.</string>
+    <string name="onboarding_radio_title">Live radio</string>
+    <string name="onboarding_radio_detail">Find stations from around the world.</string>
+    <string name="onboarding_browse_title">Discover more</string>
+    <string name="onboarding_browse_detail">Browse songs, albums, artists and playlists.</string>
+</resources>

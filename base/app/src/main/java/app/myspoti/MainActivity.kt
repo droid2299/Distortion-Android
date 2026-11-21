@@ -662,23 +662,5 @@ private fun ConnectingScreen() {
 /** The sign-in page did not come (or the player did not start after it): what happened, and a way to go again. */
 @androidx.compose.runtime.Composable
 private fun LoginProblemScreen(onRetry: () -> Unit) {
-    Column(
-        Modifier.fillMaxSize().background(com.music.spotui.ui.theme.AppBackground).systemBarsPadding().padding(28.dp),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Text(stringResource(R.string.login_failed_title), color = com.music.spotui.ui.theme.AppText, fontFamily = com.music.spotui.ui.theme.AppSans,
-            fontWeight = FontWeight.Bold, fontSize = 20.sp, textAlign = TextAlign.Center)
-        Text(stringResource(R.string.login_failed_detail), color = com.music.spotui.ui.theme.AppText.copy(alpha = 0.6f), fontFamily = com.music.spotui.ui.theme.AppSans,
-            fontSize = 15.sp, lineHeight = 21.sp, textAlign = TextAlign.Center, modifier = Modifier.padding(top = 10.dp, bottom = 28.dp))
-        Box(
-            contentAlignment = Alignment.Center,
-            modifier = Modifier.fillMaxWidth().height(54.dp).clip(RoundedCornerShape(50))
-                .background(com.music.spotui.ui.theme.AppAccent).clickable(onClick = onRetry),
-        ) {
-            Text(stringResource(R.string.retry_button), color = Color.Black, fontFamily = com.music.spotui.ui.theme.AppSans,
-                fontWeight = FontWeight.Bold, fontSize = 17.sp)
-        }
-        com.music.spotui.ui.components.LoginReportLink(Modifier.padding(top = 12.dp))
-    }
+    com.music.spotui.ui.screens.WelcomeProblemScreen(onRetry)
 }
