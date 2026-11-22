@@ -50,6 +50,9 @@ import com.music.spotui.ui.immersive.components.ImmersiveSearchField
 import com.music.spotui.ui.immersive.components.SectionHeader
 import com.music.spotui.ui.immersive.Immersive
 import com.music.spotui.ui.immersive.shell.ImmersiveLargeTitle
+import com.music.spotui.ui.immersive.shell.ImmersiveTopBar
+import com.music.spotui.ui.immersive.shell.ImmersiveBarAction
+import com.music.spotui.ui.immersive.shell.immersiveTopContentPadding
 import androidx.compose.ui.text.style.TextOverflow
 import kotlinx.coroutines.launch
 
@@ -117,14 +120,11 @@ internal fun GuestLibrary(onLogin: () -> Unit, onLocal: () -> Unit, onExtensions
         creating = false
     }
     val playlists = com.music.spotui.data.local.LocalPlaylists.list().filter { it.name.contains(query, ignoreCase = true) }
-    LazyColumn(Modifier.fillMaxSize().background(Immersive.Page).statusBarsPadding(), state = listState, contentPadding = PaddingValues(bottom = 24.dp)) {
+    val libraryTitle = stringResource(R.string.immersive_library_title)
+    Box(Modifier.fillMaxSize().background(Immersive.Page)) {
+    LazyColumn(Modifier.fillMaxSize(), state = listState, contentPadding = PaddingValues(top = immersiveTopContentPadding(), bottom = 24.dp)) {
         item {
-            ImmersiveLargeTitle(stringResource(R.string.immersive_library_title), trailing = {
-                IconButton(onClick = { creating = true }) { Icon(Icons.Rounded.Add, stringResource(R.string.create_playlist_content_description)) }
-                IconButton(onClick = { searchActive = !searchActive; if (!searchActive) query = "" }) {
-                    Icon(Icons.Rounded.Search, stringResource(R.string.library_search_text_hint))
-                }
-            })
+            ImmersiveLargeTitle(libraryTitle)
             if (searchActive) ImmersiveSearchField(query = query, onQueryChange = { query = it }, onSubmit = {},
                 placeholder = stringResource(R.string.library_search_text_hint), modifier = Modifier.padding(horizontal = Immersive.Gutter))
             GuestLibraryCategory(Icons.Rounded.QueueMusic, R.string.guest_your_playlists) {
@@ -153,6 +153,14 @@ internal fun GuestLibrary(onLogin: () -> Unit, onLocal: () -> Unit, onExtensions
             }
         }
         item { TextButton(onClick = onLogin, modifier = Modifier.padding(horizontal = Immersive.Gutter, vertical = 16.dp)) { Text(stringResource(R.string.guest_connect)) } }
+    }
+    ImmersiveTopBar(libraryTitle, listState) {
+        ImmersiveBarAction(Icons.Rounded.Add, stringResource(R.string.create_playlist_content_description), onClick = { creating = true })
+        ImmersiveBarAction(Icons.Rounded.Search, stringResource(R.string.library_search_text_hint), onClick = {
+            searchActive = !searchActive
+            if (!searchActive) query = ""
+        })
+    }
     }
 }
 
