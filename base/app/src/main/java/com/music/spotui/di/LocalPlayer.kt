@@ -186,6 +186,9 @@ object LocalPlayer {
         override fun onTimelineChanged(timeline: androidx.media3.common.Timeline, reason: Int) = applyRepeat(p)
         override fun onIsPlayingChanged(isPlaying: Boolean) {
             log("isPlaying $isPlaying at ${p.currentPosition} ms")
+            if (isPlaying && com.music.spotui.data.GuestSession.active && exo === p) {
+                current()?.let(com.music.spotui.data.local.GuestListening::record)
+            }
             AdaptiveSetSession.playingChanged(isPlaying)
             if (isPlaying) errors.played()
             if (isPlaying) tick.run()
@@ -200,6 +203,9 @@ object LocalPlayer {
         // starts at once instead of waiting for the extension when this one ends.
         // The last one starting asks what goes on after it (see continueIfLast).
         override fun onMediaItemTransition(mediaItem: androidx.media3.common.MediaItem?, reason: Int) {
+            if (p.isPlaying && com.music.spotui.data.GuestSession.active && exo === p) {
+                current()?.let(com.music.spotui.data.local.GuestListening::record)
+            }
             // Anything but the transition the fade itself makes (a skip, a tap in the queue) ends the fade.
             if (!startingFade) endFade()
             planned = null; preparationFailures = 0; planningPair = null; segueWork = null

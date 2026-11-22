@@ -1,4 +1,7 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
+    <string name="guest_mix_description">A mix of music played on this device</string>
+    <string name="guest_play_mix">Play Your Mix</string>
+    <string name="guest_recently_played">Recently played</string>
     <string name="bottom_tab_new">New</string>
     <string name="bottom_tab_radio">Radio</string>
     <string name="immersive_library_title">Library</string>
