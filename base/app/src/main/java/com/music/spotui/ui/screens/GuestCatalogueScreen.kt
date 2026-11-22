@@ -35,6 +35,7 @@ import com.music.spotui.ui.immersive.components.ImmersiveSearchField
 import com.music.spotui.ui.immersive.screens.ImmersiveChip
 import com.music.spotui.ui.immersive.screens.ImmersiveChipRow
 import com.music.spotui.ui.immersive.Immersive
+import com.music.spotui.ui.immersive.shell.ImmersiveLargeTitle
 import kotlinx.coroutines.*
 
 private val CataloguePathSaver = listSaver<List<CatalogueEntry>, String>(
@@ -168,11 +169,13 @@ fun GuestCatalogueScreen(onLogin: () -> Unit, releases: Boolean = false) {
     }
 
     Column(Modifier.fillMaxSize().statusBarsPadding()) {
-        Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-            if (selected != null) IconButton(onClick = { path = path.dropLast(1) }) {
+        val pageTitle = stringResource(if (releases) R.string.bottom_tab_new else R.string.navigationbar_musicappitems_search_title)
+        if (selected == null) ImmersiveLargeTitle(pageTitle)
+        else Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+            IconButton(onClick = { path = path.dropLast(1) }) {
                 Icon(Icons.AutoMirrored.Rounded.ArrowBack, stringResource(R.string.catalogue_back))
             }
-            Text(stringResource(if (releases) R.string.bottom_tab_new else R.string.navigationbar_musicappitems_search_title), style = MaterialTheme.typography.headlineMedium, modifier = Modifier.weight(1f))
+            Text(pageTitle, style = MaterialTheme.typography.headlineMedium, modifier = Modifier.weight(1f))
         }
         if (session != null) key(session) {
             AndroidView(factory = { session.view }, modifier = Modifier.size(1.dp).alpha(0f), onReset = null, onRelease = { session.close() })

@@ -105,7 +105,7 @@ fun GuestScreen(onLogin: () -> Unit) {
 }
 
 @Composable
-private fun GuestLibrary(onLogin: () -> Unit, onLocal: () -> Unit, onExtensions: () -> Unit, onPlaylist: (String) -> Unit) {
+internal fun GuestLibrary(onLogin: () -> Unit, onLocal: () -> Unit, onExtensions: () -> Unit, onPlaylist: (String) -> Unit) {
     var creating by remember { mutableStateOf(false) }
     var searchActive by remember { mutableStateOf(false) }
     var query by remember { mutableStateOf("") }
@@ -128,13 +128,16 @@ private fun GuestLibrary(onLogin: () -> Unit, onLocal: () -> Unit, onExtensions:
             if (searchActive) ImmersiveSearchField(query = query, onQueryChange = { query = it }, onSubmit = {},
                 placeholder = stringResource(R.string.library_search_text_hint), modifier = Modifier.padding(horizontal = Immersive.Gutter))
             GuestLibraryCategory(Icons.Rounded.QueueMusic, R.string.guest_your_playlists) {
-                if (playlists.isEmpty()) creating = true else scope.launch { listState.animateScrollToItem(1) }
+                scope.launch { listState.animateScrollToItem(1) }
             }
             GuestLibraryCategory(Icons.Rounded.MusicNote, R.string.local_files_title, onLocal)
             GuestLibraryCategory(Icons.Rounded.Extension, R.string.extensions_title, onExtensions)
         }
-        if (playlists.isNotEmpty()) {
-            item { SectionHeader(stringResource(R.string.library_sort_recently_added)) }
+        item { SectionHeader(stringResource(R.string.library_sort_recently_added)) }
+        if (playlists.isEmpty()) {
+            item { Text(stringResource(if (query.isBlank()) R.string.guest_library_empty else R.string.catalogue_empty),
+                modifier = Modifier.padding(horizontal = Immersive.Gutter, vertical = 8.dp), style = MaterialTheme.typography.bodyMedium) }
+        } else {
             items(playlists.chunked(2), key = { it.first().id }) { row ->
                 Row(Modifier.fillMaxWidth().padding(horizontal = Immersive.Gutter, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     row.forEach { playlist ->
