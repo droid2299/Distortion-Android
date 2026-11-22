@@ -40,7 +40,8 @@ object GuestListening {
     internal fun encode(tracks: List<LocalTrack>): String = JSONArray().apply {
         tracks.take(LIMIT).forEach { t -> put(JSONObject().put("id", t.id).put("uri", t.uri.toString())
             .put("title", t.title).put("artist", t.artist).put("album", t.album)
-            .put("duration", t.durationMs).put("art", t.artUri.toString())) }
+            .put("duration", t.durationMs).put("art", t.artUri.toString())
+            .put("folder", t.folder).put("trackNo", t.trackNo).put("speech", t.speech)) }
     }.toString()
 
     internal fun decode(text: String): List<LocalTrack> = runCatching {
@@ -50,7 +51,8 @@ object GuestListening {
             val uri = Uri.parse(o.getString("uri"))
             if (!allowed(uri)) return@runCatching null
             LocalTrack(o.getLong("id"), uri, o.getString("title"), o.optString("artist"),
-                o.optString("album"), o.optLong("duration"), Uri.parse(o.optString("art")))
+                o.optString("album"), o.optLong("duration"), Uri.parse(o.optString("art")),
+                folder = o.optString("folder"), trackNo = o.optInt("trackNo"), speech = o.optBoolean("speech"))
         }.getOrNull() }
     }.getOrDefault(emptyList())
 }

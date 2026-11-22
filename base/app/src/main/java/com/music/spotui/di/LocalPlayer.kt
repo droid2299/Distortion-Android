@@ -1060,6 +1060,9 @@ object LocalPlayer {
         d.setAudioAttributes(audioAttributes, !mirrorActive); d.setHandleAudioBecomingNoisy(true)
         mainListener = listenerFor(d).also(d::addListener)
         exo = d
+        if (d.isPlaying && com.music.spotui.data.GuestSession.active) {
+            current()?.let(com.music.spotui.data.local.GuestListening::record)
+        }
         outgoing = a
         run.eqA = deckEq
         // A later plain plan still needs the main player's EQ.
