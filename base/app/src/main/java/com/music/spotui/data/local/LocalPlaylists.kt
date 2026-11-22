@@ -91,6 +91,18 @@ object LocalPlaylists {
     fun remove(id: String, key: String) =
         update { playlists[id]?.let { playlists[id] = it.copy(items = it.items.filterNot { i -> i.key == key }) } }
 
+    /** Moves one occurrence without affecting identical tracks elsewhere in the list. */
+    fun move(id: String, key: String, delta: Int) = update {
+        playlists[id]?.let { playlist ->
+            playlists[id] = playlist.copy(items = movePlaylistItem(playlist.items, key, delta))
+        }
+    }
+
+    /** Explicit user action: keeps the first occurrence of each source identity. */
+    fun removeDuplicates(id: String) = update {
+        playlists[id]?.let { playlist -> playlists[id] = playlist.copy(items = distinctPlaylistItems(playlist.items)) }
+    }
+
     fun addToSpotify(playlistId: String, track: LocalTrack) =
         update { additions[playlistId] = additions[playlistId].orEmpty() + LocalItem.of(track) }
 
@@ -142,4 +154,19 @@ object LocalPlaylists {
         val adds = o.optJSONObject("additions") ?: JSONObject()
         adds.keys().forEach { id -> items(adds.optJSONArray(id)).takeIf { it.isNotEmpty() }?.let { additions[id] = it } }
     }
+}
+
+internal fun movePlaylistItem(items: List<LocalItem>, key: String, delta: Int): List<LocalItem> {
+    if (delta != -1 && delta != 1) return items
+    val from = items.indexOfFirst { it.key == key }
+    val to = from + delta
+    if (from < 0 || to !in items.indices) return items
+    return items.toMutableList().apply { add(to, removeAt(from)) }
+}
+
+internal fun distinctPlaylistItems(items: List<LocalItem>): List<LocalItem> = items.distinctBy { item ->
+    val uri = Uri.parse(item.uri)
+    if (uri.scheme == "myspoti-ext" && uri.authority == "track" && !uri.lastPathSegment.isNullOrBlank())
+        "catalogue:${uri.lastPathSegment}"
+    else item.uri.ifBlank { "occurrence:${item.key}" }
 }
