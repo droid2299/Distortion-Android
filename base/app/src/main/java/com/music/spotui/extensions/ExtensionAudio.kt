@@ -295,7 +295,7 @@ object ExtensionAudio {
                         keep(picked.spotifyTrackId, s)
                         withContext(Dispatchers.Main) { com.music.spotui.di.SongPlayer.extensionAnsweredLate(picked.spotifyTrackId) }
                     }
-                } else app.myspoti.host.android.Logbook.log("audio: no extension had ${picked.title}: Spotify plays it")
+                } else app.myspoti.host.android.Logbook.log("audio: no extension had ${picked.title}${if (com.music.spotui.data.GuestSession.active) " in guest mode" else ": Spotify plays it"}")
                 return false
             }
             keep(picked.spotifyTrackId, first)
