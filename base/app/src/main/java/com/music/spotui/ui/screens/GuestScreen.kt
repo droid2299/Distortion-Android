@@ -10,6 +10,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.LibraryMusic
 import androidx.compose.material.icons.rounded.Radio
@@ -47,6 +48,7 @@ import com.music.spotui.ui.immersive.player.ImmersivePlayerOverlay
 import com.music.spotui.ui.navigation.Routes
 import com.music.spotui.data.local.GuestListening
 import com.music.spotui.data.local.GuestSavedLibrary
+import com.music.spotui.data.catalogue.CatalogueKind
 import com.music.spotui.ui.immersive.components.ImmersiveCover
 import com.music.spotui.ui.immersive.components.ImmersiveSearchField
 import com.music.spotui.ui.immersive.components.SectionHeader
@@ -93,7 +95,7 @@ fun GuestScreen(onLogin: () -> Unit) {
                 composable(Routes.LiveRadio.route) { com.music.spotui.radio.ui.ImmersiveLiveRadioScreen(nav) }
                 composable("guest-new") { GuestCatalogueScreen(onLogin, releases = true) }
                 composable("guest-library") { GuestLibrary(onLogin, { nav.navigate(Routes.LocalFiles.route) }, { nav.navigate(Routes.Extensions.route) }, { nav.navigate(com.music.spotui.ui.navigation.localPlaylistRoute(it)) }, { nav.navigate("guest-saved") }) }
-                composable("guest-saved") { GuestSavedScreen { uri -> nav.navigate("guest-saved-item/${android.net.Uri.encode(uri)}") } }
+                composable("guest-saved") { GuestSavedScreen(onBack = { nav.popBackStack() }) { uri -> nav.navigate("guest-saved-item/${android.net.Uri.encode(uri)}") } }
                 composable("guest-saved-item/{uri}") { entry ->
                     val saved by GuestSavedLibrary.store.entries.collectAsState()
                     val uri = entry.arguments?.getString("uri").orEmpty()
@@ -190,16 +192,34 @@ private fun GuestLibraryCategory(icon: androidx.compose.ui.graphics.vector.Image
 }
 
 @Composable
-private fun GuestSavedScreen(onOpen: (String) -> Unit) {
+private fun GuestSavedScreen(onBack: () -> Unit, onOpen: (String) -> Unit) {
     val entries by GuestSavedLibrary.store.entries.collectAsState()
     var loaded by remember { mutableStateOf(false) }
+    var kind by remember { mutableStateOf<CatalogueKind?>(null) }
+    val shown = if (kind == null) entries else entries.filter { it.kind == kind }
     LaunchedEffect(Unit) { GuestSavedLibrary.store.load(); loaded = true }
     LazyColumn(Modifier.fillMaxSize().statusBarsPadding(), contentPadding = PaddingValues(24.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        item { Text(stringResource(R.string.guest_saved_title), style = MaterialTheme.typography.headlineLarge) }
+        item { Row(verticalAlignment = Alignment.CenterVertically) {
+            IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Rounded.ArrowBack, stringResource(R.string.catalogue_back)) }
+            Text(stringResource(R.string.guest_saved_title), style = MaterialTheme.typography.headlineLarge)
+        } }
+        item { LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            item { FilterChip(selected = kind == null, onClick = { kind = null }, label = { Text(stringResource(R.string.guest_saved_all)) }) }
+            items(CatalogueKind.entries.size) { index ->
+                val candidate = CatalogueKind.entries[index]
+                val label = when (candidate) {
+                    CatalogueKind.TRACK -> R.string.catalogue_songs
+                    CatalogueKind.ALBUM -> R.string.catalogue_albums
+                    CatalogueKind.ARTIST -> R.string.catalogue_artists
+                    CatalogueKind.PLAYLIST -> R.string.catalogue_playlists
+                }
+                FilterChip(selected = kind == candidate, onClick = { kind = candidate }, label = { Text(stringResource(label)) })
+            }
+        } }
         if (!loaded) item { CircularProgressIndicator() }
-        else if (entries.isEmpty()) item { Text(stringResource(R.string.guest_saved_empty), style = MaterialTheme.typography.bodyLarge) }
-        else items(entries, key = { it.uri }) { entry -> CatalogueRow(entry) { onOpen(entry.uri) } }
+        else if (shown.isEmpty()) item { Text(stringResource(if (entries.isEmpty()) R.string.guest_saved_empty else R.string.guest_saved_filter_empty), style = MaterialTheme.typography.bodyLarge) }
+        else items(shown, key = { it.uri }) { entry -> CatalogueRow(entry) { onOpen(entry.uri) } }
     }
 }
 

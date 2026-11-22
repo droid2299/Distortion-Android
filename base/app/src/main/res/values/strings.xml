@@ -11,6 +11,8 @@
     <string name="guest_save">Save to this device</string>
     <string name="guest_remove_saved">Remove from saved</string>
     <string name="guest_save_failed">Could not update saved music. Please try again.</string>
+    <string name="guest_saved_all">All</string>
+    <string name="guest_saved_filter_empty">No saved items in this category.</string>
     <string name="guest_mix_description">A mix of music played on this device</string>
     <string name="guest_play_mix">Play Your Mix</string>
     <string name="guest_recently_played">Recently played</string>
