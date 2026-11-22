@@ -24,6 +24,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -45,6 +46,7 @@ import com.music.spotui.ui.immersive.player.ImmersiveMiniPlayer
 import com.music.spotui.ui.immersive.player.ImmersivePlayerOverlay
 import com.music.spotui.ui.navigation.Routes
 import com.music.spotui.data.local.GuestListening
+import com.music.spotui.data.local.GuestSavedLibrary
 import com.music.spotui.ui.immersive.components.ImmersiveCover
 import com.music.spotui.ui.immersive.components.ImmersiveSearchField
 import com.music.spotui.ui.immersive.components.SectionHeader
@@ -90,7 +92,16 @@ fun GuestScreen(onLogin: () -> Unit) {
                 composable(Routes.LocalFiles.route) { ImmersiveLocalFilesScreen(nav, allowPlaylistEdits = true) }
                 composable(Routes.LiveRadio.route) { com.music.spotui.radio.ui.ImmersiveLiveRadioScreen(nav) }
                 composable("guest-new") { GuestCatalogueScreen(onLogin, releases = true) }
-                composable("guest-library") { GuestLibrary(onLogin, { nav.navigate(Routes.LocalFiles.route) }, { nav.navigate(Routes.Extensions.route) }, { nav.navigate(com.music.spotui.ui.navigation.localPlaylistRoute(it)) }) }
+                composable("guest-library") { GuestLibrary(onLogin, { nav.navigate(Routes.LocalFiles.route) }, { nav.navigate(Routes.Extensions.route) }, { nav.navigate(com.music.spotui.ui.navigation.localPlaylistRoute(it)) }, { nav.navigate("guest-saved") }) }
+                composable("guest-saved") { GuestSavedScreen { uri -> nav.navigate("guest-saved-item/${android.net.Uri.encode(uri)}") } }
+                composable("guest-saved-item/{uri}") { entry ->
+                    val saved by GuestSavedLibrary.store.entries.collectAsState()
+                    val uri = entry.arguments?.getString("uri").orEmpty()
+                    var selected by remember(uri) { mutableStateOf(saved.firstOrNull { it.uri == uri }) }
+                    LaunchedEffect(uri) { GuestSavedLibrary.store.load() }
+                    LaunchedEffect(saved, uri) { if (selected == null) selected = saved.firstOrNull { it.uri == uri } }
+                    if (selected != null) GuestCatalogueScreen(onLogin, initialEntry = selected, onInitialBack = { nav.popBackStack() })
+                }
                 composable("${Routes.LocalPlaylist.route}/{id}") { entry ->
                     entry.arguments?.getString("id")?.let { com.music.spotui.ui.immersive.pages.ImmersiveLocalPlaylistScreen(nav, it) }
                 }
@@ -108,7 +119,7 @@ fun GuestScreen(onLogin: () -> Unit) {
 }
 
 @Composable
-internal fun GuestLibrary(onLogin: () -> Unit, onLocal: () -> Unit, onExtensions: () -> Unit, onPlaylist: (String) -> Unit) {
+internal fun GuestLibrary(onLogin: () -> Unit, onLocal: () -> Unit, onExtensions: () -> Unit, onPlaylist: (String) -> Unit, onSaved: () -> Unit = {}) {
     var creating by remember { mutableStateOf(false) }
     var searchActive by remember { mutableStateOf(false) }
     var query by remember { mutableStateOf("") }
@@ -130,6 +141,7 @@ internal fun GuestLibrary(onLogin: () -> Unit, onLocal: () -> Unit, onExtensions
             GuestLibraryCategory(Icons.Rounded.QueueMusic, R.string.guest_your_playlists) {
                 scope.launch { listState.animateScrollToItem(1) }
             }
+            GuestLibraryCategory(Icons.Rounded.LibraryMusic, R.string.guest_saved_title, onSaved)
             GuestLibraryCategory(Icons.Rounded.MusicNote, R.string.local_files_title, onLocal)
             GuestLibraryCategory(Icons.Rounded.Extension, R.string.extensions_title, onExtensions)
         }
@@ -149,6 +161,7 @@ internal fun GuestLibrary(onLogin: () -> Unit, onLocal: () -> Unit, onExtensions
                         }
                     }
                     if (row.size == 1) Spacer(Modifier.weight(1f))
+
                 }
             }
         }
@@ -173,6 +186,20 @@ private fun GuestLibraryCategory(icon: androidx.compose.ui.graphics.vector.Image
             Icon(Icons.Rounded.ChevronRight, null, modifier = Modifier.size(20.dp))
         }
         HorizontalDivider(Modifier.padding(start = 36.dp))
+    }
+}
+
+@Composable
+private fun GuestSavedScreen(onOpen: (String) -> Unit) {
+    val entries by GuestSavedLibrary.store.entries.collectAsState()
+    var loaded by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { GuestSavedLibrary.store.load(); loaded = true }
+    LazyColumn(Modifier.fillMaxSize().statusBarsPadding(), contentPadding = PaddingValues(24.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        item { Text(stringResource(R.string.guest_saved_title), style = MaterialTheme.typography.headlineLarge) }
+        if (!loaded) item { CircularProgressIndicator() }
+        else if (entries.isEmpty()) item { Text(stringResource(R.string.guest_saved_empty), style = MaterialTheme.typography.bodyLarge) }
+        else items(entries, key = { it.uri }) { entry -> CatalogueRow(entry) { onOpen(entry.uri) } }
     }
 }
 
