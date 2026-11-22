@@ -519,10 +519,11 @@ fun LocalPlaylistScreen(navController: NavController, id: String) {
 @Composable
 fun AddLocalToPlaylistSheet(track: LocalTrack, onDismiss: () -> Unit) {
     val context = LocalContext.current
-    var spotifyLists by remember { mutableStateOf(com.music.spotui.data.api.EditablePlaylists.cachedWithCovers()) }
+    val guest = com.music.spotui.data.GuestSession.active
+    var spotifyLists by remember(guest) { mutableStateOf(if (guest) emptyList() else com.music.spotui.data.api.EditablePlaylists.cachedWithCovers()) }
     var creating by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
-        spotifyLists = com.music.spotui.data.api.EditablePlaylists.loadWithCovers()
+        if (!guest) spotifyLists = com.music.spotui.data.api.EditablePlaylists.loadWithCovers()
     }
     fun added(name: String) {
         Toast.makeText(context, context.getString(R.string.local_added_to, name), Toast.LENGTH_SHORT).show()

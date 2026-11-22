@@ -16,6 +16,9 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -63,10 +66,13 @@ fun GuestScreen(onLogin: () -> Unit) {
                 composable("guest-home") {
                     GuestHome(onLogin, { nav.openGuestTab(Routes.LocalFiles.route) }, { nav.openGuestTab(Routes.LiveRadio.route) }, { nav.openGuestTab("guest-catalogue") })
                 }
-                composable(Routes.LocalFiles.route) { ImmersiveLocalFilesScreen(nav, allowPlaylistEdits = false) }
+                composable(Routes.LocalFiles.route) { ImmersiveLocalFilesScreen(nav, allowPlaylistEdits = true) }
                 composable(Routes.LiveRadio.route) { com.music.spotui.radio.ui.ImmersiveLiveRadioScreen(nav) }
                 composable("guest-new") { GuestCatalogueScreen(onLogin, releases = true) }
-                composable("guest-library") { GuestLibrary(onLogin, { nav.navigate(Routes.LocalFiles.route) }, { nav.navigate(Routes.Extensions.route) }) }
+                composable("guest-library") { GuestLibrary(onLogin, { nav.navigate(Routes.LocalFiles.route) }, { nav.navigate(Routes.Extensions.route) }, { nav.navigate(com.music.spotui.ui.navigation.localPlaylistRoute(it)) }) }
+                composable("${Routes.LocalPlaylist.route}/{id}") { entry ->
+                    entry.arguments?.getString("id")?.let { com.music.spotui.ui.immersive.pages.ImmersiveLocalPlaylistScreen(nav, it) }
+                }
                 composable("guest-catalogue") { GuestCatalogueScreen(onLogin) }
                 composable(Routes.Extensions.route) { com.music.spotui.ui.immersive.pages.ImmersiveExtensionsScreen(nav) }
                 composable("${Routes.Extension.route}/{id}") { com.music.spotui.ui.immersive.pages.ImmersiveExtensionScreen(nav, it.arguments?.getString("id").orEmpty()) }
@@ -81,11 +87,27 @@ fun GuestScreen(onLogin: () -> Unit) {
 }
 
 @Composable
-private fun GuestLibrary(onLogin: () -> Unit, onLocal: () -> Unit, onExtensions: () -> Unit) {
+private fun GuestLibrary(onLogin: () -> Unit, onLocal: () -> Unit, onExtensions: () -> Unit, onPlaylist: (String) -> Unit) {
+    var creating by remember { mutableStateOf(false) }
+    if (creating) NameDialog(stringResource(R.string.local_playlist_new), "", stringResource(R.string.create_playlist_create_button),
+        onDismiss = { creating = false }) { name ->
+        if (name.isNotBlank()) onPlaylist(com.music.spotui.data.local.LocalPlaylists.create(name).id)
+        creating = false
+    }
+    val playlists = com.music.spotui.data.local.LocalPlaylists.list()
     LazyColumn(Modifier.fillMaxSize().statusBarsPadding(), contentPadding = PaddingValues(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         item { Text(stringResource(R.string.immersive_library_title), style = MaterialTheme.typography.headlineLarge) }
         item { GuestCard(R.string.local_files_title, R.string.guest_local_description, onLocal) }
         item { GuestCard(R.string.extensions_title, R.string.guest_playback_description, onExtensions) }
+        item { FilledTonalButton(onClick = { creating = true }) { Text(stringResource(R.string.local_playlist_new)) } }
+        items(playlists, key = { it.id }) { playlist ->
+            Card(onClick = { onPlaylist(playlist.id) }, modifier = Modifier.fillMaxWidth()) {
+                Row(Modifier.padding(16.dp), horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                    ImmersiveCover(playlist.items.firstOrNull()?.artUri, Modifier.size(64.dp))
+                    Text(playlist.name, style = MaterialTheme.typography.titleMedium)
+                }
+            }
+        }
         item { Button(onClick = onLogin, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.guest_connect)) } }
     }
 }

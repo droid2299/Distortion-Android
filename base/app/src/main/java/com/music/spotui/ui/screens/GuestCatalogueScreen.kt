@@ -64,6 +64,8 @@ fun GuestCatalogueScreen(onLogin: () -> Unit, releases: Boolean = false) {
     var moreFailed by remember { mutableStateOf(false) }
     var moreJob by remember { mutableStateOf<Job?>(null) }
     var playJob by remember { mutableStateOf<Job?>(null) }
+    var addTrack by remember { mutableStateOf<com.music.spotui.data.local.LocalTrack?>(null) }
+    addTrack?.let { track -> AddLocalToPlaylistSheet(track) { addTrack = null } }
     val scope = rememberCoroutineScope()
     val selected = path.lastOrNull()
     val key = query.trim() to kind
@@ -209,6 +211,13 @@ fun GuestCatalogueScreen(onLogin: () -> Unit, releases: Boolean = false) {
                             Text(stringResource(R.string.guest_playback_description), style = MaterialTheme.typography.bodyMedium)
                             val playable = if (current.entry.kind == CatalogueKind.TRACK) listOf(current.entry) else current.sections.firstOrNull { it.kind == CatalogueSectionKind.SONGS }?.entries.orEmpty()
                             if (playable.isNotEmpty()) FilledTonalButton(onClick = { playTracks(playable, playable.first()) }) { Text(stringResource(R.string.guest_playback_extension)) }
+                            if (current.entry.kind == CatalogueKind.TRACK) {
+                                guestPlaybackSongs(listOf(current.entry)).firstOrNull()?.let { song ->
+                                    OutlinedButton(onClick = { addTrack = com.music.spotui.extensions.ExtensionAudio.localTrack(song) }) {
+                                        Text(stringResource(R.string.context_menu_add_to_playlist))
+                                    }
+                                }
+                            }
                             Button(onClick = onLogin) { Text(stringResource(R.string.guest_connect)) }
                         }
                     }
