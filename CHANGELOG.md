@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Account-free listeners can play public catalogue tracks through compatible audio extensions, manage extensions from Library, and navigate Home, New, Radio, Library and Search. Spotify sign-in remains available when extensions cannot provide a track.
+
 ## 1.1.0
 
 - Redesigned onboarding and sign-in error screens with Material 3 cards, system colors and standard buttons, with scrolling for small screens and large text.

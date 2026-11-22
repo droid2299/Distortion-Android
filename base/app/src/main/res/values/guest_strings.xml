@@ -2,7 +2,7 @@
 <resources>
     <string name="guest_continue">Continue without an account</string>
     <string name="guest_title">Your music, your way</string>
-    <string name="guest_description">Play device audio, explore live radio, or browse the public Spotify catalogue. Connect Spotify whenever you want your library and recommendations.</string>
+    <string name="guest_description">Play device audio, explore live radio, and listen through compatible audio extensions. Connect Spotify for your Spotify library and recommendations.</string>
     <string name="guest_local_description">Listen to music on this device, including FLAC files.</string>
     <string name="guest_radio_description">Explore internet stations. Browsing and playback use your connection.</string>
     <string name="guest_connect">Connect Spotify</string>
