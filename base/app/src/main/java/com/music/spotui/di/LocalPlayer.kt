@@ -241,6 +241,11 @@ object LocalPlayer {
                 }
                 return
             }
+            if (com.music.spotui.data.GuestSession.active) {
+                p.pause()
+                android.widget.Toast.makeText(Graph.app, app.myspoti.engine.R.string.guest_playback_sign_in, android.widget.Toast.LENGTH_LONG).show()
+                return
+            }
             if (SongPlayer.playUnavailableOnSpotify(t, p.currentPosition)) return
             when (errors.failed(item.toString(), p.hasNextMediaItem())) {
                 StreamErrors.Step.SKIP -> {

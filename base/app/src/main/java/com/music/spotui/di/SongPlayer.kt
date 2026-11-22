@@ -1310,10 +1310,7 @@ object SongPlayer {
         playLocalOnSpotify(t, positionMs, "not available from extensions")
 
     private fun playLocalOnSpotify(t: com.music.spotui.data.local.LocalTrack, positionMs: Long, why: String): Boolean {
-        if (com.music.spotui.data.GuestSession.active) {
-            android.widget.Toast.makeText(Graph.app, Graph.app.getString(app.myspoti.engine.R.string.guest_playback_sign_in), android.widget.Toast.LENGTH_LONG).show()
-            return false
-        }
+        if (com.music.spotui.data.GuestSession.active) return false
         val id = streamedTrackId(t)
         if (id.isBlank() || com.music.spotui.data.DataSaver.active) return false
         app.myspoti.host.android.Logbook.log("local: ${t.title} $why, Spotify plays it")
