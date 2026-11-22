@@ -1,4 +1,10 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
+    <string name="local_reorder">Reorder tracks</string>
+    <string name="local_finish_reordering">Done reordering</string>
+    <string name="local_move_up">Move %1$s up</string>
+    <string name="local_move_down">Move %1$s down</string>
+    <string name="local_remove_duplicates">Remove duplicates</string>
+    <string name="local_remove_duplicates_confirm">Keep the first copy of each track and remove later duplicates from this playlist?</string>
     <string name="guest_mix_description">A mix of music played on this device</string>
     <string name="guest_play_mix">Play Your Mix</string>
     <string name="guest_recently_played">Recently played</string>

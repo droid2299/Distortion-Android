@@ -2,6 +2,7 @@ package com.music.spotui.ui.immersive.pages
 
 import com.music.spotui.ui.immersive.sheets.ImmersiveAlertDialog
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -11,7 +12,12 @@ import androidx.compose.material.icons.automirrored.rounded.PlaylistAdd
 import androidx.compose.material.icons.rounded.DeleteOutline
 import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.MoreHoriz
+import androidx.compose.material.icons.rounded.KeyboardArrowUp
+import androidx.compose.material.icons.rounded.KeyboardArrowDown
+import androidx.compose.material.icons.rounded.PlaylistRemove
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
@@ -36,6 +42,7 @@ import com.music.spotui.data.api.SpotifySync
 import com.music.spotui.data.entity.LibraryEntry
 import com.music.spotui.data.local.LibraryOrder
 import com.music.spotui.data.local.LocalPlaylists
+import com.music.spotui.data.local.distinctPlaylistItems
 import com.music.spotui.di.Graph
 import com.music.spotui.di.LocalPlayer
 import com.music.spotui.di.SongPlayer
@@ -172,18 +179,31 @@ fun ImmersiveLocalPlaylistScreen(navController: NavController, id: String) {
     val playlist = LocalPlaylists.playlists[id]
     var menu by remember { mutableStateOf(false) }
     var renaming by remember { mutableStateOf(false) }
+    var reordering by remember { mutableStateOf(false) }
+    var removingDuplicates by remember { mutableStateOf(false) }
     if (playlist == null) {
         LaunchedEffect(Unit) { navController.navigateUp() }
         return
     }
     if (menu) ImmersiveSheet(onDismiss = { menu = false }) {
         ImmersiveSheetRow(Icons.Rounded.Edit, stringResource(R.string.local_rename), onClick = { menu = false; renaming = true })
+        ImmersiveSheetRow(Icons.Rounded.Edit, stringResource(if (reordering) R.string.local_finish_reordering else R.string.local_reorder), onClick = { menu = false; reordering = !reordering })
+        if (distinctPlaylistItems(playlist.items).size < playlist.items.size) {
+            ImmersiveSheetRow(Icons.Rounded.PlaylistRemove, stringResource(R.string.local_remove_duplicates), onClick = { menu = false; removingDuplicates = true })
+        }
         ImmersiveSheetRow(Icons.Rounded.DeleteOutline, stringResource(R.string.local_delete_playlist), destructive = true, onClick = {
             menu = false
             navController.navigateUp()
             LocalPlaylists.delete(id)
         })
     }
+    if (removingDuplicates) ImmersiveAlertDialog(
+        onDismissRequest = { removingDuplicates = false },
+        title = { Text(stringResource(R.string.local_remove_duplicates)) },
+        text = { Text(stringResource(R.string.local_remove_duplicates_confirm)) },
+        confirmButton = { TextButton(onClick = { LocalPlaylists.removeDuplicates(id); removingDuplicates = false }) { Text(stringResource(R.string.local_remove_duplicates)) } },
+        dismissButton = { TextButton(onClick = { removingDuplicates = false }) { Text(stringResource(R.string.cancel)) } },
+    )
     if (renaming) ImmersiveNameDialog(
         stringResource(R.string.local_rename), playlist.name, stringResource(R.string.local_rename),
         onDismiss = { renaming = false },
@@ -221,7 +241,7 @@ fun ImmersiveLocalPlaylistScreen(navController: NavController, id: String) {
         itemsIndexed(playlist.items, key = { _, item -> item.key }) { index, item ->
             val current = LocalPlayer.active.value && np.uri == "local:${tracks[index].id}"
             Column(Modifier.animateItem()) {
-                ImmersiveSwipeToRemove(item.key, onRemove = { LocalPlaylists.remove(id, item.key) }) {
+                val row: @Composable () -> Unit = {
                     ImmersiveListRow(
                         title = item.title,
                         subtitle = item.artist.ifBlank { null },
@@ -229,8 +249,19 @@ fun ImmersiveLocalPlaylistScreen(navController: NavController, id: String) {
                         round = false,
                         playing = current && SongPlayer.isPlaying(),
                         onClick = { LocalPlayer.play(tracks, index, context = playlist.name) },
+                        trailing = if (reordering) ({
+                            Row {
+                                IconButton(enabled = index > 0, onClick = { LocalPlaylists.move(id, item.key, -1) }) {
+                                    Icon(Icons.Rounded.KeyboardArrowUp, stringResource(R.string.local_move_up, item.title))
+                                }
+                                IconButton(enabled = index < playlist.items.lastIndex, onClick = { LocalPlaylists.move(id, item.key, 1) }) {
+                                    Icon(Icons.Rounded.KeyboardArrowDown, stringResource(R.string.local_move_down, item.title))
+                                }
+                            }
+                        }) else null,
                     )
                 }
+                if (reordering) row() else ImmersiveSwipeToRemove(item.key, onRemove = { LocalPlaylists.remove(id, item.key) }) { row() }
             }
         }
     }
