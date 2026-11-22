@@ -14,7 +14,7 @@ Account-free mode remembers your choice across restarts. Local audio requires th
 
 After you start playing songs without an account, Home builds **Your Mix**, recent plays and artist mixes from up to 50 tracks played on this device. These are local listening-history mixes, not Spotify recommendations. Create a device playlist in **Library**, or open a song in Search and choose **Add to playlist**. You can also add local files. Device playlists and guest history stay in the app's storage and do not sync to Spotify or other devices; uninstalling the app or clearing its data removes them. Extension tracks need a compatible enabled source when played again.
 
-In guest **Library**, use the plus button to create a playlist and the search button to find a device playlist. **Recently Added** shows your local playlists. In **Search**, enter a name and choose Songs, Albums, Artists or Playlists to narrow public catalogue results.
+In guest **Library**, use the plus button to create a playlist and the search button to find a device playlist. **Recently Added** shows your local playlists. In **Search**, choose Songs, Albums, Artists or Playlists and enter a name to browse public catalogue results.
 
 For Spotify sign-in, use email and enter the code Spotify sends you. Google sign-in can be rejected inside the embedded browser; signing into Chrome does not sign Distortion in.
 

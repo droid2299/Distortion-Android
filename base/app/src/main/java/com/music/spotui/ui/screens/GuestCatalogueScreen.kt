@@ -20,6 +20,7 @@ import androidx.compose.runtime.saveable.listSaver
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
@@ -50,6 +51,7 @@ private val CataloguePathSaver = listSaver<List<CatalogueEntry>, String>(
 fun GuestCatalogueScreen(onLogin: () -> Unit, releases: Boolean = false) {
     val context = LocalContext.current
     val keyboard = LocalSoftwareKeyboardController.current
+    val searchFocus = remember { FocusRequester() }
     var query by rememberSaveable { mutableStateOf("") }
     var category by rememberSaveable { mutableIntStateOf(if (releases) CatalogueKind.ALBUM.ordinal else 0) }
     var path by rememberSaveable(stateSaver = CataloguePathSaver) { mutableStateOf(emptyList<CatalogueEntry>()) }
@@ -184,6 +186,7 @@ fun GuestCatalogueScreen(onLogin: () -> Unit, releases: Boolean = false) {
             ImmersiveSearchField(
                 query = query, onQueryChange = { query = it.take(200) }, onSubmit = { keyboard?.hide() },
                 placeholder = stringResource(R.string.search_header_field_hint),
+                focusRequester = searchFocus,
                 modifier = Modifier.padding(horizontal = Immersive.Gutter),
             )
             if (query.isNotBlank()) ImmersiveChipRow {
@@ -199,7 +202,22 @@ fun GuestCatalogueScreen(onLogin: () -> Unit, releases: Boolean = false) {
                 Text(stringResource(R.string.catalogue_loading), Modifier.padding(top = 16.dp))
             }
             failed -> CatalogueMessage(R.string.catalogue_failed) { attempt++ }
-            selected == null && key.first.length < 2 -> Text(stringResource(R.string.catalogue_intro), Modifier.padding(24.dp), style = MaterialTheme.typography.bodyLarge)
+            selected == null && key.first.length < 2 -> Column(Modifier.padding(horizontal = Immersive.Gutter, vertical = 16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(stringResource(R.string.browse_all), style = MaterialTheme.typography.titleLarge)
+                Text(stringResource(R.string.catalogue_intro), style = MaterialTheme.typography.bodyMedium)
+                CatalogueKind.entries.chunked(2).forEach { row ->
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        row.forEach { entry ->
+                            ElevatedCard(onClick = { category = entry.ordinal; searchFocus.requestFocus(); keyboard?.show() }, modifier = Modifier.weight(1f)) {
+                                Box(Modifier.fillMaxWidth().height(90.dp).padding(16.dp), contentAlignment = Alignment.CenterStart) {
+                                    Text(catalogueKindLabel(entry), style = MaterialTheme.typography.titleMedium)
+                                }
+                            }
+                        }
+                        if (row.size == 1) Spacer(Modifier.weight(1f))
+                    }
+                }
+            }
             selected == null && page?.entries.isNullOrEmpty() -> Text(stringResource(R.string.catalogue_empty), Modifier.padding(24.dp))
             else -> LazyColumn(Modifier.weight(1f), contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 24.dp)) {
                 if (selected != null && detail != null) {
