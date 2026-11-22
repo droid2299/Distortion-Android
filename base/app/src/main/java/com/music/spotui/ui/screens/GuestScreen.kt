@@ -89,12 +89,12 @@ fun GuestScreen(onLogin: () -> Unit) {
                 }
                 composable(Routes.LocalFiles.route) { ImmersiveLocalFilesScreen(nav, allowPlaylistEdits = true) }
                 composable(Routes.LiveRadio.route) { com.music.spotui.radio.ui.ImmersiveLiveRadioScreen(nav) }
-                composable("guest-new") { GuestCatalogueScreen(onLogin, releases = true) }
+                composable("guest-new") { GuestCatalogueScreen(onLogin, releases = true, onExtensions = { nav.navigate(Routes.Extensions.route) }) }
                 composable("guest-library") { GuestLibrary(onLogin, { nav.navigate(Routes.LocalFiles.route) }, { nav.navigate(Routes.Extensions.route) }, { nav.navigate(com.music.spotui.ui.navigation.localPlaylistRoute(it)) }) }
                 composable("${Routes.LocalPlaylist.route}/{id}") { entry ->
                     entry.arguments?.getString("id")?.let { com.music.spotui.ui.immersive.pages.ImmersiveLocalPlaylistScreen(nav, it) }
                 }
-                composable("guest-catalogue") { GuestCatalogueScreen(onLogin) }
+                composable("guest-catalogue") { GuestCatalogueScreen(onLogin, onExtensions = { nav.navigate(Routes.Extensions.route) }) }
                 composable(Routes.Extensions.route) { com.music.spotui.ui.immersive.pages.ImmersiveExtensionsScreen(nav) }
                 composable("${Routes.Extension.route}/{id}") { com.music.spotui.ui.immersive.pages.ImmersiveExtensionScreen(nav, it.arguments?.getString("id").orEmpty()) }
                 composable("${Routes.ExtensionEntry.route}/{id}") { com.music.spotui.ui.immersive.pages.ImmersiveExtensionEntryScreen(nav, it.arguments?.getString("id").orEmpty()) }

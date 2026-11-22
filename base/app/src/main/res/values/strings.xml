@@ -4,6 +4,9 @@
     <string name="guest_recent_searches">Recent searches</string>
     <string name="guest_clear_searches">Clear</string>
     <string name="guest_remove_search">Remove search for %1$s</string>
+    <string name="guest_playback_no_source">No audio extension is enabled. Enable one or connect Spotify.</string>
+    <string name="guest_playback_offline">A network connection is unavailable or data saver is active. Check your connection and try again.</string>
+    <string name="guest_playback_source_unavailable">The available extensions could not play this track. Try again, check extensions, or connect Spotify.</string>
     <string name="guest_mix_description">A mix of music played on this device</string>
     <string name="guest_play_mix">Play Your Mix</string>
     <string name="guest_recently_played">Recently played</string>

@@ -59,7 +59,7 @@ private val CataloguePathSaver = listSaver<List<CatalogueEntry>, String>(
 )
 
 @Composable
-fun GuestCatalogueScreen(onLogin: () -> Unit, releases: Boolean = false) {
+fun GuestCatalogueScreen(onLogin: () -> Unit, releases: Boolean = false, onExtensions: () -> Unit = {}) {
     val context = LocalContext.current
     val keyboard = LocalSoftwareKeyboardController.current
     val searchFocus = remember { FocusRequester() }
@@ -90,6 +90,8 @@ fun GuestCatalogueScreen(onLogin: () -> Unit, releases: Boolean = false) {
     var moreFailed by remember { mutableStateOf(false) }
     var moreJob by remember { mutableStateOf<Job?>(null) }
     var playJob by remember { mutableStateOf<Job?>(null) }
+    var playbackFailure by remember { mutableStateOf<Pair<List<CatalogueEntry>, CatalogueEntry>?>(null) }
+    var failureReason by remember { mutableStateOf(GuestPlaybackIssue.SOURCE_UNAVAILABLE) }
     var addTrack by remember { mutableStateOf<com.music.spotui.data.local.LocalTrack?>(null) }
     addTrack?.let { track -> AddLocalToPlaylistSheet(track) { addTrack = null } }
     val scope = rememberCoroutineScope()
@@ -100,6 +102,7 @@ fun GuestCatalogueScreen(onLogin: () -> Unit, releases: Boolean = false) {
         val songs = guestPlaybackSongs(entries)
         val song = songs.firstOrNull { it.url == picked.uri } ?: return
         playJob?.cancel()
+        playbackFailure = null
         playJob = scope.launch {
             val played = try {
                 val metadata = try { withContext(Dispatchers.IO) { session?.catalog?.track(picked.uri) } }
@@ -116,12 +119,18 @@ fun GuestCatalogueScreen(onLogin: () -> Unit, releases: Boolean = false) {
                 com.music.spotui.extensions.ExtensionAudio.playList(queue, enriched, "", false, isLatest = { isActive })
             } catch (cancelled: CancellationException) { throw cancelled }
             catch (_: Exception) { false }
-            if (!played && isActive) android.widget.Toast.makeText(context, R.string.guest_playback_sign_in, android.widget.Toast.LENGTH_LONG).show()
+            if (!played && isActive) {
+                failureReason = guestPlaybackIssue(com.music.spotui.extensions.Extensions.hasAudioSource(), com.music.spotui.data.offline.OfflineStore.isOnline(context))
+                playbackFailure = entries to picked
+                android.widget.Toast.makeText(context, R.string.guest_playback_sign_in, android.widget.Toast.LENGTH_LONG).show()
+            }
         }
     }
 
     BackHandler(path.isNotEmpty()) { path = path.dropLast(1) }
     LaunchedEffect(key, path, session) {
+        playJob?.cancel()
+        playbackFailure = null
         moreJob?.cancel()
         loadingMore = false
         moreFailed = false
@@ -225,6 +234,22 @@ fun GuestCatalogueScreen(onLogin: () -> Unit, releases: Boolean = false) {
                 }
             }
         }
+        playbackFailure?.let { (entries, picked) ->
+            Card(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh)) {
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(stringResource(when (failureReason) {
+                        GuestPlaybackIssue.NO_SOURCE -> R.string.guest_playback_no_source
+                        GuestPlaybackIssue.OFFLINE -> R.string.guest_playback_offline
+                        GuestPlaybackIssue.SOURCE_UNAVAILABLE -> R.string.guest_playback_source_unavailable
+                    }), style = MaterialTheme.typography.bodyMedium)
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        TextButton(onClick = { playTracks(entries, picked) }) { Text(stringResource(R.string.catalogue_retry)) }
+                        TextButton(onClick = onExtensions) { Text(stringResource(R.string.guest_manage_extensions)) }
+                    }
+                    TextButton(onClick = onLogin) { Text(stringResource(R.string.guest_connect)) }
+                }
+            }
+        }
         when {
             session == null -> CatalogueMessage(if (creation.exceptionOrNull() is UnsupportedOperationException) R.string.catalogue_webview_required else R.string.catalogue_failed) { attempt++ }
             loading -> Column(Modifier.fillMaxWidth().padding(32.dp), horizontalAlignment = Alignment.CenterHorizontally) {
@@ -305,6 +330,15 @@ fun GuestCatalogueScreen(onLogin: () -> Unit, releases: Boolean = false) {
             }
         }
     }
+}
+
+internal enum class GuestPlaybackIssue { NO_SOURCE, OFFLINE, SOURCE_UNAVAILABLE }
+
+/** Do not infer the provider's precise failure from the boolean playback result. */
+internal fun guestPlaybackIssue(hasSource: Boolean, online: Boolean): GuestPlaybackIssue = when {
+    !hasSource -> GuestPlaybackIssue.NO_SOURCE
+    !online -> GuestPlaybackIssue.OFFLINE
+    else -> GuestPlaybackIssue.SOURCE_UNAVAILABLE
 }
 
 internal fun guestPlaybackSongs(entries: List<CatalogueEntry>): List<com.music.spotui.data.entity.SongsModel> {
