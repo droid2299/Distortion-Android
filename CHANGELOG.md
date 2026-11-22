@@ -4,6 +4,7 @@
 
 ## 1.1.0
 
+- Redesigned onboarding and sign-in error screens with Material 3 cards, system colors and standard buttons, with scrolling for small screens and large text.
 - Use **Continue without an account** for device audio, including FLAC, live radio and public Spotify catalogue browsing. The guest choice survives restarts, and Connect Spotify remains available for playback and private library features.
 - Search songs, albums, artists and public playlists without signing in. Open metadata pages, follow related artists and load more results. Browse uses an isolated anonymous browser profile and cannot modify your Spotify library or control its player.
 - Explore **Discovered On** playlists on artist pages. Discovery and related-artist sections have independent loading, retry and cache handling, and stale requests cannot replace a newer artist's results.
