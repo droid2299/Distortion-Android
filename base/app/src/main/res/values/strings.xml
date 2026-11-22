@@ -1,4 +1,11 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
+    <string name="guest_mix_description">A mix of music played on this device</string>
+    <string name="guest_play_mix">Play Your Mix</string>
+    <string name="guest_recently_played">Recently played</string>
+    <string name="guest_artist_mixes">Your artist mixes</string>
+    <string name="guest_artist_mix_description">From your listening</string>
+    <string name="guest_your_playlists">Your playlists</string>
+    <string name="guest_playlist_note">This playlist stays on this device.</string>
     <string name="bottom_tab_new">New</string>
     <string name="bottom_tab_radio">Radio</string>
     <string name="immersive_library_title">Library</string>

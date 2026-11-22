@@ -519,10 +519,11 @@ fun LocalPlaylistScreen(navController: NavController, id: String) {
 @Composable
 fun AddLocalToPlaylistSheet(track: LocalTrack, onDismiss: () -> Unit) {
     val context = LocalContext.current
-    var spotifyLists by remember { mutableStateOf(com.music.spotui.data.api.EditablePlaylists.cachedWithCovers()) }
+    val guest = com.music.spotui.data.GuestSession.active
+    var spotifyLists by remember(guest) { mutableStateOf(if (guest) emptyList() else com.music.spotui.data.api.EditablePlaylists.cachedWithCovers()) }
     var creating by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
-        spotifyLists = com.music.spotui.data.api.EditablePlaylists.loadWithCovers()
+        if (!guest) spotifyLists = com.music.spotui.data.api.EditablePlaylists.loadWithCovers()
     }
     fun added(name: String) {
         Toast.makeText(context, context.getString(R.string.local_added_to, name), Toast.LENGTH_SHORT).show()
@@ -542,7 +543,7 @@ fun AddLocalToPlaylistSheet(track: LocalTrack, onDismiss: () -> Unit) {
             item {
                 Text(stringResource(R.string.context_menu_add_to_playlist), color = AppText, fontSize = 20.sp, fontWeight = FontWeight.Bold,
                     modifier = Modifier.padding(20.dp, 4.dp, 20.dp, 4.dp))
-                Text(stringResource(R.string.local_add_note), color = AppMuted, fontSize = 12.sp,
+                Text(stringResource(if (guest) R.string.guest_playlist_note else R.string.local_add_note), color = AppMuted, fontSize = 12.sp,
                     modifier = Modifier.padding(20.dp, 0.dp, 20.dp, 8.dp))
                 SheetRow(Icons.AutoMirrored.Filled.PlaylistAdd, stringResource(R.string.add_to_playlist_new_playlist_button_text),
                     stringResource(R.string.local_playlist_subtitle)) { creating = true }
