@@ -31,6 +31,10 @@ import androidx.compose.ui.viewinterop.AndroidView
 import app.myspoti.engine.R
 import com.music.spotui.data.catalogue.*
 import com.music.spotui.ui.immersive.components.ImmersiveCover
+import com.music.spotui.ui.immersive.components.ImmersiveSearchField
+import com.music.spotui.ui.immersive.screens.ImmersiveChip
+import com.music.spotui.ui.immersive.screens.ImmersiveChipRow
+import com.music.spotui.ui.immersive.Immersive
 import kotlinx.coroutines.*
 
 private val CataloguePathSaver = listSaver<List<CatalogueEntry>, String>(
@@ -174,20 +178,14 @@ fun GuestCatalogueScreen(onLogin: () -> Unit, releases: Boolean = false) {
             AndroidView(factory = { session.view }, modifier = Modifier.size(1.dp).alpha(0f), onReset = null, onRelease = { session.close() })
         }
         if (selected == null) {
-            OutlinedTextField(
-                value = query, onValueChange = { query = it.take(200) },
-                label = { Text(stringResource(R.string.catalogue_hint)) }, singleLine = true,
-                leadingIcon = { Icon(Icons.Rounded.Search, null) },
-                trailingIcon = { if (query.isNotEmpty()) IconButton(onClick = { query = "" }) {
-                    Icon(Icons.Rounded.Close, stringResource(R.string.catalogue_clear))
-                } },
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                keyboardActions = KeyboardActions(onSearch = { keyboard?.hide() }),
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
+            ImmersiveSearchField(
+                query = query, onQueryChange = { query = it.take(200) }, onSubmit = { keyboard?.hide() },
+                placeholder = stringResource(R.string.search_header_field_hint),
+                modifier = Modifier.padding(horizontal = Immersive.Gutter),
             )
-            LazyRow(contentPadding = PaddingValues(horizontal = 20.dp, vertical = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                items(CatalogueKind.entries.size) { index ->
-                    FilterChip(selected = category == index, onClick = { category = index }, label = { Text(catalogueKindLabel(CatalogueKind.entries[index])) })
+            if (query.isNotBlank()) ImmersiveChipRow {
+                CatalogueKind.entries.forEachIndexed { index, entry ->
+                    ImmersiveChip(catalogueKindLabel(entry), selected = category == index) { category = index }
                 }
             }
         }

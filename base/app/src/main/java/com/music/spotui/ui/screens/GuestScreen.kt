@@ -3,8 +3,10 @@ package com.music.spotui.ui.screens
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.background
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.Icons
@@ -13,6 +15,11 @@ import androidx.compose.material.icons.rounded.LibraryMusic
 import androidx.compose.material.icons.rounded.Radio
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.GridView
+import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.ChevronRight
+import androidx.compose.material.icons.rounded.QueueMusic
+import androidx.compose.material.icons.rounded.MusicNote
+import androidx.compose.material.icons.rounded.Extension
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -20,6 +27,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -38,7 +46,12 @@ import com.music.spotui.ui.immersive.player.ImmersivePlayerOverlay
 import com.music.spotui.ui.navigation.Routes
 import com.music.spotui.data.local.GuestListening
 import com.music.spotui.ui.immersive.components.ImmersiveCover
+import com.music.spotui.ui.immersive.components.ImmersiveSearchField
+import com.music.spotui.ui.immersive.components.SectionHeader
+import com.music.spotui.ui.immersive.Immersive
+import com.music.spotui.ui.immersive.shell.ImmersiveLargeTitle
 import androidx.compose.ui.text.style.TextOverflow
+import kotlinx.coroutines.launch
 
 @Composable
 fun GuestScreen(onLogin: () -> Unit) {
@@ -94,26 +107,61 @@ fun GuestScreen(onLogin: () -> Unit) {
 @Composable
 private fun GuestLibrary(onLogin: () -> Unit, onLocal: () -> Unit, onExtensions: () -> Unit, onPlaylist: (String) -> Unit) {
     var creating by remember { mutableStateOf(false) }
+    var searchActive by remember { mutableStateOf(false) }
+    var query by remember { mutableStateOf("") }
+    val listState = rememberLazyListState()
+    val scope = rememberCoroutineScope()
     if (creating) NameDialog(stringResource(R.string.local_playlist_new), "", stringResource(R.string.create_playlist_create_button),
         onDismiss = { creating = false }) { name ->
         if (name.isNotBlank()) onPlaylist(com.music.spotui.data.local.LocalPlaylists.create(name).id)
         creating = false
     }
-    val playlists = com.music.spotui.data.local.LocalPlaylists.list()
-    LazyColumn(Modifier.fillMaxSize().statusBarsPadding(), contentPadding = PaddingValues(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        item { Text(stringResource(R.string.immersive_library_title), style = MaterialTheme.typography.headlineLarge) }
-        item { GuestCard(R.string.local_files_title, R.string.guest_local_description, onLocal) }
-        item { GuestCard(R.string.extensions_title, R.string.guest_playback_description, onExtensions) }
-        item { FilledTonalButton(onClick = { creating = true }) { Text(stringResource(R.string.local_playlist_new)) } }
-        items(playlists, key = { it.id }) { playlist ->
-            Card(onClick = { onPlaylist(playlist.id) }, modifier = Modifier.fillMaxWidth()) {
-                Row(Modifier.padding(16.dp), horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-                    ImmersiveCover(playlist.items.firstOrNull()?.artUri, Modifier.size(64.dp))
-                    Text(playlist.name, style = MaterialTheme.typography.titleMedium)
+    val playlists = com.music.spotui.data.local.LocalPlaylists.list().filter { it.name.contains(query, ignoreCase = true) }
+    LazyColumn(Modifier.fillMaxSize().background(Immersive.Page).statusBarsPadding(), state = listState, contentPadding = PaddingValues(bottom = 24.dp)) {
+        item {
+            ImmersiveLargeTitle(stringResource(R.string.immersive_library_title), trailing = {
+                IconButton(onClick = { creating = true }) { Icon(Icons.Rounded.Add, stringResource(R.string.create_playlist_content_description)) }
+                IconButton(onClick = { searchActive = !searchActive; if (!searchActive) query = "" }) {
+                    Icon(Icons.Rounded.Search, stringResource(R.string.library_search_text_hint))
+                }
+            })
+            if (searchActive) ImmersiveSearchField(query = query, onQueryChange = { query = it }, onSubmit = {},
+                placeholder = stringResource(R.string.library_search_text_hint), modifier = Modifier.padding(horizontal = Immersive.Gutter))
+            GuestLibraryCategory(Icons.Rounded.QueueMusic, R.string.guest_your_playlists) {
+                if (playlists.isEmpty()) creating = true else scope.launch { listState.animateScrollToItem(1) }
+            }
+            GuestLibraryCategory(Icons.Rounded.MusicNote, R.string.local_files_title, onLocal)
+            GuestLibraryCategory(Icons.Rounded.Extension, R.string.extensions_title, onExtensions)
+        }
+        if (playlists.isNotEmpty()) {
+            item { SectionHeader(stringResource(R.string.library_sort_recently_added)) }
+            items(playlists.chunked(2), key = { it.first().id }) { row ->
+                Row(Modifier.fillMaxWidth().padding(horizontal = Immersive.Gutter, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    row.forEach { playlist ->
+                        Column(Modifier.weight(1f).clickable { onPlaylist(playlist.id) }) {
+                            ImmersiveCover(playlist.items.firstOrNull()?.artUri, Modifier.fillMaxWidth().aspectRatio(1f))
+                            Text(playlist.name, style = MaterialTheme.typography.titleSmall, maxLines = 1,
+                                overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 6.dp))
+                            Text(stringResource(R.string.local_playlist_subtitle), style = MaterialTheme.typography.bodyMedium)
+                        }
+                    }
+                    if (row.size == 1) Spacer(Modifier.weight(1f))
                 }
             }
         }
-        item { Button(onClick = onLogin, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.guest_connect)) } }
+        item { TextButton(onClick = onLogin, modifier = Modifier.padding(horizontal = Immersive.Gutter, vertical = 16.dp)) { Text(stringResource(R.string.guest_connect)) } }
+    }
+}
+
+@Composable
+private fun GuestLibraryCategory(icon: androidx.compose.ui.graphics.vector.ImageVector, title: Int, onClick: () -> Unit) {
+    Column(Modifier.padding(horizontal = Immersive.Gutter)) {
+        Row(Modifier.fillMaxWidth().clickable(onClick = onClick).padding(vertical = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+            Icon(icon, null, modifier = Modifier.size(22.dp))
+            Text(stringResource(title), modifier = Modifier.weight(1f).padding(start = 14.dp), style = MaterialTheme.typography.bodyLarge)
+            Icon(Icons.Rounded.ChevronRight, null, modifier = Modifier.size(20.dp))
+        }
+        HorizontalDivider(Modifier.padding(start = 36.dp))
     }
 }
 
