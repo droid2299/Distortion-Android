@@ -89,7 +89,7 @@ fun GuestScreen(onLogin: () -> Unit) {
                 }
                 composable(Routes.LocalFiles.route) { ImmersiveLocalFilesScreen(nav, allowPlaylistEdits = true) }
                 composable(Routes.LiveRadio.route) { com.music.spotui.radio.ui.ImmersiveLiveRadioScreen(nav) }
-                composable("guest-new") { GuestCatalogueScreen(onLogin, releases = true) }
+                composable("guest-new") { GuestNewScreen(onLogin, onSearch = { nav.openGuestTab("guest-catalogue") }) }
                 composable("guest-library") { GuestLibrary(onLogin, { nav.navigate(Routes.LocalFiles.route) }, { nav.navigate(Routes.Extensions.route) }, { nav.navigate(com.music.spotui.ui.navigation.localPlaylistRoute(it)) }) }
                 composable("${Routes.LocalPlaylist.route}/{id}") { entry ->
                     entry.arguments?.getString("id")?.let { com.music.spotui.ui.immersive.pages.ImmersiveLocalPlaylistScreen(nav, it) }

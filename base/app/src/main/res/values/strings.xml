@@ -4,6 +4,11 @@
     <string name="guest_recent_searches">Recent searches</string>
     <string name="guest_clear_searches">Clear</string>
     <string name="guest_remove_search">Remove search for %1$s</string>
+
+    <string name="guest_new_empty">Play catalogue music to see recent releases from artists you listen to.</string>
+    <string name="guest_new_no_releases">No releases from the past year were found for your recent artists.</string>
+    <string name="guest_new_failed">Recent releases are temporarily unavailable.</string>
+    <string name="guest_new_from_listening">Recent releases from your listening</string>
     <string name="guest_mix_description">A mix of music played on this device</string>
     <string name="guest_play_mix">Play Your Mix</string>
     <string name="guest_recently_played">Recently played</string>
