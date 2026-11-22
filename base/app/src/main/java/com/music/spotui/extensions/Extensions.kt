@@ -948,10 +948,12 @@ object Extensions {
             Logbook.log("audio: audio sources not loaded yet, waited ${System.currentTimeMillis() - t0} ms${if (loaded) "" else " (still loading)"}")
         }
         // The same song as a download asks with: its ISRC, which an extension matches recordings by.
-        val withIsrc = withIsrc(track)
+        // Guest sessions have no signed-in Spotify metadata service. Let the
+        // extension decide whether its title/artist matching can handle that.
+        val withIsrc = if (com.music.spotui.data.GuestSession.active) track else withIsrc(track)
         // Without it the sources would say "not found" (they match by it): not a miss of the song,
         // nothing recorded, the caller falls back for now and the song is asked again later.
-        if (withIsrc.isrc.isNullOrBlank() && !app.myspoti.host.android.MyspotiRuntime.api.ready.value) {
+        if (!com.music.spotui.data.GuestSession.active && withIsrc.isrc.isNullOrBlank() && !app.myspoti.host.android.MyspotiRuntime.api.ready.value) {
             attempts.update(attempt) { it.copy(fallback = "Spotify: no ISRC yet (Spotify not ready)") }
             return null
         }
