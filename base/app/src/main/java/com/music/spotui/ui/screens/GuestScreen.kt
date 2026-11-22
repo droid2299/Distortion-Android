@@ -5,6 +5,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Home
@@ -22,6 +23,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.text.font.FontWeight
 import androidx.navigation.compose.*
 import app.myspoti.engine.R
 import com.music.spotui.di.LocalPlayer
@@ -129,7 +134,7 @@ internal fun GuestHome(onLogin: () -> Unit, onLocal: () -> Unit, onRadio: () -> 
         contentPadding = PaddingValues(24.dp),
         verticalArrangement = Arrangement.spacedBy(20.dp),
     ) {
-        item {
+        if (recent.isEmpty()) item {
             Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer), shape = MaterialTheme.shapes.extraLarge) {
                 Column(Modifier.fillMaxWidth().padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Icon(Icons.Rounded.LibraryMusic, contentDescription = null, modifier = Modifier.size(40.dp), tint = MaterialTheme.colorScheme.onPrimaryContainer)
@@ -140,18 +145,30 @@ internal fun GuestHome(onLogin: () -> Unit, onLocal: () -> Unit, onRadio: () -> 
         }
         if (recent.isNotEmpty()) {
             item {
-                ElevatedCard(onClick = { LocalPlayer.play(recent, 0, shuffle = true, context = mixTitle) },
-                    colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)) {
-                    Row(Modifier.fillMaxWidth().padding(20.dp), horizontalArrangement = Arrangement.spacedBy(16.dp),
-                        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-                        ImmersiveCover(recent.first().artUri.toString(), Modifier.size(88.dp))
-                        Column(Modifier.weight(1f)) {
-                            Text(mixTitle, style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.onPrimaryContainer)
-                            Text(stringResource(R.string.guest_mix_description), style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer)
+                BoxWithConstraints(Modifier.fillMaxWidth().padding(vertical = 16.dp)) {
+                    val heroWidth = minOf(maxWidth, 540.dp)
+                    Column(Modifier.width(heroWidth).align(Alignment.Center)) {
+                        Box(Modifier.fillMaxWidth().height(heroWidth * 0.60f)) {
+                            Column(Modifier.align(Alignment.CenterStart).fillMaxWidth(0.68f)) {
+                                Text(mixTitle, style = MaterialTheme.typography.displayLarge.copy(
+                                    fontSize = (heroWidth.value * 0.175f).coerceIn(38f, 84f).sp,
+                                    fontWeight = FontWeight.Bold))
+                                Text(stringResource(R.string.guest_mix_description), style = MaterialTheme.typography.titleSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                            FilledIconButton(onClick = { LocalPlayer.play(recent, 0, shuffle = true, context = mixTitle) },
+                                modifier = Modifier.align(Alignment.BottomEnd).size((heroWidth * 0.30f).coerceIn(72.dp, 118.dp))) {
+                                Icon(Icons.Rounded.PlayArrow, contentDescription = stringResource(R.string.guest_play_mix), modifier = Modifier.size(40.dp))
+                            }
                         }
-                        Icon(Icons.Rounded.PlayArrow, contentDescription = stringResource(R.string.guest_play_mix),
-                            tint = MaterialTheme.colorScheme.onPrimaryContainer, modifier = Modifier.size(40.dp))
+                        Box(Modifier.fillMaxWidth().padding(top = 28.dp).aspectRatio(1.48f)) {
+                            ImmersiveCover(recent.first().artUri.toString(), Modifier.align(Alignment.Center)
+                                .size(heroWidth * 0.48f, heroWidth * 0.70f).rotate(39f), shape = CircleShape, border = false)
+                            recent.getOrNull(1)?.let { track -> ImmersiveCover(track.artUri.toString(),
+                                Modifier.align(Alignment.TopStart).size(heroWidth * 0.23f), shape = CircleShape, border = false) }
+                            recent.getOrNull(2)?.let { track -> ImmersiveCover(track.artUri.toString(),
+                                Modifier.align(Alignment.BottomEnd).size(heroWidth * 0.23f), shape = CircleShape, border = false) }
+                        }
                     }
                 }
             }
