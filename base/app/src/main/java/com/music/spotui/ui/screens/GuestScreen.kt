@@ -64,7 +64,7 @@ fun GuestScreen(onLogin: () -> Unit) {
         }) { padding ->
             NavHost(nav, startDestination = "guest-home", modifier = Modifier.padding(padding)) {
                 composable("guest-home") {
-                    GuestHome(onLogin, { nav.openGuestTab(Routes.LocalFiles.route) }, { nav.openGuestTab(Routes.LiveRadio.route) }, { nav.openGuestTab("guest-catalogue") })
+                    GuestHome(onLogin, { nav.openGuestTab(Routes.LocalFiles.route) }, { nav.openGuestTab(Routes.LiveRadio.route) }, { nav.openGuestTab("guest-catalogue") }, { nav.navigate(com.music.spotui.ui.navigation.localPlaylistRoute(it)) })
                 }
                 composable(Routes.LocalFiles.route) { ImmersiveLocalFilesScreen(nav, allowPlaylistEdits = true) }
                 composable(Routes.LiveRadio.route) { com.music.spotui.radio.ui.ImmersiveLiveRadioScreen(nav) }
@@ -120,9 +120,10 @@ internal fun androidx.navigation.NavHostController.openGuestTab(route: String) {
 }
 
 @Composable
-internal fun GuestHome(onLogin: () -> Unit, onLocal: () -> Unit, onRadio: () -> Unit, onBrowse: () -> Unit = {}) {
+internal fun GuestHome(onLogin: () -> Unit, onLocal: () -> Unit, onRadio: () -> Unit, onBrowse: () -> Unit = {}, onPlaylist: (String) -> Unit = {}) {
     val recent by GuestListening.recent.collectAsState()
     val mixTitle = stringResource(R.string.home_your_mix)
+    val playlists = com.music.spotui.data.local.LocalPlaylists.list()
     LazyColumn(
         modifier = Modifier.fillMaxSize().statusBarsPadding(),
         contentPadding = PaddingValues(24.dp),
@@ -166,6 +167,36 @@ internal fun GuestHome(onLogin: () -> Unit, onLocal: () -> Unit, onRadio: () -> 
                                 Text(track.title, style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                 Text(track.artist, style = MaterialTheme.typography.bodyMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
                             }
+                        }
+                    }
+                }
+            }
+            val artists = recent.filter { it.artist.isNotBlank() }.groupBy { it.artist }
+            if (artists.isNotEmpty()) item {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(stringResource(R.string.guest_artist_mixes), style = MaterialTheme.typography.titleLarge)
+                    LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        items(artists.entries.toList(), key = { it.key }) { (artist, tracks) ->
+                            ElevatedCard(onClick = { LocalPlayer.play(tracks, 0, shuffle = true, context = artist) }, modifier = Modifier.width(160.dp)) {
+                                Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    ImmersiveCover(tracks.first().artUri.toString(), Modifier.size(136.dp))
+                                    Text(artist, style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                    Text(stringResource(R.string.guest_artist_mix_description), style = MaterialTheme.typography.bodySmall)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        if (playlists.isNotEmpty()) item {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(stringResource(R.string.guest_your_playlists), style = MaterialTheme.typography.titleLarge)
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    items(playlists, key = { it.id }) { playlist ->
+                        Column(Modifier.width(136.dp).clickable { onPlaylist(playlist.id) }, verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            ImmersiveCover(playlist.items.firstOrNull()?.artUri, Modifier.size(136.dp))
+                            Text(playlist.name, style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         }
                     }
                 }
