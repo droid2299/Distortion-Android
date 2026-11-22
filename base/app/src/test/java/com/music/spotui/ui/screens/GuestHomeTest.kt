@@ -41,8 +41,10 @@ class GuestHomeTest {
         }
         rule.onNode(hasScrollToIndexAction()).performScrollToNode(hasText("Listen to music on this device, including FLAC files."))
         rule.onNodeWithText("Listen to music on this device, including FLAC files.").performClick()
-        rule.onNodeWithText("Explore internet stations. Browsing and playback use your connection.").performScrollTo().performClick()
-        rule.onNodeWithText("Discover songs, albums, artists and public playlists without signing in.").performScrollTo().performClick()
+        rule.onNode(hasScrollToIndexAction()).performScrollToNode(hasText("Explore internet stations. Browsing and playback use your connection."))
+        rule.onNodeWithText("Explore internet stations. Browsing and playback use your connection.").performClick()
+        rule.onNode(hasScrollToIndexAction()).performScrollToNode(hasText("Discover songs, albums, artists and public playlists without signing in."))
+        rule.onNodeWithText("Discover songs, albums, artists and public playlists without signing in.").performClick()
         // The final item can be outside LazyColumn's composition on small screens.
         rule.onNode(hasScrollToIndexAction()).performScrollToNode(hasText("Connect Spotify"))
         rule.onNodeWithText("Connect Spotify").performClick()

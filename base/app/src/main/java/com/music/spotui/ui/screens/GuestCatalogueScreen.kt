@@ -74,7 +74,9 @@ fun GuestCatalogueScreen(onLogin: () -> Unit, releases: Boolean = false) {
         playJob?.cancel()
         playJob = scope.launch {
             val played = try {
-                val metadata = withContext(Dispatchers.IO) { session?.catalog?.track(picked.uri) }
+                val metadata = try { withContext(Dispatchers.IO) { session?.catalog?.track(picked.uri) } }
+                    catch (cancelled: CancellationException) { throw cancelled }
+                    catch (_: Exception) { null }
                 ensureActive()
                 val enriched = if (metadata == null) song else song.copy(
                     album = metadata.album?.name.orEmpty(),
