@@ -1,7 +1,15 @@
 package com.music.spotui.ui.screens
 
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import android.app.Activity
+import android.content.ActivityNotFoundException
+import android.content.Intent
+import android.speech.RecognizerIntent
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -14,6 +22,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Search
+import androidx.compose.material.icons.rounded.Mic
+import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.listSaver
@@ -31,6 +41,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import app.myspoti.engine.R
 import com.music.spotui.data.catalogue.*
+import com.music.spotui.data.local.GuestSearchHistory
 import com.music.spotui.ui.immersive.components.ImmersiveCover
 import com.music.spotui.ui.immersive.components.ImmersiveSearchField
 import com.music.spotui.ui.immersive.screens.ImmersiveChip
@@ -53,6 +64,14 @@ fun GuestCatalogueScreen(onLogin: () -> Unit, releases: Boolean = false) {
     val keyboard = LocalSoftwareKeyboardController.current
     val searchFocus = remember { FocusRequester() }
     var query by rememberSaveable { mutableStateOf("") }
+    val history = remember(context) { GuestSearchHistory(context) }
+    var recentQueries by remember { mutableStateOf(history.read()) }
+    val voice = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            val recognized = result.data?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)?.firstOrNull().orEmpty().take(200)
+            if (recognized.isNotBlank()) { query = recognized; recentQueries = history.add(recognized) }
+        }
+    }
     var category by rememberSaveable { mutableIntStateOf(if (releases) CatalogueKind.ALBUM.ordinal else 0) }
     var path by rememberSaveable(stateSaver = CataloguePathSaver) { mutableStateOf(emptyList<CatalogueEntry>()) }
     var attempt by remember { mutableIntStateOf(0) }
@@ -183,12 +202,23 @@ fun GuestCatalogueScreen(onLogin: () -> Unit, releases: Boolean = false) {
             AndroidView(factory = { session.view }, modifier = Modifier.size(1.dp).alpha(0f), onReset = null, onRelease = { session.close() })
         }
         if (selected == null) {
-            ImmersiveSearchField(
-                query = query, onQueryChange = { query = it.take(200) }, onSubmit = { keyboard?.hide() },
-                placeholder = stringResource(R.string.search_header_field_hint),
-                focusRequester = searchFocus,
-                modifier = Modifier.padding(horizontal = Immersive.Gutter),
-            )
+            Row(Modifier.fillMaxWidth().padding(horizontal = Immersive.Gutter), verticalAlignment = Alignment.CenterVertically) {
+                ImmersiveSearchField(
+                    query = query, onQueryChange = { query = it.take(200) },
+                    onSubmit = { recentQueries = history.add(query); keyboard?.hide() },
+                    placeholder = stringResource(R.string.search_header_field_hint),
+                    focusRequester = searchFocus, modifier = Modifier.weight(1f),
+                )
+                IconButton(onClick = {
+                    try {
+                        voice.launch(Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM))
+                    } catch (_: ActivityNotFoundException) {
+                        android.widget.Toast.makeText(context, R.string.guest_voice_unavailable, android.widget.Toast.LENGTH_SHORT).show()
+                    } catch (_: SecurityException) {
+                        android.widget.Toast.makeText(context, R.string.guest_voice_unavailable, android.widget.Toast.LENGTH_SHORT).show()
+                    }
+                }) { Icon(Icons.Rounded.Mic, stringResource(R.string.guest_voice_search)) }
+            }
             if (query.isNotBlank()) ImmersiveChipRow {
                 CatalogueKind.entries.forEachIndexed { index, entry ->
                     ImmersiveChip(catalogueKindLabel(entry), selected = category == index) { category = index }
@@ -202,7 +232,22 @@ fun GuestCatalogueScreen(onLogin: () -> Unit, releases: Boolean = false) {
                 Text(stringResource(R.string.catalogue_loading), Modifier.padding(top = 16.dp))
             }
             failed -> CatalogueMessage(R.string.catalogue_failed) { attempt++ }
-            selected == null && key.first.length < 2 -> Column(Modifier.padding(horizontal = Immersive.Gutter, vertical = 16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            selected == null && key.first.length < 2 -> Column(
+                Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = Immersive.Gutter, vertical = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                if (recentQueries.isNotEmpty()) {
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Text(stringResource(R.string.guest_recent_searches), Modifier.weight(1f), style = MaterialTheme.typography.titleMedium)
+                        TextButton(onClick = { recentQueries = history.clear() }) { Text(stringResource(R.string.guest_clear_searches)) }
+                    }
+                    recentQueries.forEach { term ->
+                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                            Text(term, Modifier.weight(1f).clickable { query = term; recentQueries = history.add(term); keyboard?.hide() }.padding(vertical = 12.dp), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            IconButton(onClick = { recentQueries = history.remove(term) }) { Icon(Icons.Rounded.Delete, stringResource(R.string.guest_remove_search, term)) }
+                        }
+                    }
+                }
                 Text(stringResource(R.string.browse_all), style = MaterialTheme.typography.titleLarge)
                 Text(stringResource(R.string.catalogue_intro), style = MaterialTheme.typography.bodyMedium)
                 CatalogueKind.entries.chunked(2).forEach { row ->
@@ -248,7 +293,7 @@ fun GuestCatalogueScreen(onLogin: () -> Unit, releases: Boolean = false) {
                     }
                 } else {
                     itemsIndexed(page.orEmptyEntries(), key = { _, entry -> entry.uri }) { _, entry ->
-                        CatalogueRow(entry) { keyboard?.hide(); path = listOf(entry) }
+                        CatalogueRow(entry) { recentQueries = history.add(query); keyboard?.hide(); path = listOf(entry) }
                     }
                 }
                 val next = if (selected == null) page?.nextOffset else detail?.nextOffset
