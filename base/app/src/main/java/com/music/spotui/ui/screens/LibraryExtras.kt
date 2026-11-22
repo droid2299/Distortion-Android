@@ -543,7 +543,7 @@ fun AddLocalToPlaylistSheet(track: LocalTrack, onDismiss: () -> Unit) {
             item {
                 Text(stringResource(R.string.context_menu_add_to_playlist), color = AppText, fontSize = 20.sp, fontWeight = FontWeight.Bold,
                     modifier = Modifier.padding(20.dp, 4.dp, 20.dp, 4.dp))
-                Text(stringResource(R.string.local_add_note), color = AppMuted, fontSize = 12.sp,
+                Text(stringResource(if (guest) R.string.guest_playlist_note else R.string.local_add_note), color = AppMuted, fontSize = 12.sp,
                     modifier = Modifier.padding(20.dp, 0.dp, 20.dp, 8.dp))
                 SheetRow(Icons.AutoMirrored.Filled.PlaylistAdd, stringResource(R.string.add_to_playlist_new_playlist_button_text),
                     stringResource(R.string.local_playlist_subtitle)) { creating = true }
