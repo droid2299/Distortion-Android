@@ -201,7 +201,7 @@ fun GuestCatalogueScreen(onLogin: () -> Unit, releases: Boolean = false) {
             failed -> CatalogueMessage(R.string.catalogue_failed) { attempt++ }
             selected == null && key.first.length < 2 -> Text(stringResource(R.string.catalogue_intro), Modifier.padding(24.dp), style = MaterialTheme.typography.bodyLarge)
             selected == null && page?.entries.isNullOrEmpty() -> Text(stringResource(R.string.catalogue_empty), Modifier.padding(24.dp))
-            else -> LazyColumn(Modifier.weight(1f), contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 24.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            else -> LazyColumn(Modifier.weight(1f), contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 24.dp)) {
                 if (selected != null && detail != null) {
                     val current = checkNotNull(detail)
                     item(key = "hero") {
@@ -270,7 +270,7 @@ internal fun CatalogueRow(entry: CatalogueEntry, onClick: () -> Unit) {
         headlineContent = { Text(entry.title, maxLines = 2, overflow = TextOverflow.Ellipsis) },
         supportingContent = { Text(entry.subtitle.ifBlank { catalogueKindLabel(entry.kind) }, maxLines = 1, overflow = TextOverflow.Ellipsis) },
         leadingContent = { ImmersiveCover(entry.image, Modifier.size(56.dp), shape = if (entry.kind == CatalogueKind.ARTIST) CircleShape else RoundedCornerShape(12.dp)) },
-        colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+        colors = ListItemDefaults.colors(containerColor = Immersive.Page),
         modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
     )
 }
