@@ -39,6 +39,7 @@ class GuestHomeTest {
         rule.setContent {
             MaterialTheme { GuestHome({ login++ }, { local++ }, { radio++ }, { browse++ }) }
         }
+        rule.onNode(hasScrollToIndexAction()).performScrollToNode(hasText("Listen to music on this device, including FLAC files."))
         rule.onNodeWithText("Listen to music on this device, including FLAC files.").performClick()
         rule.onNodeWithText("Explore internet stations. Browsing and playback use your connection.").performScrollTo().performClick()
         rule.onNodeWithText("Discover songs, albums, artists and public playlists without signing in.").performScrollTo().performClick()

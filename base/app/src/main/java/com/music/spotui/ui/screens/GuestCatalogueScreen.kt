@@ -74,7 +74,16 @@ fun GuestCatalogueScreen(onLogin: () -> Unit, releases: Boolean = false) {
         playJob?.cancel()
         playJob = scope.launch {
             val played = try {
-                com.music.spotui.extensions.ExtensionAudio.playList(songs, song, "", false, isLatest = { isActive })
+                val metadata = withContext(Dispatchers.IO) { session?.catalog?.track(picked.uri) }
+                ensureActive()
+                val enriched = if (metadata == null) song else song.copy(
+                    album = metadata.album?.name.orEmpty(),
+                    durationMs = metadata.durationMs.coerceIn(0, Int.MAX_VALUE.toLong()).toInt(),
+                    explicit = metadata.explicit,
+                    albumId = metadata.album?.uri?.substringAfterLast(':').orEmpty(),
+                )
+                val queue = songs.map { if (it.url == enriched.url) enriched else it }
+                com.music.spotui.extensions.ExtensionAudio.playList(queue, enriched, "", false, isLatest = { isActive })
             } catch (cancelled: CancellationException) { throw cancelled }
             catch (_: Exception) { false }
             if (!played && isActive) android.widget.Toast.makeText(context, R.string.guest_playback_sign_in, android.widget.Toast.LENGTH_LONG).show()
