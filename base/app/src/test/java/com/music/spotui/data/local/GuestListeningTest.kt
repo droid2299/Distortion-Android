@@ -5,8 +5,10 @@ import org.junit.Assert.*
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
+@Config(manifest = Config.NONE, sdk = [34], application = android.app.Application::class)
 class GuestListeningTest {
     private fun track(uri: String) = LocalTrack(1, Uri.parse(uri), "Song", "Artist", "Album", 1234, Uri.parse("https://example.org/art"))
 
