@@ -262,7 +262,7 @@ object ExtensionAudio {
     ): Boolean {
         if (picked.spotifyTrackId.isBlank() || !Extensions.hasAudioSource()) return false
         // Another Spotify Connect device plays: the song goes there, played by Spotify.
-        if (com.music.spotui.di.SongPlayer.activeDevice.value != null) return false
+        if (!com.music.spotui.data.GuestSession.active && com.music.spotui.di.SongPlayer.activeDevice.value != null) return false
         // A song asked ahead (the next one of the queue) is not asked again: the extension would
         // take a second ask for a refused address and resolve it anew.
         // A downloaded song plays from its file whatever the extensions have: asked first, a miss (after
@@ -287,7 +287,7 @@ object ExtensionAudio {
             val first = try {
                 cached ?: withTimeoutOrNull(Extensions.PICK_AUDIO_MS + 1_000) { ask!!.await() }
             } finally { picking.decrementAndGet() } ?: run {
-                if (ask != null && !ask.isCompleted) {
+                if (!com.music.spotui.data.GuestSession.active && ask != null && !ask.isCompleted) {
                     app.myspoti.host.android.Logbook.log("audio: no extension audio for ${picked.title} within ${(Extensions.PICK_AUDIO_MS + 1_000) / 1000} s: Spotify plays it, the extension's answer is still awaited")
                     awaited.add(picked.spotifyTrackId)
                     late.launch {
@@ -310,7 +310,7 @@ object ExtensionAudio {
         val tracks = withContext(Dispatchers.Default) { list.map(::localTrack) }
         return withContext(Dispatchers.Main) {
             isLatest().also {
-                if (it) LocalPlayer.play(tracks, at, shuffle = shuffle, context = context, contextUri = contextUri, startMs = startMs, continues = true)
+                if (it) LocalPlayer.play(tracks, at, shuffle = shuffle, context = context, contextUri = contextUri, startMs = startMs, continues = !com.music.spotui.data.GuestSession.active)
                 else app.myspoti.host.android.Logbook.log("audio: ${picked.title} answered after a newer pick, not played")
             }
         }

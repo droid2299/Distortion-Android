@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="guest_playback_sign_in">This track is unavailable from your extensions. Connect Spotify to play it.</string>
+    <string name="guest_playback_extension">Play with an audio extension</string>
+    <string name="guest_manage_extensions">Manage extensions</string>
+    <string name="guest_playback_description">Play with an enabled audio extension, or connect Spotify for Spotify playback.</string>
+</resources>

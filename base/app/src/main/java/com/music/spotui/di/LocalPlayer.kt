@@ -455,7 +455,7 @@ object LocalPlayer {
         val isStation = list.singleOrNull()?.isRadio == true
         radioRetries = 0; handler.removeCallbacks(radioSteady)
         // Spotify's queued songs (the account's: maybe queued on another device or install) play first.
-        val (all, fromSpotify) = if (isStation || adaptiveSet) list to emptyList<LocalTrack>() else QueueSync.withSpotifyQueue(list, index.coerceIn(0, list.lastIndex))
+        val (all, fromSpotify) = if (isStation || adaptiveSet || com.music.spotui.data.GuestSession.active) list to emptyList<LocalTrack>() else QueueSync.withSpotifyQueue(list, index.coerceIn(0, list.lastIndex))
         tracks.clear(); tracks.addAll(all); unshuffled = null
         // An index kept from fading belonged to the list before: this one fades from its first song.
         noFadeFor = -1

@@ -42,11 +42,11 @@ private val CataloguePathSaver = listSaver<List<CatalogueEntry>, String>(
 )
 
 @Composable
-fun GuestCatalogueScreen(onLogin: () -> Unit) {
+fun GuestCatalogueScreen(onLogin: () -> Unit, releases: Boolean = false) {
     val context = LocalContext.current
     val keyboard = LocalSoftwareKeyboardController.current
     var query by rememberSaveable { mutableStateOf("") }
-    var category by rememberSaveable { mutableIntStateOf(0) }
+    var category by rememberSaveable { mutableIntStateOf(if (releases) CatalogueKind.ALBUM.ordinal else 0) }
     var path by rememberSaveable(stateSaver = CataloguePathSaver) { mutableStateOf(emptyList<CatalogueEntry>()) }
     var attempt by remember { mutableIntStateOf(0) }
     val kind = CatalogueKind.entries[category.coerceIn(CatalogueKind.entries.indices)]
@@ -63,9 +63,23 @@ fun GuestCatalogueScreen(onLogin: () -> Unit) {
     var loadingMore by remember { mutableStateOf(false) }
     var moreFailed by remember { mutableStateOf(false) }
     var moreJob by remember { mutableStateOf<Job?>(null) }
+    var playJob by remember { mutableStateOf<Job?>(null) }
     val scope = rememberCoroutineScope()
     val selected = path.lastOrNull()
     val key = query.trim() to kind
+
+    fun playTracks(entries: List<CatalogueEntry>, picked: CatalogueEntry) {
+        val songs = guestPlaybackSongs(entries)
+        val song = songs.firstOrNull { it.url == picked.uri } ?: return
+        playJob?.cancel()
+        playJob = scope.launch {
+            val played = try {
+                com.music.spotui.extensions.ExtensionAudio.playList(songs, song, "", false, isLatest = { isActive })
+            } catch (cancelled: CancellationException) { throw cancelled }
+            catch (_: Exception) { false }
+            if (!played && isActive) android.widget.Toast.makeText(context, R.string.guest_playback_sign_in, android.widget.Toast.LENGTH_LONG).show()
+        }
+    }
 
     BackHandler(path.isNotEmpty()) { path = path.dropLast(1) }
     LaunchedEffect(key, path, session) {
@@ -141,7 +155,7 @@ fun GuestCatalogueScreen(onLogin: () -> Unit) {
             if (selected != null) IconButton(onClick = { path = path.dropLast(1) }) {
                 Icon(Icons.AutoMirrored.Rounded.ArrowBack, stringResource(R.string.catalogue_back))
             }
-            Text(stringResource(R.string.catalogue_title), style = MaterialTheme.typography.headlineMedium, modifier = Modifier.weight(1f))
+            Text(stringResource(if (releases) R.string.bottom_tab_new else R.string.navigationbar_musicappitems_search_title), style = MaterialTheme.typography.headlineMedium, modifier = Modifier.weight(1f))
         }
         if (session != null) key(session) {
             AndroidView(factory = { session.view }, modifier = Modifier.size(1.dp).alpha(0f), onReset = null, onRelease = { session.close() })
@@ -181,14 +195,16 @@ fun GuestCatalogueScreen(onLogin: () -> Unit) {
                             ImmersiveCover(current.entry.image, Modifier.size(180.dp), shape = if (current.entry.kind == CatalogueKind.ARTIST) CircleShape else RoundedCornerShape(24.dp))
                             Text(current.entry.title, style = MaterialTheme.typography.headlineMedium)
                             if (current.entry.subtitle.isNotBlank()) Text(current.entry.subtitle, style = MaterialTheme.typography.bodyLarge)
-                            Text(stringResource(R.string.catalogue_playback_detail), style = MaterialTheme.typography.bodyMedium)
+                            Text(stringResource(R.string.guest_playback_description), style = MaterialTheme.typography.bodyMedium)
+                            val playable = if (current.entry.kind == CatalogueKind.TRACK) listOf(current.entry) else current.sections.firstOrNull { it.kind == CatalogueSectionKind.SONGS }?.entries.orEmpty()
+                            if (playable.isNotEmpty()) FilledTonalButton(onClick = { playTracks(playable, playable.first()) }) { Text(stringResource(R.string.guest_playback_extension)) }
                             Button(onClick = onLogin) { Text(stringResource(R.string.guest_connect)) }
                         }
                     }
                     current.sections.filter { it.entries.isNotEmpty() }.forEach { section ->
                         item(key = "section-${section.kind}") { Text(catalogueSectionLabel(section.kind), Modifier.padding(horizontal = 8.dp, vertical = 12.dp), style = MaterialTheme.typography.titleLarge) }
                         itemsIndexed(section.entries, key = { index, entry -> "${section.kind}:${entry.uri}:$index" }) { _, entry ->
-                            CatalogueRow(entry) { keyboard?.hide(); path = (path + entry).takeLast(20) }
+                            CatalogueRow(entry) { keyboard?.hide(); if (entry.kind == CatalogueKind.TRACK) playTracks(section.entries, entry) else path = (path + entry).takeLast(20) }
                         }
                     }
                 } else {
@@ -204,6 +220,16 @@ fun GuestCatalogueScreen(onLogin: () -> Unit) {
                 }
             }
         }
+    }
+}
+
+internal fun guestPlaybackSongs(entries: List<CatalogueEntry>): List<com.music.spotui.data.entity.SongsModel> {
+    val validTrack = Regex("spotify:track:[A-Za-z0-9]{22}")
+    return entries.filter { it.kind == CatalogueKind.TRACK && validTrack.matches(it.uri) }.map { entry ->
+        com.music.spotui.data.entity.SongsModel(
+            id = 0, title = entry.title, album = "", singer = entry.subtitle,
+            coverUri = entry.image, url = entry.uri, spotifyTrackId = entry.uri.substringAfterLast(':'),
+        )
     }
 }
 
