@@ -20,6 +20,7 @@ import androidx.compose.runtime.saveable.listSaver
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
@@ -31,6 +32,11 @@ import androidx.compose.ui.viewinterop.AndroidView
 import app.myspoti.engine.R
 import com.music.spotui.data.catalogue.*
 import com.music.spotui.ui.immersive.components.ImmersiveCover
+import com.music.spotui.ui.immersive.components.ImmersiveSearchField
+import com.music.spotui.ui.immersive.screens.ImmersiveChip
+import com.music.spotui.ui.immersive.screens.ImmersiveChipRow
+import com.music.spotui.ui.immersive.Immersive
+import com.music.spotui.ui.immersive.shell.ImmersiveLargeTitle
 import kotlinx.coroutines.*
 
 private val CataloguePathSaver = listSaver<List<CatalogueEntry>, String>(
@@ -45,6 +51,7 @@ private val CataloguePathSaver = listSaver<List<CatalogueEntry>, String>(
 fun GuestCatalogueScreen(onLogin: () -> Unit, releases: Boolean = false) {
     val context = LocalContext.current
     val keyboard = LocalSoftwareKeyboardController.current
+    val searchFocus = remember { FocusRequester() }
     var query by rememberSaveable { mutableStateOf("") }
     var category by rememberSaveable { mutableIntStateOf(if (releases) CatalogueKind.ALBUM.ordinal else 0) }
     var path by rememberSaveable(stateSaver = CataloguePathSaver) { mutableStateOf(emptyList<CatalogueEntry>()) }
@@ -164,30 +171,27 @@ fun GuestCatalogueScreen(onLogin: () -> Unit, releases: Boolean = false) {
     }
 
     Column(Modifier.fillMaxSize().statusBarsPadding()) {
-        Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-            if (selected != null) IconButton(onClick = { path = path.dropLast(1) }) {
+        val pageTitle = stringResource(if (releases) R.string.bottom_tab_new else R.string.navigationbar_musicappitems_search_title)
+        if (selected == null) ImmersiveLargeTitle(pageTitle)
+        else Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+            IconButton(onClick = { path = path.dropLast(1) }) {
                 Icon(Icons.AutoMirrored.Rounded.ArrowBack, stringResource(R.string.catalogue_back))
             }
-            Text(stringResource(if (releases) R.string.bottom_tab_new else R.string.navigationbar_musicappitems_search_title), style = MaterialTheme.typography.headlineMedium, modifier = Modifier.weight(1f))
+            Text(pageTitle, style = MaterialTheme.typography.headlineMedium, modifier = Modifier.weight(1f))
         }
         if (session != null) key(session) {
             AndroidView(factory = { session.view }, modifier = Modifier.size(1.dp).alpha(0f), onReset = null, onRelease = { session.close() })
         }
         if (selected == null) {
-            OutlinedTextField(
-                value = query, onValueChange = { query = it.take(200) },
-                label = { Text(stringResource(R.string.catalogue_hint)) }, singleLine = true,
-                leadingIcon = { Icon(Icons.Rounded.Search, null) },
-                trailingIcon = { if (query.isNotEmpty()) IconButton(onClick = { query = "" }) {
-                    Icon(Icons.Rounded.Close, stringResource(R.string.catalogue_clear))
-                } },
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                keyboardActions = KeyboardActions(onSearch = { keyboard?.hide() }),
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
+            ImmersiveSearchField(
+                query = query, onQueryChange = { query = it.take(200) }, onSubmit = { keyboard?.hide() },
+                placeholder = stringResource(R.string.search_header_field_hint),
+                focusRequester = searchFocus,
+                modifier = Modifier.padding(horizontal = Immersive.Gutter),
             )
-            LazyRow(contentPadding = PaddingValues(horizontal = 20.dp, vertical = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                items(CatalogueKind.entries.size) { index ->
-                    FilterChip(selected = category == index, onClick = { category = index }, label = { Text(catalogueKindLabel(CatalogueKind.entries[index])) })
+            if (query.isNotBlank()) ImmersiveChipRow {
+                CatalogueKind.entries.forEachIndexed { index, entry ->
+                    ImmersiveChip(catalogueKindLabel(entry), selected = category == index) { category = index }
                 }
             }
         }
@@ -198,9 +202,24 @@ fun GuestCatalogueScreen(onLogin: () -> Unit, releases: Boolean = false) {
                 Text(stringResource(R.string.catalogue_loading), Modifier.padding(top = 16.dp))
             }
             failed -> CatalogueMessage(R.string.catalogue_failed) { attempt++ }
-            selected == null && key.first.length < 2 -> Text(stringResource(R.string.catalogue_intro), Modifier.padding(24.dp), style = MaterialTheme.typography.bodyLarge)
+            selected == null && key.first.length < 2 -> Column(Modifier.padding(horizontal = Immersive.Gutter, vertical = 16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(stringResource(R.string.browse_all), style = MaterialTheme.typography.titleLarge)
+                Text(stringResource(R.string.catalogue_intro), style = MaterialTheme.typography.bodyMedium)
+                CatalogueKind.entries.chunked(2).forEach { row ->
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        row.forEach { entry ->
+                            ElevatedCard(onClick = { category = entry.ordinal; searchFocus.requestFocus(); keyboard?.show() }, modifier = Modifier.weight(1f)) {
+                                Box(Modifier.fillMaxWidth().height(90.dp).padding(16.dp), contentAlignment = Alignment.CenterStart) {
+                                    Text(catalogueKindLabel(entry), style = MaterialTheme.typography.titleMedium)
+                                }
+                            }
+                        }
+                        if (row.size == 1) Spacer(Modifier.weight(1f))
+                    }
+                }
+            }
             selected == null && page?.entries.isNullOrEmpty() -> Text(stringResource(R.string.catalogue_empty), Modifier.padding(24.dp))
-            else -> LazyColumn(Modifier.weight(1f), contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 24.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            else -> LazyColumn(Modifier.weight(1f), contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 24.dp)) {
                 if (selected != null && detail != null) {
                     val current = checkNotNull(detail)
                     item(key = "hero") {
@@ -269,7 +288,7 @@ internal fun CatalogueRow(entry: CatalogueEntry, onClick: () -> Unit) {
         headlineContent = { Text(entry.title, maxLines = 2, overflow = TextOverflow.Ellipsis) },
         supportingContent = { Text(entry.subtitle.ifBlank { catalogueKindLabel(entry.kind) }, maxLines = 1, overflow = TextOverflow.Ellipsis) },
         leadingContent = { ImmersiveCover(entry.image, Modifier.size(56.dp), shape = if (entry.kind == CatalogueKind.ARTIST) CircleShape else RoundedCornerShape(12.dp)) },
-        colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+        colors = ListItemDefaults.colors(containerColor = Immersive.Page),
         modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
     )
 }

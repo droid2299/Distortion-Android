@@ -6,6 +6,7 @@
     <string name="guest_artist_mix_description">From your listening</string>
     <string name="guest_your_playlists">Your playlists</string>
     <string name="guest_playlist_note">This playlist stays on this device.</string>
+    <string name="guest_library_empty">Your playlists on this device will appear here.</string>
     <string name="bottom_tab_new">New</string>
     <string name="bottom_tab_radio">Radio</string>
     <string name="immersive_library_title">Library</string>
