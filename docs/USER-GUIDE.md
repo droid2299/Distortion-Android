@@ -18,6 +18,8 @@ In guest **Library**, use the plus button to create a playlist and the search bu
 
 Guest searches are kept on this device, separate from Spotify search history. Remove individual terms or use **Clear** on the Search screen. The microphone opens your device's speech-recognition app, if one is available; that app processes the spoken query under its own privacy settings.
 
+The guest **New** tab checks public discographies for up to three artists from your recent catalogue tracks and shows releases dated within the past year. It needs a connection and is a limited view, not Spotify's personalized release feed. Local files without catalogue identifiers do not supply artist lookups.
+
 For Spotify sign-in, use email and enter the code Spotify sends you. Google sign-in can be rejected inside the embedded browser; signing into Chrome does not sign Distortion in.
 
 For an existing public installation, open **Settings → App** (or **About** in Classic) and tap the refresh icon next to the version or open the new APK directly. Keep the app installed while applying the update to retain its settings and stored data. If you are moving from the earlier Distortion **2.4.1** build to the **1.x** series, download the APK manually once. The older updater sees the 1.x version name as earlier.
