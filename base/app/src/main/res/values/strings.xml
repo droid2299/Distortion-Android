@@ -1,4 +1,9 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
+    <string name="guest_voice_search">Voice search</string>
+    <string name="guest_voice_unavailable">Voice search is not available on this device.</string>
+    <string name="guest_recent_searches">Recent searches</string>
+    <string name="guest_clear_searches">Clear</string>
+    <string name="guest_remove_search">Remove search for %1$s</string>
     <string name="guest_mix_description">A mix of music played on this device</string>
     <string name="guest_play_mix">Play Your Mix</string>
     <string name="guest_recently_played">Recently played</string>
