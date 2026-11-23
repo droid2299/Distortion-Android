@@ -38,15 +38,17 @@ object ListenHistory {
 
     const val MIN_PLAYED_MS = 30_000L
     private var file: File? = null
+    private var guestFile: File? = null
     private val lock = Any()
 
     fun init(context: Context) {
         file = File(context.filesDir, "listen_history.jsonl")
+        guestFile = File(context.filesDir, "guest_listen_history.jsonl")
     }
 
-    fun record(listen: Listen) {
+    fun record(listen: Listen, guest: Boolean = false) {
         if (listen.playedMs < MIN_PLAYED_MS || listen.title.isBlank()) return
-        val f = file ?: return
+        val f = (if (guest) guestFile else file) ?: return
         val line = JSONObject()
             .put("at", listen.atMs).put("key", listen.key).put("title", listen.title).put("artist", listen.artist)
             .put("album", listen.album).put("cover", listen.cover).put("ms", listen.playedMs).put("src", listen.source.name)
@@ -54,7 +56,7 @@ object ListenHistory {
             .toString()
         synchronized(lock) {
             f.appendText(line + "\n")
-            loaded?.let { loaded = it + listen }
+            if (!guest) loaded?.let { loaded = it + listen }
         }
     }
 
@@ -64,6 +66,17 @@ object ListenHistory {
     fun all(): List<Listen> = synchronized(lock) {
         loaded?.let { return it }
         val f = file?.takeIf { it.exists() } ?: return emptyList()
+        val list = read(f)
+        loaded = list
+        list
+    }
+
+    /** Guest analytics are separate from account history and are never claimed by Spotify. */
+    fun allGuest(): List<Listen> = synchronized(lock) {
+        guestFile?.takeIf { it.exists() }?.let(::read).orEmpty()
+    }
+
+    private fun read(f: File): List<Listen> {
         val list = f.readLines().mapNotNull { line ->
             runCatching {
                 val o = JSONObject(line)
@@ -74,8 +87,7 @@ object ListenHistory {
                     artists?.ifEmpty { null } ?: listOf(artist.substringBefore(",").trim()), o.optString("trackId"))
             }.getOrNull()
         }
-        loaded = list
-        list
+        return list
     }
 
     fun clear() = synchronized(lock) { loaded = null; file?.delete(); owner()?.delete() }
