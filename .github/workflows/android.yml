@@ -57,6 +57,13 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v6
 
+      # Robolectric downloads instrumented Android runtimes into Maven's local cache, outside
+      # Gradle's cache. Reuse them across runs to reduce Maven Central rate-limit failures.
+      - uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository/org/robolectric/android-all-instrumented
+          key: robolectric-android-${{ runner.os }}-v1
+
       # Unit tests of every module that has them: the Android modules (app, host-android) run
       # testDebugUnitTest, the JVM modules (extensions, api-spotify, host-cdp) run test.
       # The live tests in host-cdp skip themselves without a browser to drive.

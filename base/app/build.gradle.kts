@@ -25,7 +25,12 @@ android {
     testOptions {
         unitTests {
             isIncludeAndroidResources = true
-            all { it.systemProperty("roborazzi.test.record", "true") }
+            all {
+                it.systemProperty("roborazzi.test.record", "true")
+                // Robolectric resolves Android runtimes outside Gradle. Use Maven Central's
+                // canonical endpoint so its requests share our normal dependency repository.
+                it.systemProperty("robolectric.dependency.repo.url", "https://repo.maven.apache.org/maven2")
+            }
         }
     }
     namespace = "app.myspoti.engine"
