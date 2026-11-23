@@ -972,20 +972,23 @@ object SongPlayer {
     private var listenPlayedMs = 0L
     private var listenTickAt = 0L
     private var listenWasPlaying = false
+    private var listenWasGuest = false
 
     /** Adds the time played since the last call; a new [key] closes the previous listen. */
     private fun trackListen(key: String, song: SongsModel?, source: com.music.spotui.data.local.ListenHistory.Source, isPlaying: Boolean) {
         val now = SystemClock.elapsedRealtime()
         if (listenWasPlaying && listenTickAt > 0) listenPlayedMs += now - listenTickAt
-        if (key != listenKey) {
+        val isGuest = com.music.spotui.data.GuestSession.active
+        if (key != listenKey || isGuest != listenWasGuest) {
             listenSong?.let { s ->
                 com.music.spotui.data.local.ListenHistory.record(com.music.spotui.data.local.ListenHistory.Listen(
                     System.currentTimeMillis(), listenKey, s.title, s.singer, s.album, s.coverUri, listenPlayedMs, listenSource,
                     com.music.spotui.data.local.ListenHistory.artistsOf(s.singer, s.artistIds),
                     spotifyTrackId = s.spotifyTrackId,
-                ))
+                ), guest = listenWasGuest)
             }
             listenKey = key; listenSong = song; listenSource = source; listenPlayedMs = 0
+            listenWasGuest = isGuest
         }
         listenTickAt = now
         listenWasPlaying = isPlaying
