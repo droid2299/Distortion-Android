@@ -48,6 +48,8 @@ import com.music.spotui.ui.immersive.screens.ImmersiveChip
 import com.music.spotui.ui.immersive.screens.ImmersiveChipRow
 import com.music.spotui.ui.immersive.Immersive
 import com.music.spotui.ui.immersive.shell.ImmersiveLargeTitle
+import com.music.spotui.data.local.GuestSavedLibrary
+
 import kotlinx.coroutines.*
 
 private val CataloguePathSaver = listSaver<List<CatalogueEntry>, String>(
@@ -59,7 +61,7 @@ private val CataloguePathSaver = listSaver<List<CatalogueEntry>, String>(
 )
 
 @Composable
-fun GuestCatalogueScreen(onLogin: () -> Unit, releases: Boolean = false) {
+fun GuestCatalogueScreen(onLogin: () -> Unit, releases: Boolean = false, initialEntry: CatalogueEntry? = null, onInitialBack: (() -> Unit)? = null) {
     val context = LocalContext.current
     val keyboard = LocalSoftwareKeyboardController.current
     val searchFocus = remember { FocusRequester() }
@@ -73,7 +75,9 @@ fun GuestCatalogueScreen(onLogin: () -> Unit, releases: Boolean = false) {
         }
     }
     var category by rememberSaveable { mutableIntStateOf(if (releases) CatalogueKind.ALBUM.ordinal else 0) }
-    var path by rememberSaveable(stateSaver = CataloguePathSaver) { mutableStateOf(emptyList<CatalogueEntry>()) }
+    var path by rememberSaveable(stateSaver = CataloguePathSaver) { mutableStateOf(listOfNotNull(initialEntry)) }
+    val saved by GuestSavedLibrary.store.entries.collectAsState()
+    LaunchedEffect(Unit) { GuestSavedLibrary.store.load() }
     var attempt by remember { mutableIntStateOf(0) }
     val kind = CatalogueKind.entries[category.coerceIn(CatalogueKind.entries.indices)]
     val creation = remember(attempt) {
@@ -120,7 +124,11 @@ fun GuestCatalogueScreen(onLogin: () -> Unit, releases: Boolean = false) {
         }
     }
 
-    BackHandler(path.isNotEmpty()) { path = path.dropLast(1) }
+    fun back() {
+        if (initialEntry != null && path.size == 1 && onInitialBack != null) onInitialBack()
+        else path = path.dropLast(1)
+    }
+    BackHandler(path.isNotEmpty()) { back() }
     LaunchedEffect(key, path, session) {
         moreJob?.cancel()
         loadingMore = false
@@ -193,7 +201,8 @@ fun GuestCatalogueScreen(onLogin: () -> Unit, releases: Boolean = false) {
         val pageTitle = stringResource(if (releases) R.string.bottom_tab_new else R.string.navigationbar_musicappitems_search_title)
         if (selected == null) ImmersiveLargeTitle(pageTitle)
         else Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = { path = path.dropLast(1) }) {
+            IconButton(onClick = { back() }) {
+
                 Icon(Icons.AutoMirrored.Rounded.ArrowBack, stringResource(R.string.catalogue_back))
             }
             Text(pageTitle, style = MaterialTheme.typography.headlineMedium, modifier = Modifier.weight(1f))
@@ -273,6 +282,13 @@ fun GuestCatalogueScreen(onLogin: () -> Unit, releases: Boolean = false) {
                             Text(current.entry.title, style = MaterialTheme.typography.headlineMedium)
                             if (current.entry.subtitle.isNotBlank()) Text(current.entry.subtitle, style = MaterialTheme.typography.bodyLarge)
                             Text(stringResource(R.string.guest_playback_description), style = MaterialTheme.typography.bodyMedium)
+                            val isSaved = saved.any { it.uri == current.entry.uri }
+                            OutlinedButton(onClick = {
+                                scope.launch {
+                                    val ok = GuestSavedLibrary.store.setSaved(current.entry, !isSaved)
+                                    if (!ok) android.widget.Toast.makeText(context, R.string.guest_save_failed, android.widget.Toast.LENGTH_LONG).show()
+                                }
+                            }) { Text(stringResource(if (isSaved) R.string.guest_remove_saved else R.string.guest_save)) }
                             val playable = if (current.entry.kind == CatalogueKind.TRACK) listOf(current.entry) else current.sections.firstOrNull { it.kind == CatalogueSectionKind.SONGS }?.entries.orEmpty()
                             if (playable.isNotEmpty()) FilledTonalButton(onClick = { playTracks(playable, playable.first()) }) { Text(stringResource(R.string.guest_playback_extension)) }
                             if (current.entry.kind == CatalogueKind.TRACK) {

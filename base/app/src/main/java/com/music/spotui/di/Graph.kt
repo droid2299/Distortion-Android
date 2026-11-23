@@ -18,6 +18,7 @@ object Graph {
         app = application
         com.music.spotui.data.GuestSession.init(application)
         com.music.spotui.data.local.GuestListening.init(application)
+        com.music.spotui.data.local.GuestSavedLibrary.init(application)
         // The data saver first: on a metered network with it on, nothing may go out, not even the page.
         com.music.spotui.data.DataSaver.init(application)
         // The Spotify session: hidden Web Player + API (operation hashes refresh themselves).
