@@ -76,6 +76,9 @@ object LocalPlaylists {
     /** Newest first. */
     fun list(): List<LocalPlaylist> = playlists.values.sortedByDescending { it.createdAt }
 
+    /** Wait for the asynchronous disk read before answering external library browsers. */
+    suspend fun awaitLoaded() = kotlinx.coroutines.withContext(Dispatchers.IO) { ensureLoaded() }
+
     fun create(name: String): LocalPlaylist {
         val p = LocalPlaylist(UUID.randomUUID().toString(), name.trim(), emptyList(), System.currentTimeMillis())
         update { playlists[p.id] = p }

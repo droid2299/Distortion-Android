@@ -19,6 +19,10 @@ import app.myspoti.api.MediaKind
 import app.myspoti.api.best
 import app.myspoti.api.groupRecents
 import com.music.spotui.data.DataSaver
+import com.music.spotui.data.GuestSession
+import com.music.spotui.data.local.GuestListening
+import com.music.spotui.data.local.LocalPlaylists
+import com.music.spotui.data.local.LocalTrack
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -29,6 +33,17 @@ import kotlinx.coroutines.withTimeoutOrNull
  * an empty folder then — MediaBrowserCompat has no error reply — and the log says why.
  */
 class AudioNotReady(what: String) : IllegalStateException("player not ready: $what")
+
+/** Opaque IDs keep local file paths out of external browser media IDs. */
+internal fun guestTrackKey(track: LocalTrack): String = java.security.MessageDigest.getInstance("SHA-256")
+    .digest(track.uri.toString().toByteArray(Charsets.UTF_8)).joinToString("") { "%02x".format(it) }
+
+internal fun guestFindRecent(tracks: List<LocalTrack>, query: String): List<LocalTrack> {
+    val value = query.trim().take(200)
+    if (value.length < 2) return emptyList()
+    return tracks.asSequence().filter { it.title.contains(value, ignoreCase = true) || it.artist.contains(value, ignoreCase = true) }
+        .distinctBy(::guestTrackKey).take(10).toList()
+}
 
 /**
  * Android Auto / media browser tree, built from the app's own data (not the web page).
@@ -87,6 +102,7 @@ object AutoBrowser {
      * unsubscribes (issue #41, cold start).
      */
     suspend fun children(context: Context, parentId: String): List<MediaItem> {
+        if (GuestSession.active) return guestChildren(context, parentId)
         when {
             parentId == ROOT -> return listOf(
                 tab(context, "home", R.string.aa_home, "aa_ic_home", STYLE_GRID),
@@ -273,6 +289,7 @@ object AutoBrowser {
     // ── Search ──
 
     suspend fun search(query: String): List<MediaItem> {
+        if (GuestSession.active) return guestFindRecent(GuestListening.recent.value, query).map(::guestRecentItem)
         if (!awaitPlayer()) throw AudioNotReady("search")
         // The last answer: the music comes first, the podcasts and episodes in a second one.
         val r = lastResult { Graph.api.searchEverything(query) } ?: return emptyList()
@@ -305,6 +322,11 @@ object AutoBrowser {
 
     /** Voice search ("play X on Myspoti"): the best matching track. */
     suspend fun playFromSearch(query: String): Boolean {
+        if (GuestSession.active) {
+            val track = guestFindRecent(GuestListening.recent.value, query).firstOrNull() ?: return false
+            play(guestRecentId(track))
+            return true
+        }
         // A cold start asks before the page is up: waiting gives the answer, returning at
         // once would tell the driver nothing matched.
         if (!awaitPlayer()) {
@@ -326,6 +348,22 @@ object AutoBrowser {
     fun play(mediaId: String) {
         val parts = mediaId.split("|", limit = 3)
         if (parts.size < 3) return
+        if (GuestSession.active) {
+            when (parts[0]) {
+                "guest-recent" -> {
+                    val track = GuestListening.recent.value.firstOrNull { guestTrackKey(it) == parts[2] } ?: return
+                    onMain { if (GuestSession.active) LocalPlayer.play(listOf(track), 0, context = track.title) }
+                }
+                "guest-playlist" -> {
+                    val playlist = LocalPlaylists.playlists[parts[1]] ?: return
+                    val index = playlist.items.indexOfFirst { it.key == parts[2] }
+                    if (index < 0) return
+                    val tracks = playlist.items.map { it.toTrack() }
+                    onMain { if (GuestSession.active) LocalPlayer.play(tracks, index, context = playlist.name) }
+                }
+            }
+            return
+        }
         when (parts[0]) {
             "t" -> playTrack(parts[1].ifBlank { null }, parts[2])
             "d" -> playDownloaded(parts[1], parts[2])
@@ -334,6 +372,34 @@ object AutoBrowser {
     }
 
     private fun onMain(block: () -> Unit) { android.os.Handler(android.os.Looper.getMainLooper()).post(block) }
+
+    private suspend fun guestChildren(context: Context, parentId: String): List<MediaItem> {
+        if (parentId == ROOT) return listOf(
+            tab(context, "home", R.string.aa_home, "aa_ic_home", STYLE_LIST),
+            tab(context, "library", R.string.aa_library, "aa_ic_library", STYLE_LIST),
+        )
+        if (parentId == "home") return GuestListening.recent.value.take(MAX_ITEMS).map(::guestRecentItem)
+        LocalPlaylists.awaitLoaded()
+        if (parentId == "library") return LocalPlaylists.list().take(MAX_ITEMS).map { playlist ->
+            browsable("guest-list:${playlist.id}", playlist.name, art(playlist.items.firstOrNull()?.artUri), grid = false)
+        }
+        if (parentId.startsWith("guest-list:")) {
+            val playlist = LocalPlaylists.playlists[parentId.removePrefix("guest-list:")] ?: return emptyList()
+            return playlist.items.take(MAX_ITEMS).map { item ->
+                val description = MediaDescriptionCompat.Builder().setMediaId("guest-playlist|${playlist.id}|${item.key}")
+                    .setTitle(item.title).setSubtitle(item.artist).setIconUri(art(item.artUri)).build()
+                MediaItem(description, MediaItem.FLAG_PLAYABLE)
+            }
+        }
+        return emptyList()
+    }
+
+    private fun guestRecentId(track: LocalTrack) = "guest-recent||${guestTrackKey(track)}"
+    private fun guestRecentItem(track: LocalTrack): MediaItem {
+        val description = MediaDescriptionCompat.Builder().setMediaId(guestRecentId(track))
+            .setTitle(track.title).setSubtitle(track.artist).setIconUri(art(track.artUri.toString())).build()
+        return MediaItem(description, MediaItem.FLAG_PLAYABLE)
+    }
 
     private fun playTrack(contextUri: String?, key: String) {
         val page = contextUri?.let { pages[it] }
